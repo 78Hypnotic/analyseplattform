@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import type { ReactNode } from "react";
 import {
   ArrowRight,
@@ -561,9 +562,30 @@ function Footer() {
             Datenbasiertes Coaching für Schwimmen, Laufen, Radfahren und Triathlon.
           </p>
         </div>
-        <FooterCol title="Produkt" links={["Disziplinen", "Preise", "Roadmap"]} />
-        <FooterCol title="Ressourcen" links={["Methodik", "FAQ", "Whitepaper"]} />
-        <FooterCol title="Unternehmen" links={["Kontakt", "Impressum", "Datenschutz"]} />
+        <FooterCol
+          title="Produkt"
+          links={[
+            { label: "Disziplinen", href: "/#disciplines" },
+            { label: "Preise", href: "/#preise" },
+            { label: "Roadmap", href: "/#faq" },
+          ]}
+        />
+        <FooterCol
+          title="Ressourcen"
+          links={[
+            { label: "Methodik", href: "/#methodik" },
+            { label: "FAQ", href: "/#faq" },
+            { label: "Cookies", href: "/cookies" },
+          ]}
+        />
+        <FooterCol
+          title="Unternehmen"
+          links={[
+            { label: "Kontakt", href: "mailto:manuel.hohlwegler@gmx.de" },
+            { label: "Impressum", href: "/impressum" },
+            { label: "Datenschutz", href: "/datenschutz" },
+          ]}
+        />
       </div>
       <div className="mx-auto flex max-w-6xl justify-between border-t border-[var(--line)] px-5 py-5 text-xs text-[var(--subtle)]">
         <span>2026 Trainingsanalyse</span>
@@ -573,13 +595,17 @@ function Footer() {
   );
 }
 
-function FooterCol({ title, links }: { title: string; links: string[] }) {
+function FooterCol({ title, links }: { title: string; links: Array<{ label: string; href: string }> }) {
   return (
     <div>
       <p className="mono mb-3 text-xs uppercase tracking-[0.16em] text-[var(--subtle)]">{title}</p>
       <ul className="space-y-2 text-sm text-[var(--muted)]">
         {links.map((link) => (
-          <li key={link}>{link}</li>
+          <li key={link.label}>
+            <Link href={link.href} className="hover:text-white">
+              {link.label}
+            </Link>
+          </li>
         ))}
       </ul>
     </div>
