@@ -6,33 +6,76 @@ import Link from "next/link";
 import { ArrowRight, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/button";
 import { ReportView } from "@/components/report-view";
-import { CHALLENGE_GROUPS, DEFAULT_ANALYSIS_INPUT, GOALS, LEVELS } from "@/lib/analysis/constants";
+import { CHALLENGE_GROUPS, GOALS, LEVELS } from "@/lib/analysis/constants";
 import { runAnalysis } from "@/lib/analysis/calculations";
+import { analysisInputSchema } from "@/lib/analysis/schema";
 import type { AnalysisInput } from "@/lib/analysis/types";
 import { createAnalysis } from "../actions";
+
+type AnalysisDraft = Omit<
+  AnalysisInput,
+  "age" | "gender" | "height" | "weight" | "poolLength" | "s200" | "s400" | "goal" | "level"
+> & {
+  age: number | "";
+  gender: AnalysisInput["gender"] | "";
+  height: number | "";
+  weight: number | "";
+  poolLength: AnalysisInput["poolLength"] | "";
+  s200: number | "";
+  s400: number | "";
+  goal: AnalysisInput["goal"] | "";
+  level: AnalysisInput["level"] | "";
+};
+
+const EMPTY_ANALYSIS_INPUT: AnalysisDraft = {
+  name: "",
+  age: "",
+  gender: "",
+  height: "",
+  weight: "",
+  poolLength: "",
+  t200: "",
+  s200: "",
+  t400: "",
+  s400: "",
+  t50: "",
+  goal: "",
+  level: "",
+  challenges: [],
+};
 
 export function AnalysisFlow() {
   const router = useRouter();
   const [step, setStep] = useState(0);
-  const [input, setInput] = useState<AnalysisInput>(DEFAULT_ANALYSIS_INPUT);
+  const [input, setInput] = useState<AnalysisDraft>(EMPTY_ANALYSIS_INPUT);
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const result = useMemo(() => runAnalysis(input), [input]);
+  const parsedInput = useMemo(() => {
+    const parsed = analysisInputSchema.safeParse(input);
+    return parsed.success ? parsed.data : null;
+  }, [input]);
+  const result = useMemo(() => (parsedInput ? runAnalysis(parsedInput) : null), [parsedInput]);
 
-  function update(patch: Partial<AnalysisInput>) {
+  function update(patch: Partial<AnalysisDraft>) {
     setInput((current) => ({ ...current, ...patch }));
   }
 
   function save() {
     setMessage(null);
+
+    if (!parsedInput) {
+      setMessage("Bitte fülle alle Pflichtfelder mit plausiblen Werten aus.");
+      return;
+    }
+
     startTransition(async () => {
-      const state = await createAnalysis(input);
+      const state = await createAnalysis(parsedInput);
       if (state.ok) {
         router.push(`/analyse/${state.id}`);
         return;
       }
       if (state.message.includes("melde dich")) {
-        setMessage("Analyse ist berechnet. Zum Speichern bitte per Magic Link einloggen.");
+        setMessage("Analyse ist berechnet. Zum Speichern bitte einloggen.");
         return;
       }
       setMessage(state.message);
@@ -75,8 +118,8 @@ export function AnalysisFlow() {
       ) : null}
       {step === 2 ? (
         <section className="space-y-6">
-          {result ? (
-            <ReportView input={input} result={result} />
+          {result && parsedInput ? (
+            <ReportView input={parsedInput} result={result} />
           ) : (
             <div className="surface p-6">
               <h2 className="text-xl font-semibold">Daten nicht plausibel</h2>
@@ -111,8 +154,8 @@ function ContextStep({
   update,
   next,
 }: {
-  input: AnalysisInput;
-  update: (patch: Partial<AnalysisInput>) => void;
+  input: AnalysisDraft;
+  update: (patch: Partial<AnalysisDraft>) => void;
   next: () => void;
 }) {
   function toggleChallenge(item: string) {
@@ -216,8 +259,8 @@ function DataStep({
   back,
   next,
 }: {
-  input: AnalysisInput;
-  update: (patch: Partial<AnalysisInput>) => void;
+  input: AnalysisDraft;
+  update: (patch: Partial<AnalysisDraft>) => void;
   back: () => void;
   next: () => void;
 }) {
@@ -228,21 +271,23 @@ function DataStep({
           Athlet
         </p>
         <div className="grid gap-4 md:grid-cols-3">
-          <Field label="Name" value={input.name} onChange={(value) => update({ name: value })} />
-          <Field label="Alter" type="number" value={input.age} onChange={(value) => update({ age: Number(value) })} />
+          <Field label="Name" value={input.name} placeholder="z. B. Lena Bergmann" onChange={(value) => update({ name: value })} />
+          <Field label="Alter" type="number" value={input.age} placeholder="z. B. 34" onChange={(value) => update({ age: optionalNumber(value) })} />
           <label className="grid gap-2 text-sm">
             Geschlecht
-            <select value={input.gender} onChange={(event) => update({ gender: event.target.value as AnalysisInput["gender"] })}>
+            <select value={input.gender} onChange={(event) => update({ gender: event.target.value as AnalysisDraft["gender"] })}>
+              <option value="" disabled>Auswählen</option>
               <option value="weiblich">weiblich</option>
               <option value="maennlich">männlich</option>
               <option value="divers">divers</option>
             </select>
           </label>
-          <Field label="Größe (cm)" type="number" value={input.height} onChange={(value) => update({ height: Number(value) })} />
-          <Field label="Gewicht (kg)" type="number" value={input.weight} onChange={(value) => update({ weight: Number(value) })} />
+          <Field label="Größe (cm)" type="number" value={input.height} placeholder="z. B. 172" onChange={(value) => update({ height: optionalNumber(value) })} />
+          <Field label="Gewicht (kg)" type="number" value={input.weight} placeholder="z. B. 63" onChange={(value) => update({ weight: optionalNumber(value) })} />
           <label className="grid gap-2 text-sm">
             Becken
-            <select value={input.poolLength} onChange={(event) => update({ poolLength: Number(event.target.value) as 25 | 50 })}>
+            <select value={input.poolLength} onChange={(event) => update({ poolLength: optionalNumber(event.target.value) as AnalysisDraft["poolLength"] })}>
+              <option value="" disabled>Auswählen</option>
               <option value={25}>25 m</option>
               <option value={50}>50 m</option>
             </select>
@@ -256,14 +301,14 @@ function DataStep({
           time={input.t200}
           strokes={input.s200}
           onTime={(value) => update({ t200: value })}
-          onStrokes={(value) => update({ s200: Number(value) })}
+          onStrokes={(value) => update({ s200: optionalNumber(value) })}
         />
         <TestCard
           title="400 m Test"
           time={input.t400}
           strokes={input.s400}
           onTime={(value) => update({ t400: value })}
-          onStrokes={(value) => update({ s400: Number(value) })}
+          onStrokes={(value) => update({ s400: optionalNumber(value) })}
         />
       </div>
 
@@ -271,7 +316,7 @@ function DataStep({
         <p className="mono mb-4 text-xs uppercase tracking-[0.18em] text-[var(--subtle)]">
           Optional
         </p>
-        <Field label="50 m Sprintzeit" value={input.t50 ?? ""} onChange={(value) => update({ t50: value })} />
+        <Field label="50 m Sprintzeit" value={input.t50 ?? ""} placeholder="z. B. 38.2" onChange={(value) => update({ t50: value })} />
       </div>
 
       <div className="flex justify-between">
@@ -295,7 +340,7 @@ function TestCard({
 }: {
   title: string;
   time: string;
-  strokes: number;
+  strokes: number | "";
   onTime: (value: string) => void;
   onStrokes: (value: string) => void;
 }) {
@@ -303,8 +348,8 @@ function TestCard({
     <div className="surface p-5">
       <h2 className="mb-4 text-xl font-semibold">{title}</h2>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Zeit" value={time} onChange={onTime} />
-        <Field label="Züge pro Bahn" type="number" value={strokes} onChange={onStrokes} />
+        <Field label="Zeit" value={time} placeholder={title.startsWith("200") ? "z. B. 3:38" : "z. B. 7:48"} onChange={onTime} />
+        <Field label="Züge pro Bahn" type="number" value={strokes} placeholder={title.startsWith("200") ? "z. B. 21" : "z. B. 22.5"} onChange={onStrokes} />
       </div>
     </div>
   );
@@ -314,17 +359,23 @@ function Field({
   label,
   value,
   onChange,
+  placeholder,
   type = "text",
 }: {
   label: string;
   value: string | number;
   onChange: (value: string) => void;
+  placeholder?: string;
   type?: string;
 }) {
   return (
     <label className="grid gap-2 text-sm">
       {label}
-      <input type={type} value={value} onChange={(event) => onChange(event.target.value)} />
+      <input type={type} value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} />
     </label>
   );
+}
+
+function optionalNumber(value: string) {
+  return value === "" ? "" : Number(value);
 }
