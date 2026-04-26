@@ -15,6 +15,8 @@ import {
 import { AppHeader } from "@/components/app-header";
 import { ButtonLink } from "@/components/button";
 
+export const dynamic = "force-dynamic";
+
 export default function Home() {
   return (
     <>

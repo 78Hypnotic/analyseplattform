@@ -1,6 +1,8 @@
 import { AppHeader } from "@/components/app-header";
 import { LoginForm } from "./login-form";
 
+export const dynamic = "force-dynamic";
+
 export default async function LoginPage({
   searchParams,
 }: {
