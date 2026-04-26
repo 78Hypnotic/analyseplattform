@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Trainingsanalyse",
-  description: "Datenbasierte Schwimm-Analyse fuer Ausdauersportler.",
+  description: "Datenbasierte Schwimm-Analyse für Ausdauersportler.",
 };
 
 export default function RootLayout({

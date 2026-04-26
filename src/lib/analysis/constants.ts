@@ -27,7 +27,7 @@ export const LEVELS = [
   {
     id: "Einsteiger",
     label: "Einsteiger",
-    description: "< 2 Jahre regelmaessig",
+    description: "< 2 Jahre regelmäßig",
   },
   {
     id: "Fortgeschritten",
@@ -37,7 +37,7 @@ export const LEVELS = [
   {
     id: "Ambitioniert",
     label: "Ambitioniert",
-    description: "Regelmaessiges Training, Wettkaempfe",
+    description: "Regelmäßiges Training, Wettkämpfe",
   },
   {
     id: "Leistungsschwimmer",
@@ -55,16 +55,16 @@ export const CHALLENGE_GROUPS = [
     group: "Armzug",
     items: [
       "Ich habe einen guten Armzug",
-      "Ich habe Probleme mit dem fruehen Wasserfassen",
+      "Ich habe Probleme mit dem frühen Wasserfassen",
       "Ich habe einen kurzen Armzug",
     ],
   },
   {
-    group: "Rueckfuehrung",
+    group: "Rückführung",
     items: [
       "Ich kann meine Arme locker nach vorne schwingen",
       "Ich schwimme mit hohem Ellenbogen",
-      "Ich fuehre meine Arme gestreckt nach vorne",
+      "Ich führe meine Arme gestreckt nach vorne",
       "Ich bekomme die Arme kaum aus dem Wasser",
     ],
   },
@@ -89,18 +89,18 @@ export const CHALLENGE_GROUPS = [
     group: "Beinarbeit",
     items: [
       "Mein Beinschlag klappt gut",
-      "Beinarbeit macht mich muede",
+      "Beinarbeit macht mich müde",
       "Meine Beine erzeugen kaum Vortrieb",
       "Ich mache kaum Beinschlag",
     ],
   },
   {
-    group: "Wassergefuehl",
+    group: "Wassergefühl",
     items: [
-      "Ich habe ein gutes Wassergefuehl",
-      "Ich spuere kaum Druck beim Armzug",
+      "Ich habe ein gutes Wassergefühl",
+      "Ich spüre kaum Druck beim Armzug",
       "Ich ziehe schnell, habe aber kaum Vortrieb",
-      "Ich ziehe ruhig und gleichmaessig",
+      "Ich ziehe ruhig und gleichmäßig",
     ],
   },
 ] as const;
@@ -121,7 +121,7 @@ export const DEFAULT_ANALYSIS_INPUT: AnalysisInput = {
   level: "Fortgeschritten",
   challenges: [
     "Meine Beine sinken ab",
-    "Ich habe Probleme mit dem fruehen Wasserfassen",
+    "Ich habe Probleme mit dem frühen Wasserfassen",
     "Ich hebe den Kopf zu stark",
   ],
 };

@@ -80,7 +80,7 @@ export function AnalysisFlow() {
           ) : (
             <div className="surface p-6">
               <h2 className="text-xl font-semibold">Daten nicht plausibel</h2>
-              <p className="muted mt-2">Bitte pruefe Zeiten und Zugzahlen.</p>
+              <p className="muted mt-2">Bitte prüfe Zeiten und Zugzahlen.</p>
             </div>
           )}
           {message ? (
@@ -93,7 +93,7 @@ export function AnalysisFlow() {
           ) : null}
           <div className="flex justify-between gap-3">
             <Button variant="ghost" onClick={() => setStep(1)}>
-              Zurueck
+              Zurück
             </Button>
             <Button variant="primary" onClick={save} disabled={!result || isPending}>
               {isPending ? <Loader2 className="animate-spin" size={16} /> : <Check size={16} />}
@@ -234,11 +234,11 @@ function DataStep({
             Geschlecht
             <select value={input.gender} onChange={(event) => update({ gender: event.target.value as AnalysisInput["gender"] })}>
               <option value="weiblich">weiblich</option>
-              <option value="maennlich">maennlich</option>
+              <option value="maennlich">männlich</option>
               <option value="divers">divers</option>
             </select>
           </label>
-          <Field label="Groesse (cm)" type="number" value={input.height} onChange={(value) => update({ height: Number(value) })} />
+          <Field label="Größe (cm)" type="number" value={input.height} onChange={(value) => update({ height: Number(value) })} />
           <Field label="Gewicht (kg)" type="number" value={input.weight} onChange={(value) => update({ weight: Number(value) })} />
           <label className="grid gap-2 text-sm">
             Becken
@@ -276,7 +276,7 @@ function DataStep({
 
       <div className="flex justify-between">
         <Button variant="ghost" onClick={back}>
-          Zurueck
+          Zurück
         </Button>
         <Button variant="primary" onClick={next}>
           Report anzeigen <ArrowRight size={16} />
@@ -304,7 +304,7 @@ function TestCard({
       <h2 className="mb-4 text-xl font-semibold">{title}</h2>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Zeit" value={time} onChange={onTime} />
-        <Field label="Zuege pro Bahn" type="number" value={strokes} onChange={onStrokes} />
+        <Field label="Züge pro Bahn" type="number" value={strokes} onChange={onStrokes} />
       </div>
     </div>
   );

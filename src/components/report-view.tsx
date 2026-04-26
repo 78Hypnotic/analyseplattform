@@ -23,7 +23,7 @@ export function ReportView({
           </h1>
           <p className="muted mt-4 max-w-2xl leading-7">
             Profil: {input.level}, Ziel: {input.goal}. Zielbild: {result.style}.
-            Der naechste sinnvolle Plan ist {result.plan.name}.
+            Der nächste sinnvolle Plan ist {result.plan.name}.
           </p>
         </div>
         <Triangle result={result} />
@@ -40,7 +40,7 @@ export function ReportView({
         <div className="surface p-5">
           <div className="mb-4 flex items-center gap-2 text-sm font-medium">
             <CheckCircle2 size={18} className="text-[var(--accent)]" />
-            Staerken
+            Stärken
           </div>
           <div className="space-y-4">
             {result.strengths.map((strength) => (

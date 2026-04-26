@@ -52,10 +52,10 @@ function Hero() {
             Schwimmen live | Laufen, Rad, Triathlon geplant
           </p>
           <h1 className="mt-6 max-w-4xl text-5xl font-semibold tracking-tight sm:text-7xl">
-            Datenbasiertes Coaching fuer Ausdauersportler.
+            Datenbasiertes Coaching für Ausdauersportler.
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-8 text-[var(--muted)]">
-            Zwei Testzeiten, Zugzahlen und ein kurzer Kontext reichen fuer einen
+            Zwei Testzeiten, Zugzahlen und ein kurzer Kontext reichen für einen
             verdichteten Schwimm-Report mit CSS, Hauptproblem, Cue, Drill und
             Planempfehlung.
           </p>
@@ -119,7 +119,7 @@ function Disciplines() {
           icon={<Bike size={22} />}
           title="Radfahren"
           meta="Geplant"
-          text="FTP, Drehmoment, Kadenz und oekonomische Belastung."
+          text="FTP, Drehmoment, Kadenz und ökonomische Belastung."
         />
         <DisciplineCard
           icon={<Triangle size={22} />}
@@ -169,7 +169,7 @@ function HowItWorks() {
         <Step number="01" title="Ziel & Niveau" text="Drei kurze Fragen ordnen deine Zahlen ein." />
         <Step number="02" title="200 m & 400 m" text="Zwei Zeiten und durchschnittliche Zugzahlen pro Bahn." />
         <Step number="03" title="Verdichtung" text="Pace, DPS, SR, CSS, VO2- und VLa-Proxy." />
-        <Step number="04" title="Plan & ReTest" text="Hauptproblem, Cue, Drill und naechster Trainingsblock." />
+        <Step number="04" title="Plan & ReTest" text="Hauptproblem, Cue, Drill und nächster Trainingsblock." />
       </div>
     </Section>
   );
@@ -192,8 +192,8 @@ function Method() {
         <div>
           <p className="muted max-w-xl leading-7">
             Das System bewertet keine Einzelwerte isoliert. Es analysiert, wie
-            Geschwindigkeit entsteht: ueber Zuglaenge, Frequenz oder ein
-            ineffizientes Verhaeltnis aus Aufwand und Output.
+            Geschwindigkeit entsteht: über Zuglänge, Frequenz oder ein
+            ineffizientes Verhältnis aus Aufwand und Output.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <ButtonLink href="/analyse/new" variant="primary">
@@ -202,9 +202,9 @@ function Method() {
           </div>
         </div>
         <div className="space-y-4">
-          <Metric icon={<Timer size={20} />} abbr="Pace" title="Tempo pro 100 m" text="Grundlage fuer 200 m, 400 m und CSS." />
+          <Metric icon={<Timer size={20} />} abbr="Pace" title="Tempo pro 100 m" text="Grundlage für 200 m, 400 m und CSS." />
           <Metric icon={<Waves size={20} />} abbr="DPS" title="Distance per Stroke" text="Wie viele Meter du aus einem Armzug holst." />
-          <Metric icon={<BarChart3 size={20} />} abbr="SR" title="Stroke Rate" text="Zuege pro Minute als Gegenspieler zur Zuglaenge." />
+          <Metric icon={<BarChart3 size={20} />} abbr="SR" title="Stroke Rate" text="Züge pro Minute als Gegenspieler zur Zuglänge." />
           <Metric icon={<LineChart size={20} />} abbr="CSS" title="Critical Swim Speed" text="Schwellen-Pace aus der Relation von 200 m und 400 m." />
         </div>
       </div>
@@ -239,11 +239,11 @@ function Metric({
 
 function ValueProps() {
   return (
-    <Section eyebrow="Wofuer" title="Weniger Zahlen. Mehr Hebel." muted>
+    <Section eyebrow="Wofür" title="Weniger Zahlen. Mehr Hebel." muted>
       <div className="mt-10 grid gap-4 lg:grid-cols-3">
-        <Value title="Max. 1-2 Baustellen" label="Priorisierung" text="Du bekommst die eine Sache, die jetzt zaehlt, mit Begruendung und konkretem Drill." />
+        <Value title="Max. 1-2 Baustellen" label="Priorisierung" text="Du bekommst die eine Sache, die jetzt zählt, mit Begruendung und konkretem Drill." />
         <Value title="Tempoabhaengige Analyse" label="Kontext" text="Eine hohe Frequenz im Sprint ist normal. Bei 400 m kann sie ein Symptom sein." />
-        <Value title="Plan statt Report" label="Transfer" text="Jede Analyse fuehrt zu einem naechsten 6-8-Wochen-Block mit ReTest-Logik." />
+        <Value title="Plan statt Report" label="Transfer" text="Jede Analyse führt zu einem nächsten 6-8-Wochen-Block mit ReTest-Logik." />
       </div>
     </Section>
   );
@@ -263,9 +263,9 @@ function Pricing() {
   return (
     <Section id="preise" eyebrow="Preise" title="Fair. Transparent.">
       <div className="mt-10 grid gap-4 lg:grid-cols-3">
-        <Plan name="Free" price="0" hint="Fuer den Einstieg" items={["1 Analyse / Monat", "Basis-Report", "Staerken + Hauptproblem", "Community-Zugang"]} href="/analyse/new" cta="Starten" />
+        <Plan name="Free" price="0" hint="Für den Einstieg" items={["1 Analyse / Monat", "Basis-Report", "Stärken + Hauptproblem", "Community-Zugang"]} href="/analyse/new" cta="Starten" />
         <Plan popular name="Athlet" price="9" hint="Unlimited analyses" items={["Unbegrenzt Analysen", "Voller Report + CSS, VLa, VO2", "Historie & ReTest-Vergleich", "PDF-Export geplant"]} href="/login" cta="Account erstellen" />
-        <Plan name="Coach" price="39" hint="Fuer Trainer mit Gruppen" items={["Bis zu 25 Athleten", "Team-Dashboard geplant", "Custom Trainingsplaene", "White-Label Reports geplant"]} href="/login" cta="Kontakt vorbereiten" />
+        <Plan name="Coach" price="39" hint="Für Trainer mit Gruppen" items={["Bis zu 25 Athleten", "Team-Dashboard geplant", "Custom Trainingspläne", "White-Label Reports geplant"]} href="/login" cta="Kontakt vorbereiten" />
       </div>
     </Section>
   );
@@ -317,12 +317,12 @@ function Plan({
 
 function Faq() {
   return (
-    <Section id="faq" eyebrow="FAQ" title="Haeufige Fragen." muted>
+    <Section id="faq" eyebrow="FAQ" title="Häufige Fragen." muted>
       <div className="mt-8 max-w-3xl space-y-3">
-        <FaqItem question="Brauche ich spezielle Hardware?" answer="Nein. Eine Stoppuhr oder ein Schwimmpartner, der zaehlt, reicht fuer den ersten Report." />
+        <FaqItem question="Brauche ich spezielle Hardware?" answer="Nein. Eine Stoppuhr oder ein Schwimmpartner, der zählt, reicht für den ersten Report." />
         <FaqItem question="Wie lange dauert ein Test?" answer="Der Swim-Test dauert etwa 12-15 Minuten inklusive Pause. Die Eingabe dauert ca. 2 Minuten." />
-        <FaqItem question="Ersetzt das einen Trainer?" answer="Nein. Es ist ein Werkzeug fuer Struktur, Priorisierung und bessere Trainingsentscheidungen." />
-        <FaqItem question="Wann kommen Laufen und Rad?" answer="Laufen ist als naechste Disziplin geplant, Rad und Triathlon folgen danach." />
+        <FaqItem question="Ersetzt das einen Trainer?" answer="Nein. Es ist ein Werkzeug für Struktur, Priorisierung und bessere Trainingsentscheidungen." />
+        <FaqItem question="Wann kommen Laufen und Rad?" answer="Laufen ist als nächste Disziplin geplant, Rad und Triathlon folgen danach." />
       </div>
     </Section>
   );
@@ -347,10 +347,10 @@ function Cta() {
         <div>
           <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--accent)]">Bereit?</p>
           <h2 className="mt-3 text-4xl font-semibold tracking-tight">
-            Zwei Tests. Ein Hebel. Dein naechster Block wird anders.
+            Zwei Tests. Ein Hebel. Dein nächster Block wird anders.
           </h2>
           <p className="muted mt-4 max-w-2xl leading-7">
-            Starte mit dem kostenfreien Schwimm-Report. Der Flow laeuft sofort,
+            Starte mit dem kostenfreien Schwimm-Report. Der Flow läuft sofort,
             Speichern geht nach dem Magic-Link Login.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
@@ -416,7 +416,7 @@ function Footer() {
             </div>
           </div>
           <p className="muted mt-4 max-w-sm text-sm leading-6">
-            Datenbasiertes Coaching fuer Schwimmen, Laufen, Radfahren und Triathlon.
+            Datenbasiertes Coaching für Schwimmen, Laufen, Radfahren und Triathlon.
           </p>
         </div>
         <FooterCol title="Produkt" links={["Disziplinen", "Preise", "Roadmap"]} />

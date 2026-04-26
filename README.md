@@ -1,6 +1,6 @@
 # Trainingsanalyse
 
-Next.js MVP fuer eine datenbasierte Schwimm-Trainingsanalyse.
+Next.js MVP für eine datenbasierte Schwimm-Trainingsanalyse.
 
 ## Setup
 
@@ -25,8 +25,8 @@ Sie erstellt:
 
 - `profiles`
 - `analyses`
-- Row Level Security fuer eigene Datensaetze
-- Trigger fuer neue Auth-User
+- Row Level Security für eigene Datensätze
+- Trigger für neue Auth-User
 
 ## Scripts
 

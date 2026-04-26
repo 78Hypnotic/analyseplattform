@@ -6,5 +6,9 @@ export function getSupabaseEnv() {
     throw new Error("Supabase environment variables are missing.");
   }
 
+  if (!/^https:\/\/[a-z0-9]+\.supabase\.co\/?$/.test(url)) {
+    throw new Error("Supabase URL must use the format https://<project-ref>.supabase.co.");
+  }
+
   return { url, anonKey };
 }
