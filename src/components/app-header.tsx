@@ -19,7 +19,16 @@ export function AppHeader({ userEmail }: { userEmail?: string | null }) {
           </span>
         </Link>
 
-        <nav className="flex items-center gap-2 text-sm">
+        <nav className="flex items-center gap-1 text-sm">
+          <Link className="hidden rounded-lg px-3 py-2 text-[var(--muted)] hover:text-white md:block" href="/#disciplines">
+            Disziplinen
+          </Link>
+          <Link className="hidden rounded-lg px-3 py-2 text-[var(--muted)] hover:text-white md:block" href="/#methodik">
+            Methodik
+          </Link>
+          <Link className="hidden rounded-lg px-3 py-2 text-[var(--muted)] hover:text-white md:block" href="/#preise">
+            Preise
+          </Link>
           <Link className="hidden items-center gap-2 rounded-lg px-3 py-2 text-[var(--muted)] hover:text-white sm:flex" href="/dashboard">
             <Activity size={16} />
             Dashboard

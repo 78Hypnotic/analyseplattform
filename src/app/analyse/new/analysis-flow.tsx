@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { ArrowRight, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/button";
 import { ReportView } from "@/components/report-view";
@@ -28,6 +29,10 @@ export function AnalysisFlow() {
       const state = await createAnalysis(input);
       if (state.ok) {
         router.push(`/analyse/${state.id}`);
+        return;
+      }
+      if (state.message.includes("melde dich")) {
+        setMessage("Analyse ist berechnet. Zum Speichern bitte per Magic Link einloggen.");
         return;
       }
       setMessage(state.message);
@@ -78,7 +83,14 @@ export function AnalysisFlow() {
               <p className="muted mt-2">Bitte pruefe Zeiten und Zugzahlen.</p>
             </div>
           )}
-          {message ? <p className="text-sm text-[var(--warn)]">{message}</p> : null}
+          {message ? (
+            <div className="surface border-[var(--warn)] p-4 text-sm text-[var(--warn)]">
+              {message}{" "}
+              <Link className="underline underline-offset-4" href="/login">
+                Zum Login
+              </Link>
+            </div>
+          ) : null}
           <div className="flex justify-between gap-3">
             <Button variant="ghost" onClick={() => setStep(1)}>
               Zurueck
