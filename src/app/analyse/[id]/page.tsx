@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { AppHeader } from "@/components/app-header";
+import { PdfExportButton } from "@/components/pdf-export-button";
 import { ReportView } from "@/components/report-view";
 import { getAnalysisById } from "@/lib/analyses";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -25,7 +26,16 @@ export default async function AnalysisDetailPage({
   return (
     <>
       <AppHeader />
-      <main className="mx-auto w-full max-w-6xl px-5 py-10">
+      <main className="print-report mx-auto w-full max-w-6xl px-5 py-10">
+        <div className="no-print mb-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+          <div>
+            <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--accent)]">
+              Report
+            </p>
+            <h1 className="mt-2 text-2xl font-semibold">{analysis.title}</h1>
+          </div>
+          <PdfExportButton />
+        </div>
         <ReportView input={analysis.input} result={analysis.result} />
       </main>
     </>
