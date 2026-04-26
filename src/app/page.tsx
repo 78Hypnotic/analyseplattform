@@ -14,30 +14,46 @@ import {
 } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
 import { ButtonLink } from "@/components/button";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-export default function Home() {
+export default async function Home() {
+  const isAuthenticated = await getIsAuthenticated();
+
   return (
     <>
       <AppHeader />
       <main>
-        <Hero />
+        <Hero isAuthenticated={isAuthenticated} />
         <Disciplines />
         <HowItWorks />
         <VocabularyMarquee />
         <Method />
         <ValueProps />
-        <Pricing />
+        <Pricing isAuthenticated={isAuthenticated} />
         <Faq />
-        <Cta />
+        <Cta isAuthenticated={isAuthenticated} />
       </main>
       <Footer />
     </>
   );
 }
 
-function Hero() {
+async function getIsAuthenticated() {
+  try {
+    const supabase = await createSupabaseServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    return Boolean(user);
+  } catch {
+    return false;
+  }
+}
+
+function Hero({ isAuthenticated }: { isAuthenticated: boolean }) {
   return (
     <section className="hero-grid-lines relative min-h-[calc(100svh-4.25rem)] overflow-hidden border-b border-[var(--line)]">
       <Image
@@ -66,10 +82,10 @@ function Hero() {
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <ButtonLink href="/analyse/new" variant="primary" className="h-12 px-6">
-                Kostenlose Analyse starten <ArrowRight size={16} />
+                {isAuthenticated ? "Neue Analyse starten" : "Kostenlose Analyse starten"} <ArrowRight size={16} />
               </ButtonLink>
-              <ButtonLink href="/login" className="h-12 px-6">
-                Account erstellen
+              <ButtonLink href={isAuthenticated ? "/analyse" : "/login"} className="h-12 px-6">
+                {isAuthenticated ? "Analysen öffnen" : "Account erstellen"}
               </ButtonLink>
             </div>
             <p className="mono mt-4 text-xs tracking-[0.14em] text-[var(--subtle)]">
@@ -374,13 +390,13 @@ function Value({ label, title, text }: { label: string; title: string; text: str
   );
 }
 
-function Pricing() {
+function Pricing({ isAuthenticated }: { isAuthenticated: boolean }) {
   return (
     <Section id="preise" eyebrow="Preise" title="Fair. Transparent.">
       <div className="mt-10 grid gap-4 lg:grid-cols-3">
         <Plan name="Free" price="0" hint="Für den Einstieg" items={["1 Analyse / Monat", "Basis-Report", "Stärken + Hauptproblem", "Community-Zugang"]} href="/analyse/new" cta="Starten" />
-        <Plan popular name="Athlet" price="9" hint="Unlimited analyses" items={["Unbegrenzt Analysen", "Voller Report + CSS, VLa, VO2", "Historie & ReTest-Vergleich", "PDF-Export geplant"]} href="/login" cta="Account erstellen" />
-        <Plan name="Coach" price="39" hint="Für Trainer mit Gruppen" items={["Bis zu 25 Athleten", "Team-Dashboard geplant", "Custom Trainingspläne", "White-Label Reports geplant"]} href="/login" cta="Kontakt vorbereiten" />
+        <Plan popular name="Athlet" price="9" hint="Unlimited analyses" items={["Unbegrenzt Analysen", "Voller Report + CSS, VLa, VO2", "Historie & ReTest-Vergleich", "PDF-Export geplant"]} href={isAuthenticated ? "/analyse" : "/login"} cta={isAuthenticated ? "Analysen öffnen" : "Account erstellen"} />
+        <Plan name="Coach" price="39" hint="Für Trainer mit Gruppen" items={["Bis zu 25 Athleten", "Team-Übersicht geplant", "Custom Trainingspläne", "White-Label Reports geplant"]} href={isAuthenticated ? "/analyse" : "/login"} cta={isAuthenticated ? "Analysen öffnen" : "Kontakt vorbereiten"} />
       </div>
     </Section>
   );
@@ -455,7 +471,7 @@ function FaqItem({ question, answer }: { question: string; answer: string }) {
   );
 }
 
-function Cta() {
+function Cta({ isAuthenticated }: { isAuthenticated: boolean }) {
   return (
     <section className="mx-auto max-w-6xl px-5 py-20">
       <div className="surface cta-stripes relative grid overflow-hidden rounded-[18px] border-[color-mix(in_oklab,var(--accent)_45%,var(--line))] bg-[color-mix(in_oklab,var(--panel)_72%,var(--accent)_18%)] p-8 pb-16 lg:grid-cols-[1fr_0.55fr] lg:items-center lg:p-12">
@@ -474,7 +490,9 @@ function Cta() {
             <ButtonLink href="/analyse/new" variant="primary">
               Analyse starten <ArrowRight size={16} />
             </ButtonLink>
-            <ButtonLink href="/login">Account erstellen</ButtonLink>
+            <ButtonLink href={isAuthenticated ? "/analyse" : "/login"}>
+              {isAuthenticated ? "Analysen öffnen" : "Account erstellen"}
+            </ButtonLink>
           </div>
         </div>
         <div className="relative z-10 text-left lg:text-right">
