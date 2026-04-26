@@ -84,7 +84,7 @@ select:focus {
 .wave-edge {
   position: absolute;
   inset-inline: 0;
-  bottom: 0;
+  top: calc(100svh - 4rem - 72px);
   height: 72px;
   overflow: hidden;
   color: color-mix(in oklab, var(--accent) 26%, #12312f);
