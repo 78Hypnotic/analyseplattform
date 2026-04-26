@@ -36,7 +36,7 @@ export async function AppHeader({ userEmail }: { userEmail?: string | null }) {
           </Link>
           <Link className="hidden items-center gap-2 rounded-lg px-3 py-2 text-[var(--muted)] hover:text-white sm:flex" href="/dashboard">
             <Activity size={16} />
-            Dashboard
+            Analyse
           </Link>
           {resolvedUserEmail ? (
             <div className="flex items-center gap-2">
