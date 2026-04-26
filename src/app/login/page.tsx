@@ -3,14 +3,7 @@ import { LoginForm } from "./login-form";
 
 export const dynamic = "force-dynamic";
 
-export default async function LoginPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ sent?: string; email?: string }>;
-}) {
-  const params = await searchParams;
-  const sent = params.sent === "1";
-
+export default function LoginPage() {
   return (
     <>
       <AppHeader />
@@ -19,15 +12,12 @@ export default async function LoginPage({
           <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--accent)]">
             Login
           </p>
-          <h1 className="mt-3 text-3xl font-semibold">Magic Link anfordern</h1>
-          {sent ? (
-            <p className="muted mt-4 leading-7">
-              Link gesendet an {params.email}. Bitte E-Mail prüfen und den Link
-              im selben Browser öffnen.
-            </p>
-          ) : (
-            <LoginForm />
-          )}
+          <h1 className="mt-3 text-3xl font-semibold">Einloggen</h1>
+          <p className="muted mt-4 leading-7">
+            Melde dich mit E-Mail und Passwort an oder erstelle direkt einen
+            Account.
+          </p>
+          <LoginForm />
         </section>
       </main>
     </>
