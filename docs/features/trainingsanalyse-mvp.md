@@ -5,7 +5,7 @@ gespeicherten Analysen, erweitertem Report und Admin-verwalteten Trainingspläne
 
 ## Umfang
 
-- Passwort-Login, Registrierung und Passwort-Reset
+- Passwort-Login, Registrierung, Passwort-Reset und Profilbild-Upload
 - Neuer Analyseflow für Schwimmen
 - Zielwettkampf-Kontext mit Zielstrecke, optionalem Wettkampfdatum und Einheiten/Woche
 - Berechnung von Pace, DPS, SR, CSS, VO2-Proxy, VLa-Proxy und Sprint-Reserve

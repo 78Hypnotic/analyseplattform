@@ -1,4 +1,4 @@
-import { Activity, LogOut, ShieldCheck, UserRound, Waves } from "lucide-react";
+import { Activity, LogOut, ShieldCheck, Waves } from "lucide-react";
 import Link from "next/link";
 import { signOut } from "@/app/login/actions";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -10,10 +10,11 @@ export async function AppHeader({ userEmail }: { userEmail?: string | null }) {
   const currentUser =
     userEmail === undefined
       ? await getCurrentUserProfile()
-      : { email: userEmail, name: null, role: null };
+      : { email: userEmail, name: null, role: null, avatarUrl: null };
   const resolvedUserEmail = currentUser.email;
   const profileLabel = currentUser.name || currentUser.email;
   const isAdmin = currentUser.role === "admin";
+  const profileInitials = buildInitials(profileLabel ?? "Profil");
 
   return (
     <header className="relative border-b border-[var(--line)] bg-black/30">
@@ -57,7 +58,14 @@ export async function AppHeader({ userEmail }: { userEmail?: string | null }) {
                 className="flex items-center gap-2 rounded-lg border border-[var(--line)] bg-[var(--panel-2)] px-3 py-2 text-[var(--muted)] transition hover:border-[var(--accent)] hover:text-white"
                 title="Profil bearbeiten"
               >
-                <UserRound size={15} />
+                <span className="flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-full bg-black/30 text-[10px] font-semibold text-white">
+                  {currentUser.avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={currentUser.avatarUrl} alt="" className="size-full object-cover" />
+                  ) : (
+                    <span>{profileInitials}</span>
+                  )}
+                </span>
                 <span className="mono hidden max-w-44 truncate text-xs sm:block">
                   {profileLabel}
                 </span>
@@ -78,6 +86,7 @@ export async function AppHeader({ userEmail }: { userEmail?: string | null }) {
           isAuthenticated={Boolean(resolvedUserEmail)}
           isAdmin={isAdmin}
           profileLabel={profileLabel}
+          avatarUrl={currentUser.avatarUrl}
         />
       </div>
     </header>
@@ -111,7 +120,7 @@ async function getCurrentUserProfile() {
         .maybeSingle(),
     ]);
 
-    const profile = profileData as { full_name?: string | null } | null;
+    const profile = profileData as { full_name?: string | null; avatar_url?: string | null } | null;
     const role =
       roleData?.role === "admin" || roleData?.role === "user"
         ? (roleData.role as AppRole)
@@ -120,9 +129,21 @@ async function getCurrentUserProfile() {
     return {
       email: user.email ?? null,
       name: profile?.full_name || metadataName,
+      avatarUrl: profile?.avatar_url ?? getMetadataAvatarUrl(user.user_metadata?.avatar_url),
       role,
     };
   } catch {
-    return { email: null, name: null, role: null };
+    return { email: null, name: null, role: null, avatarUrl: null };
   }
+}
+
+function getMetadataAvatarUrl(value: unknown) {
+  return typeof value === "string" ? value : null;
+}
+
+function buildInitials(label: string) {
+  const parts = label.trim().split(/\s+/).filter(Boolean);
+  const first = parts[0]?.[0] ?? "?";
+  const second = parts.length > 1 ? parts[parts.length - 1]?.[0] : "";
+  return `${first}${second}`.toUpperCase();
 }

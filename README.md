@@ -29,7 +29,7 @@ Supabase Auth muss dieselbe URL erlauben:
 ## Featureumfang
 
 - Passwort-Login und Registrierung mit Supabase Auth
-- Profilseite mit Name und E-Mail
+- Profilseite mit Name, E-Mail und Profilbild-Upload
 - Analyseflow für Schwimmen: Kontext, Zielwettkampf, Testdaten, Report
 - Zielstrecke, optionales Wettkampfdatum und Schwimmeinheiten pro Woche
 - Automatische Planlänge aus Basisplan, Einheiten/Woche und Wettkampfdatum

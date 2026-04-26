@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { AppHeader } from "@/components/app-header";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { AvatarUploader } from "./avatar-uploader";
 import { ProfileForm } from "./profile-form";
 
 export const dynamic = "force-dynamic";
@@ -19,11 +20,12 @@ export default async function ProfilePage() {
     .eq("id", user.id)
     .maybeSingle();
 
-  const profile = data as { full_name?: string | null } | null;
+  const profile = data as { full_name?: string | null; avatar_url?: string | null } | null;
   const metadataName =
     typeof user.user_metadata?.full_name === "string"
       ? user.user_metadata.full_name
       : "";
+  const fullName = profile?.full_name ?? metadataName;
 
   return (
     <>
@@ -39,9 +41,14 @@ export default async function ProfilePage() {
           Speichere hier die Basisdaten, die oben im Profil und später in deinen
           Reports verwendet werden.
         </p>
+        <AvatarUploader
+          userId={user.id}
+          fullName={fullName || user.email || "Profil"}
+          avatarUrl={profile?.avatar_url}
+        />
         <ProfileForm
           email={user.email ?? ""}
-          fullName={profile?.full_name ?? metadataName}
+          fullName={fullName}
         />
       </main>
     </>

@@ -10,10 +10,12 @@ export function MobileHeaderMenu({
   isAuthenticated,
   isAdmin,
   profileLabel,
+  avatarUrl,
 }: {
   isAuthenticated: boolean;
   isAdmin: boolean;
   profileLabel: string | null;
+  avatarUrl?: string | null;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -45,7 +47,7 @@ export function MobileHeaderMenu({
                 <MobileLink
                   href="/profile"
                   label={profileLabel ?? "Profil"}
-                  icon={<UserRound size={16} />}
+                  icon={<MobileAvatar avatarUrl={avatarUrl} label={profileLabel ?? "Profil"} />}
                   onClick={() => setOpen(false)}
                 />
                 <form action={signOut}>
@@ -62,6 +64,20 @@ export function MobileHeaderMenu({
         </div>
       ) : null}
     </div>
+  );
+}
+
+function MobileAvatar({ avatarUrl, label }: { avatarUrl?: string | null; label: string }) {
+  return (
+    <span className="flex size-5 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--panel-2)] text-[9px] font-semibold text-white">
+      {avatarUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={avatarUrl} alt="" className="size-full object-cover" />
+      ) : (
+        <UserRound size={14} aria-hidden="true" />
+      )}
+      <span className="sr-only">{label}</span>
+    </span>
   );
 }
 
