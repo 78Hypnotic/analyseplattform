@@ -84,12 +84,19 @@ select:focus {
 .wave-edge {
   position: absolute;
   inset-inline: 0;
-  top: calc(100svh - 4rem - 72px);
+  bottom: 0;
   height: 72px;
   overflow: hidden;
   color: color-mix(in oklab, var(--accent) 26%, #12312f);
   opacity: 0.66;
   pointer-events: none;
+}
+
+@media (min-width: 1024px) {
+  .wave-edge {
+    bottom: auto;
+    top: calc(100svh - 4rem - 72px);
+  }
 }
 
 .wave-edge svg {
