@@ -34,7 +34,7 @@ export async function AppHeader({ userEmail }: { userEmail?: string | null }) {
           <Link className="hidden rounded-lg px-3 py-2 text-[var(--muted)] hover:text-white md:block" href="/#preise">
             Preise
           </Link>
-          <Link className="hidden items-center gap-2 rounded-lg px-3 py-2 text-[var(--muted)] hover:text-white sm:flex" href="/dashboard">
+          <Link className="hidden items-center gap-2 rounded-lg px-3 py-2 text-[var(--muted)] hover:text-white sm:flex" href="/analyse">
             <Activity size={16} />
             Analyse
           </Link>

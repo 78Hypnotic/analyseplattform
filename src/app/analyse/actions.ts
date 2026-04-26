@@ -44,7 +44,7 @@ export async function createAnalysis(input: AnalysisInput): Promise<CreateAnalys
 
     if (error) return { ok: false, message: error.message };
 
-    revalidatePath("/dashboard");
+    revalidatePath("/analyse");
     return { ok: true, id: data.id as string };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Analyse konnte nicht gespeichert werden.";

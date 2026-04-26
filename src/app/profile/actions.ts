@@ -50,7 +50,7 @@ export async function updateProfile(
 
   revalidatePath("/");
   revalidatePath("/profile");
-  revalidatePath("/dashboard");
+  revalidatePath("/analyse");
 
   return { message: "Profil gespeichert." };
 }

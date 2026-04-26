@@ -49,7 +49,7 @@ export async function signInWithPassword(
     return { message: mapActionError(error, "Login fehlgeschlagen.") };
   }
 
-  redirect("/dashboard");
+  redirect("/analyse");
 }
 
 export async function signUpWithPassword(
@@ -104,7 +104,7 @@ export async function signUpWithPassword(
     return { message: mapActionError(error, "Account konnte nicht erstellt werden.") };
   }
 
-  redirect("/dashboard");
+  redirect("/analyse");
 }
 
 export async function signOut() {
