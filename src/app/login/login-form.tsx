@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/button";
 import {
   signInWithPassword,
@@ -82,6 +83,12 @@ export function LoginForm() {
               ? "Account wird erstellt..."
               : "Account erstellen"}
         </Button>
+
+        {mode === "login" ? (
+          <Link href="/reset-password" className="block text-center text-sm text-[var(--muted)] hover:text-white">
+            Passwort vergessen?
+          </Link>
+        ) : null}
       </form>
     </div>
   );
