@@ -37,63 +37,140 @@ export default function Home() {
 
 function Hero() {
   return (
-    <section className="relative overflow-hidden border-b border-[var(--line)]">
+    <section className="hero-grid-lines relative overflow-hidden border-b border-[var(--line)]">
       <Image
         src="/swimmer-top.jpg"
         alt="Schwimmer im Training"
         fill
         priority
-        className="object-cover opacity-35"
+        className="object-cover opacity-15"
       />
-      <div className="absolute inset-0 bg-gradient-to-r from-[#0b0c0d] via-[#0b0c0d]/82 to-[#0b0c0d]/30" />
-      <div className="relative mx-auto flex min-h-[680px] max-w-6xl items-center px-5 py-20">
-        <div className="max-w-3xl">
-          <p className="mono inline-flex rounded-full border border-[var(--line)] bg-black/25 px-3 py-2 text-xs uppercase tracking-[0.2em] text-[var(--accent)]">
-            Schwimmen live | Laufen, Rad, Triathlon geplant
-          </p>
-          <h1 className="mt-6 max-w-4xl text-5xl font-semibold tracking-tight sm:text-7xl">
-            Datenbasiertes Coaching für Ausdauersportler.
-          </h1>
-          <p className="mt-6 max-w-2xl text-lg leading-8 text-[var(--muted)]">
-            Zwei Testzeiten, Zugzahlen und ein kurzer Kontext reichen für einen
-            verdichteten Schwimm-Report mit CSS, Hauptproblem, Cue, Drill und
-            Planempfehlung.
-          </p>
-          <div className="mt-8 flex flex-wrap items-center gap-3">
-            <ButtonLink href="/analyse/new" variant="primary">
-              Analyse starten <ArrowRight size={16} />
-            </ButtonLink>
-            <ButtonLink href="#methodik">Methodik ansehen</ButtonLink>
-            <span className="mono text-xs uppercase tracking-[0.14em] text-[var(--subtle)]">
-              Kein Labor. Keine Datenflut.
-            </span>
+      <div className="absolute inset-0 bg-gradient-to-r from-[#0b0c0d] via-[#0b0c0d]/94 to-[#0b0c0d]/82" />
+      <div className="relative mx-auto min-h-[760px] max-w-6xl px-5 pb-28 pt-24">
+        <div className="grid gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
+          <div>
+            <p className="mono inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-black/25 px-3 py-2 text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
+              <span className="size-2 rounded-full bg-[var(--accent)] shadow-[0_0_0_4px_rgba(94,227,211,0.14)]" />
+              Endurance Coaching · Live für Schwimmen
+            </p>
+            <h1 className="display-serif mt-6 max-w-3xl text-6xl leading-[0.95] text-white sm:text-8xl">
+              Deine Zeit. Dein <em className="text-[var(--muted)]">Hebel.</em>{" "}
+              <em className="text-[var(--accent)]">Klar.</em>
+            </h1>
+            <p className="mt-7 max-w-2xl text-lg leading-8 text-[var(--muted)]">
+              Bewährte Testprotokolle, klare Diagnose, konkrete Maßnahmen. Ohne
+              Labor, ohne Datenflut. Zwei Testzeiten und zwei Zugzahlen ergeben
+              einen verdichteten Coaching-Report.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <ButtonLink href="/analyse/new" variant="primary" className="h-12 px-6">
+                Kostenlose Analyse starten <ArrowRight size={16} />
+              </ButtonLink>
+              <ButtonLink href="/login" className="h-12 px-6">
+                Account erstellen
+              </ButtonLink>
+            </div>
+            <p className="mono mt-4 text-xs tracking-[0.14em] text-[var(--subtle)]">
+              Ø 2 Minuten · keine Kreditkarte
+            </p>
           </div>
+          <ReportPreview />
         </div>
+        <Stats />
       </div>
+      <WaveEdge />
     </section>
   );
 }
 
 function Stats() {
   return (
-    <section className="border-b border-[var(--line)] bg-[var(--panel)]">
-      <div className="mx-auto grid max-w-6xl gap-4 px-5 py-8 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat value="2" label="Pflichttests" />
-        <Stat value="3" label="Kernmetriken" />
-        <Stat value="6-8" label="Wochen Planlogik" />
-        <Stat value="1" label="Priorisierter Hebel" />
-      </div>
-    </section>
+    <div className="mt-24 grid gap-8 border-y border-[var(--line)] py-9 sm:grid-cols-2 lg:grid-cols-4">
+      <Stat value="2 Tests" label="200 m + 400 m" />
+      <Stat value="8 Metriken" label="Pace · DPS · SR · CSS · ..." />
+      <Stat value="1 Hebel" label="Priorisiertes Hauptproblem" />
+      <Stat value="6-8 Wo." label="Trainingsplan + ReTest" />
+    </div>
   );
 }
 
 function Stat({ value, label }: { value: string; label: string }) {
   return (
     <div>
-      <p className="text-4xl font-semibold tracking-tight">{value}</p>
+      <p className="display-serif text-4xl leading-none text-white sm:text-5xl">{value}</p>
       <p className="mono mt-2 text-xs uppercase tracking-[0.16em] text-[var(--subtle)]">
         {label}
       </p>
+    </div>
+  );
+}
+
+function ReportPreview() {
+  return (
+    <div className="surface rounded-[20px] bg-[color-mix(in_oklab,var(--panel)_92%,var(--accent)_8%)] p-7 shadow-2xl shadow-black/40">
+      <div className="mb-6 flex items-center justify-between">
+        <p className="mono text-[10px] uppercase tracking-[0.22em] text-[var(--subtle)]">
+          Analyse-Ergebnis · Lena B.
+        </p>
+        <p className="mono text-[10px] uppercase tracking-[0.16em] text-[#8fe388]">
+          · Abgeschlossen
+        </p>
+      </div>
+      <h2 className="display-serif text-3xl leading-tight">
+        Du gewinnst auf <em>Frequenz</em> und verlierst <em>Länge</em>.
+      </h2>
+      <div className="mt-6 grid gap-3 sm:grid-cols-3">
+        <PreviewMetric label="Pace 400" value="1:57" hint="/100 m" />
+        <PreviewMetric label="CSS" value="1:55" hint="Schwelle" active />
+        <PreviewMetric label="DPS 400" value="1.11" hint="m / Zug" />
+      </div>
+      <div className="mt-5 rounded-lg border border-[color-mix(in_oklab,var(--warn)_35%,var(--line))] bg-[rgba(245,194,107,0.06)] p-4">
+        <p className="mono mb-2 inline-flex rounded bg-[rgba(245,194,107,0.12)] px-2 py-1 text-[10px] uppercase tracking-[0.12em] text-[var(--warn)]">
+          Hauptproblem
+        </p>
+        <h3 className="font-semibold">Wasserlage: die Hüfte liegt zu tief</h3>
+        <p className="muted mt-2 text-sm leading-6">
+          Beine sinken ab, Körper zieht nach unten. Jeder Zug kompensiert
+          Bremseffekt statt Vortrieb zu erzeugen.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function PreviewMetric({
+  label,
+  value,
+  hint,
+  active,
+}: {
+  label: string;
+  value: string;
+  hint: string;
+  active?: boolean;
+}) {
+  return (
+    <div className={active ? "rounded-lg border border-[var(--accent)] bg-[rgba(94,227,211,0.08)] p-4" : "rounded-lg border border-[var(--line)] bg-black/20 p-4"}>
+      <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--subtle)]">{label}</p>
+      <p className={active ? "display-serif mt-3 text-3xl text-[var(--accent)]" : "display-serif mt-3 text-3xl"}>
+        {value}
+      </p>
+      <p className="mono mt-1 text-[10px] text-[var(--subtle)]">{hint}</p>
+    </div>
+  );
+}
+
+function WaveEdge() {
+  return (
+    <div className="wave-edge" aria-hidden="true">
+      <svg viewBox="0 0 1200 80" preserveAspectRatio="none">
+        <path d="M0,58 C190,58 235,36 410,42 C590,48 645,72 820,64 C1010,56 1030,38 1200,48 L1200,80 L0,80 Z" fill="currentColor" />
+        <path d="M1200,58 C1390,58 1435,36 1610,42 C1790,48 1845,72 2020,64 C2210,56 2230,38 2400,48 L2400,80 L1200,80 Z" fill="currentColor" />
+      </svg>
+      <svg viewBox="0 0 1200 80" preserveAspectRatio="none">
+        <path d="M0,50 C160,42 250,44 400,58 C555,72 650,72 815,56 C1000,38 1070,42 1200,54 L1200,80 L0,80 Z" fill="currentColor" />
+        <path d="M1200,50 C1360,42 1450,44 1600,58 C1755,72 1850,72 2015,56 C2200,38 2270,42 2400,54 L2400,80 L1200,80 Z" fill="currentColor" />
+      </svg>
     </div>
   );
 }
@@ -241,8 +318,8 @@ function ValueProps() {
   return (
     <Section eyebrow="Wofür" title="Weniger Zahlen. Mehr Hebel." muted>
       <div className="mt-10 grid gap-4 lg:grid-cols-3">
-        <Value title="Max. 1-2 Baustellen" label="Priorisierung" text="Du bekommst die eine Sache, die jetzt zählt, mit Begruendung und konkretem Drill." />
-        <Value title="Tempoabhaengige Analyse" label="Kontext" text="Eine hohe Frequenz im Sprint ist normal. Bei 400 m kann sie ein Symptom sein." />
+        <Value title="Max. 1-2 Baustellen" label="Priorisierung" text="Du bekommst die eine Sache, die jetzt zählt, mit Begründung und konkretem Drill." />
+        <Value title="Tempoabhängige Analyse" label="Kontext" text="Eine hohe Frequenz im Sprint ist normal. Bei 400 m kann sie ein Symptom sein." />
         <Value title="Plan statt Report" label="Transfer" text="Jede Analyse führt zu einem nächsten 6-8-Wochen-Block mit ReTest-Logik." />
       </div>
     </Section>
@@ -342,16 +419,18 @@ function FaqItem({ question, answer }: { question: string; answer: string }) {
 
 function Cta() {
   return (
-    <section className="mx-auto max-w-6xl px-5 py-16">
-      <div className="surface grid gap-8 border-[var(--accent)] bg-[color-mix(in_oklab,var(--accent)_8%,var(--panel))] p-8 lg:grid-cols-[1fr_0.55fr] lg:items-center">
-        <div>
-          <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--accent)]">Bereit?</p>
-          <h2 className="mt-3 text-4xl font-semibold tracking-tight">
-            Zwei Tests. Ein Hebel. Dein nächster Block wird anders.
+    <section className="mx-auto max-w-6xl px-5 py-20">
+      <div className="surface cta-stripes relative grid overflow-hidden rounded-[18px] border-[color-mix(in_oklab,var(--accent)_45%,var(--line))] bg-[color-mix(in_oklab,var(--panel)_72%,var(--accent)_18%)] p-8 pb-16 lg:grid-cols-[1fr_0.55fr] lg:items-center lg:p-12">
+        <div className="relative z-10">
+          <p className="mono mb-4 inline-flex rounded-full border border-[var(--line)] px-3 py-2 text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">
+            Bereit?
+          </p>
+          <h2 className="display-serif max-w-xl text-5xl leading-[0.98] text-white">
+            Zwei Tests. Ein Hebel. <em>Dein nächster Block wird anders.</em>
           </h2>
           <p className="muted mt-4 max-w-2xl leading-7">
-            Starte mit dem kostenfreien Schwimm-Report. Der Flow läuft sofort,
-            Speichern geht nach dem Magic-Link Login.
+            Starte mit dem kostenfreien Schwimm-Report. Keine Kreditkarte, kein
+            Download.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <ButtonLink href="/analyse/new" variant="primary">
@@ -360,8 +439,8 @@ function Cta() {
             <ButtonLink href="/login">Account erstellen</ButtonLink>
           </div>
         </div>
-        <div className="text-left lg:text-right">
-          <p className="text-7xl font-semibold tracking-tight text-[var(--accent)]">2:00</p>
+        <div className="relative z-10 text-left lg:text-right">
+          <p className="display-serif text-8xl leading-none tracking-tight text-[color-mix(in_oklab,var(--accent)_65%,transparent)] sm:text-9xl">2:00</p>
           <p className="mono mt-2 text-xs uppercase tracking-[0.18em] text-[var(--subtle)]">
             Minuten bis zum Report
           </p>

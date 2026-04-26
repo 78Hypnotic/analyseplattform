@@ -15,7 +15,13 @@ Erforderliche Variablen:
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
+NEXT_PUBLIC_SITE_URL=https://analyseplattform.vercel.app
 ```
+
+Supabase Auth muss dieselbe URL erlauben:
+
+- Site URL: `https://analyseplattform.vercel.app`
+- Redirect URL: `https://analyseplattform.vercel.app/auth/callback`
 
 ## Supabase
 

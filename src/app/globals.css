@@ -16,14 +16,15 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "Geist Mono", "Geist Mono Fallback", ui-monospace, monospace;
+  --font-sans: "Inter Tight", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-serif: "Instrument Serif", Georgia, serif;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter-tight), Arial, Helvetica, sans-serif;
 }
 
 button,
@@ -64,5 +65,60 @@ select:focus {
 }
 
 .mono {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
+}
+
+.display-serif {
+  font-family: var(--font-instrument-serif), Georgia, serif;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+}
+
+.hero-grid-lines {
+  background-image:
+    linear-gradient(to bottom, transparent 0, transparent 84px, rgba(94, 227, 211, 0.08) 85px, transparent 86px),
+    linear-gradient(to right, transparent 0, transparent 31px, rgba(255, 255, 255, 0.018) 32px, transparent 33px);
+  background-size: 100% 170px, 64px 64px;
+}
+
+.wave-edge {
+  position: absolute;
+  inset-inline: 0;
+  bottom: -1px;
+  height: 56px;
+  overflow: hidden;
+  color: color-mix(in oklab, var(--accent) 26%, #12312f);
+  opacity: 0.58;
+  pointer-events: none;
+}
+
+.wave-edge svg {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 200%;
+  height: 100%;
+  animation: wave-slide 12s linear infinite;
+}
+
+.wave-edge svg:nth-child(2) {
+  bottom: -10px;
+  opacity: 0.55;
+  animation-duration: 18s;
+  animation-direction: reverse;
+}
+
+@keyframes wave-slide {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.cta-stripes {
+  background-image:
+    linear-gradient(90deg, rgba(94, 227, 211, 0.13) 0 18px, transparent 18px 36px),
+    radial-gradient(700px 320px at 90% 0%, rgba(94, 227, 211, 0.18), transparent 65%);
 }

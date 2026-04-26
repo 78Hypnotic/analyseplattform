@@ -27,7 +27,7 @@ export async function signInWithMagicLink(
   try {
     await assertRateLimit("login", 5, 60_000);
     const headerStore = await headers();
-    const origin = headerStore.get("origin") ?? "http://localhost:3000";
+    const origin = getAuthRedirectOrigin(headerStore.get("origin"));
     const supabase = await createSupabaseServerClient();
 
     const { error } = await supabase.auth.signInWithOtp({
@@ -64,4 +64,20 @@ export async function signOut() {
   const supabase = await createSupabaseServerClient();
   await supabase.auth.signOut();
   redirect("/");
+}
+
+function getAuthRedirectOrigin(requestOrigin: string | null) {
+  if (process.env.NEXT_PUBLIC_SITE_URL) {
+    return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
+  }
+
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+  }
+
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+
+  return requestOrigin ?? "http://localhost:3000";
 }
