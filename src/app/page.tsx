@@ -39,7 +39,7 @@ export default function Home() {
 
 function Hero() {
   return (
-    <section className="hero-grid-lines relative overflow-hidden border-b border-[var(--line)]">
+    <section className="hero-grid-lines relative min-h-[calc(100svh-4.25rem)] overflow-hidden border-b border-[var(--line)]">
       <Image
         src="/swimmer-top.jpg"
         alt="Schwimmer im Training"
@@ -48,7 +48,7 @@ function Hero() {
         className="object-cover opacity-15"
       />
       <div className="absolute inset-0 bg-gradient-to-r from-[#0b0c0d] via-[#0b0c0d]/94 to-[#0b0c0d]/82" />
-      <div className="relative mx-auto min-h-[760px] max-w-6xl px-5 pb-28 pt-24">
+      <div className="relative mx-auto flex min-h-[calc(100svh-4.25rem)] max-w-6xl flex-col justify-center px-5 pb-24 pt-20">
         <div className="grid gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
           <div>
             <p className="mono inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-black/25 px-3 py-2 text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
@@ -166,12 +166,12 @@ function WaveEdge() {
   return (
     <div className="wave-edge" aria-hidden="true">
       <svg viewBox="0 0 1200 80" preserveAspectRatio="none">
-        <path d="M0,58 C190,58 235,36 410,42 C590,48 645,72 820,64 C1010,56 1030,38 1200,48 L1200,80 L0,80 Z" fill="currentColor" />
-        <path d="M1200,58 C1390,58 1435,36 1610,42 C1790,48 1845,72 2020,64 C2210,56 2230,38 2400,48 L2400,80 L1200,80 Z" fill="currentColor" />
+        <path d="M0,54 C55,42 95,42 150,54 S245,66 300,54 S395,42 450,54 S545,66 600,54 S695,42 750,54 S845,66 900,54 S995,42 1050,54 S1145,66 1200,54 L1200,80 L0,80 Z" fill="currentColor" />
+        <path d="M1200,54 C1255,42 1295,42 1350,54 S1445,66 1500,54 S1595,42 1650,54 S1745,66 1800,54 S1895,42 1950,54 S2045,66 2100,54 S2195,42 2250,54 S2345,66 2400,54 L2400,80 L1200,80 Z" fill="currentColor" />
       </svg>
       <svg viewBox="0 0 1200 80" preserveAspectRatio="none">
-        <path d="M0,50 C160,42 250,44 400,58 C555,72 650,72 815,56 C1000,38 1070,42 1200,54 L1200,80 L0,80 Z" fill="currentColor" />
-        <path d="M1200,50 C1360,42 1450,44 1600,58 C1755,72 1850,72 2015,56 C2200,38 2270,42 2400,54 L2400,80 L1200,80 Z" fill="currentColor" />
+        <path d="M0,60 C45,50 105,50 150,60 S255,70 300,60 S405,50 450,60 S555,70 600,60 S705,50 750,60 S855,70 900,60 S1005,50 1050,60 S1155,70 1200,60 L1200,80 L0,80 Z" fill="currentColor" />
+        <path d="M1200,60 C1245,50 1305,50 1350,60 S1455,70 1500,60 S1605,50 1650,60 S1755,70 1800,60 S1905,50 1950,60 S2055,70 2100,60 S2205,50 2250,60 S2355,70 2400,60 L2400,80 L1200,80 Z" fill="currentColor" />
       </svg>
     </div>
   );

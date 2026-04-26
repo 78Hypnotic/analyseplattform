@@ -84,11 +84,11 @@ select:focus {
 .wave-edge {
   position: absolute;
   inset-inline: 0;
-  bottom: -1px;
-  height: 56px;
+  bottom: 0;
+  height: 72px;
   overflow: hidden;
   color: color-mix(in oklab, var(--accent) 26%, #12312f);
-  opacity: 0.58;
+  opacity: 0.66;
   pointer-events: none;
 }
 
@@ -98,13 +98,13 @@ select:focus {
   left: 0;
   width: 200%;
   height: 100%;
-  animation: wave-slide 12s linear infinite;
+  animation: wave-slide 7s linear infinite;
 }
 
 .wave-edge svg:nth-child(2) {
   bottom: -10px;
   opacity: 0.55;
-  animation-duration: 18s;
+  animation-duration: 10s;
   animation-direction: reverse;
 }
 
