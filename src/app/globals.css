@@ -122,8 +122,7 @@ input[type="checkbox"] {
 
 @media (min-width: 1024px) {
   .wave-edge {
-    bottom: auto;
-    top: calc(100svh - 4rem - 72px);
+    bottom: 0;
   }
 }
 
