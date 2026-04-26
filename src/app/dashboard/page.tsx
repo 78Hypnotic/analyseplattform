@@ -21,7 +21,7 @@ export default async function DashboardPage() {
 
   return (
     <>
-      <AppHeader userEmail={user.email} />
+      <AppHeader />
       <main className="mx-auto w-full max-w-6xl px-5 py-10">
         <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>

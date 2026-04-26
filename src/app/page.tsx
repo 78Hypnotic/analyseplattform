@@ -23,9 +23,9 @@ export default function Home() {
       <AppHeader />
       <main>
         <Hero />
-        <Stats />
         <Disciplines />
         <HowItWorks />
+        <VocabularyMarquee />
         <Method />
         <ValueProps />
         <Pricing />
@@ -254,6 +254,42 @@ function HowItWorks() {
   );
 }
 
+function VocabularyMarquee() {
+  const words = [
+    "Atemrhythmus",
+    "Hüftrotation",
+    "Schwimmbrille",
+    "Badekappe",
+    "Pull Buoy",
+    "Paddles",
+    "Pace Clock",
+    "Wasserlage",
+    "Catch",
+    "Druckphase",
+    "Beinschlag",
+    "Gleiten",
+  ];
+  const track = [...words, ...words];
+
+  return (
+    <section className="overflow-hidden border-y border-[var(--line)] bg-[var(--panel)] py-14">
+      <p className="mono mb-8 text-center text-[10px] uppercase tracking-[0.24em] text-[var(--subtle)]">
+        Vokabular des Schwimmens
+      </p>
+      <div className="vocab-track">
+        {track.map((word, index) => (
+          <span
+            key={`${word}-${index}`}
+            className={index % 4 === 1 ? "text-[var(--accent)]" : "text-[var(--muted)]"}
+          >
+            {word}
+          </span>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function Step({ number, title, text }: { number: string; title: string; text: string }) {
   return (
     <div className="border-t border-[var(--line)] pt-5">
@@ -466,7 +502,14 @@ function Section({
   muted?: boolean;
 }) {
   return (
-    <section id={id} className={muted ? "border-y border-[var(--line)] bg-[var(--panel)]" : ""}>
+    <section
+      id={id}
+      className={
+        muted
+          ? "reveal-section border-y border-[var(--line)] bg-[var(--panel)]"
+          : "reveal-section"
+      }
+    >
       <div className="mx-auto max-w-6xl px-5 py-16">
         <p className="mono inline-flex rounded-full border border-[var(--line)] px-3 py-2 text-xs uppercase tracking-[0.18em] text-[var(--subtle)]">
           {eyebrow}

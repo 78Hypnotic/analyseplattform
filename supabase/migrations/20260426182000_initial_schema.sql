@@ -1,6 +1,7 @@
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text,
+  full_name text,
   created_at timestamptz not null default now()
 );
 
@@ -16,6 +17,13 @@ create policy "profiles_insert_own"
 on public.profiles
 for insert
 to authenticated
+with check (auth.uid() = id);
+
+create policy "profiles_update_own"
+on public.profiles
+for update
+to authenticated
+using (auth.uid() = id)
 with check (auth.uid() = id);
 
 create table if not exists public.analyses (

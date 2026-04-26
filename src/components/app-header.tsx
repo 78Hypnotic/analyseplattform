@@ -1,11 +1,13 @@
-import { Activity, LogOut, Waves } from "lucide-react";
+import { Activity, LogOut, UserRound, Waves } from "lucide-react";
 import Link from "next/link";
 import { signOut } from "@/app/login/actions";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { Button } from "./button";
 
 export async function AppHeader({ userEmail }: { userEmail?: string | null }) {
-  const resolvedUserEmail = userEmail === undefined ? await getCurrentUserEmail() : userEmail;
+  const currentUser = userEmail === undefined ? await getCurrentUserProfile() : { email: userEmail, name: null };
+  const resolvedUserEmail = currentUser.email;
+  const profileLabel = currentUser.name || currentUser.email;
 
   return (
     <header className="border-b border-[var(--line)] bg-black/30">
@@ -37,14 +39,23 @@ export async function AppHeader({ userEmail }: { userEmail?: string | null }) {
             Dashboard
           </Link>
           {resolvedUserEmail ? (
-            <form action={signOut} className="flex items-center gap-3">
-              <span className="mono hidden max-w-48 truncate text-xs text-[var(--subtle)] sm:block">
-                {resolvedUserEmail}
-              </span>
+            <div className="flex items-center gap-2">
+              <Link
+                href="/profile"
+                className="flex items-center gap-2 rounded-lg border border-[var(--line)] bg-[var(--panel-2)] px-3 py-2 text-[var(--muted)] transition hover:border-[var(--accent)] hover:text-white"
+                title="Profil bearbeiten"
+              >
+                <UserRound size={15} />
+                <span className="mono hidden max-w-44 truncate text-xs sm:block">
+                  {profileLabel}
+                </span>
+              </Link>
+              <form action={signOut}>
               <Button variant="ghost" className="px-2" title="Abmelden">
                 <LogOut size={16} />
               </Button>
-            </form>
+              </form>
+            </div>
           ) : (
             <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-white" href="/login">
               Login
@@ -56,15 +67,33 @@ export async function AppHeader({ userEmail }: { userEmail?: string | null }) {
   );
 }
 
-async function getCurrentUserEmail() {
+async function getCurrentUserProfile() {
   try {
     const supabase = await createSupabaseServerClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
-    return user?.email ?? null;
+    if (!user) return { email: null, name: null };
+
+    const metadataName =
+      typeof user.user_metadata?.full_name === "string"
+        ? user.user_metadata.full_name
+        : null;
+
+    const { data } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    const profile = data as { full_name?: string | null } | null;
+
+    return {
+      email: user.email ?? null,
+      name: profile?.full_name || metadataName,
+    };
   } catch {
-    return null;
+    return { email: null, name: null };
   }
 }

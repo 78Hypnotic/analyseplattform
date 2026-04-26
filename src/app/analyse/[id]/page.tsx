@@ -24,7 +24,7 @@ export default async function AnalysisDetailPage({
 
   return (
     <>
-      <AppHeader userEmail={user.email} />
+      <AppHeader />
       <main className="mx-auto w-full max-w-6xl px-5 py-10">
         <ReportView input={analysis.input} result={analysis.result} />
       </main>
