@@ -1,22 +1,43 @@
 # Trainingsanalyse MVP
 
-Der MVP migriert den bestehenden statischen Prototyp in eine Next.js-App mit Supabase Auth und gespeicherten Analysen.
+Der MVP migriert den bestehenden Prototyp in eine Next.js-App mit Supabase Auth,
+gespeicherten Analysen, erweitertem Report und Admin-verwalteten Trainingsplänen.
 
 ## Umfang
 
-- E-Mail Magic Link Login
+- Passwort-Login, Registrierung und Passwort-Reset
 - Neuer Analyseflow für Schwimmen
+- Zielwettkampf-Kontext mit Zielstrecke, optionalem Wettkampfdatum und Einheiten/Woche
+- Berechnung von Pace, DPS, SR, CSS, VO2-Proxy, VLa-Proxy und Sprint-Reserve
+- Report mit Hauptproblem, Stilprofil, Trainingsbedeutung pro Metrik, Rohdaten und ReTest
 - Speicherung von Eingaben und Analyseergebnissen in Supabase
-- Dashboard mit den letzten Analysen
-- Detailreport pro Analyse
+- Analyse-Übersicht unter `/analyse`
+- Detailreport pro Analyse unter `/analyse/[id]`
+- Admin-Rollenmodell und Trainingsplan-Builder unter `/admin/plans`
+- Gesperrte Trainingsplan-Vorschau im Report
 
 ## Datenmodell
 
-Supabase nutzt `profiles` für User-Basisdaten und `analyses` für gespeicherte Analyse-Reports. Row Level Security ist aktiv; Nutzer dürfen nur eigene Datensätze lesen und schreiben.
+Supabase nutzt:
+
+- `profiles` für User-Basisdaten
+- `user_roles` für `user` und `admin`
+- `analyses` für gespeicherte Analyse-Reports
+- `training_plans` für Admin-verwaltete Planinhalte
+
+Row Level Security ist aktiv. Nutzer dürfen nur eigene Analysen lesen und
+schreiben. Aktive Trainingspläne sind für eingeloggte Nutzer lesbar, vollständiges
+CRUD ist Admins vorbehalten.
 
 ## Sicherheit
 
 - Keine Secrets im Repository
-- Zod-Validierung für Analyse-Input
-- Rate Limiting für Login und Analyse-Erstellung
-- Auth-Pruefung in Server Actions und Server Components
+- Zod-Validierung für Analyse-Input und Trainingsplan-Builder
+- Rate Limiting für Login, Analyse-Erstellung und Admin Actions
+- Auth- und Admin-Prüfung in Server Actions und Server Components
+- Admin-Rollen werden DB-only gesetzt, Nutzer können sich nicht selbst hochstufen
+
+## Production
+
+Weitere Schritte stehen in `docs/supabase-auth-production.md`.
+Leaked Password Protection ist laut Supabase Advisor aktuell noch zu aktivieren.

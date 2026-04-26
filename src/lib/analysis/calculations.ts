@@ -1,4 +1,7 @@
-import type { AnalysisInput, AnalysisResult, TestMetrics } from "./types";
+import type { AnalysisInput, AnalysisResult, TargetDistance, TestMetrics } from "./types";
+
+const DEFAULT_TARGET_DISTANCE: TargetDistance = "Becken";
+const DEFAULT_SWIM_SESSIONS_PER_WEEK = 3;
 
 export function parseTime(input: string | number | undefined | null): number {
   if (input === undefined || input === null || input === "") return Number.NaN;
@@ -61,6 +64,10 @@ export function cssPace(cssMs: number): number {
   return 100 / cssMs;
 }
 
+/**
+ * Converts the athlete context and swim test values into a compact coaching report.
+ * The function stays deterministic so stored reports, previews and unit tests remain comparable.
+ */
 export function runAnalysis(input: AnalysisInput): AnalysisResult | null {
   const t200 = parseTime(input.t200);
   const t400 = parseTime(input.t400);
@@ -154,8 +161,21 @@ export function runAnalysis(input: AnalysisInput): AnalysisResult | null {
     });
   }
 
+  const targetDistance = input.targetDistance ?? inferTargetDistance(input.goal);
+  const swimSessionsPerWeek = input.swimSessionsPerWeek ?? DEFAULT_SWIM_SESSIONS_PER_WEEK;
   const style = pickStyle(input, test200);
-  const plan = pickPlan(input, vla.level, vo2.level, legSink);
+  const styleProfile = explainStyle(style);
+  const basePlan = pickPlan(input, vla.level, vo2.level, legSink);
+  const derivedWeeks = derivePlanLength(basePlan.weeks, swimSessionsPerWeek, input.raceDate);
+  const plan = {
+    ...basePlan,
+    baseWeeks: basePlan.weeks,
+    weeks: derivedWeeks,
+    timeframeLabel: buildTimeframeLabel(input.raceDate, derivedWeeks),
+    retestHint: buildRetestHint(input.raceDate, derivedWeeks),
+    targetDistance,
+    swimSessionsPerWeek,
+  };
 
   return {
     test200,
@@ -174,8 +194,33 @@ export function runAnalysis(input: AnalysisInput): AnalysisResult | null {
         "Mehr Effizienz bei gleichem Aufwand, geringere Ermüdung im zweiten Streckenteil und stabilere Technik unter Stress.",
     },
     style,
+    styleProfile,
     plan,
   };
+}
+
+export function derivePlanLength(
+  baseWeeks: number,
+  swimSessionsPerWeek = DEFAULT_SWIM_SESSIONS_PER_WEEK,
+  raceDate?: string,
+  now = new Date(),
+): number {
+  const safeBaseWeeks = clamp(Math.round(baseWeeks), 1, 16);
+  const safeSessions = clamp(Math.round(swimSessionsPerWeek), 1, 7);
+  let adjustedWeeks = safeBaseWeeks;
+
+  if (safeSessions <= 2) {
+    adjustedWeeks = Math.min(8, safeBaseWeeks + 2);
+  } else if (safeSessions >= 4) {
+    adjustedWeeks = Math.max(4, safeBaseWeeks - 1);
+  }
+
+  const raceWeeks = getWeeksUntilRace(raceDate, now);
+  if (raceWeeks !== null) {
+    adjustedWeeks = Math.min(adjustedWeeks, raceWeeks);
+  }
+
+  return clamp(Math.round(adjustedWeeks), 2, 8);
 }
 
 function vlaProxy(p200: number, p400: number): AnalysisResult["vla"] {
@@ -204,6 +249,38 @@ function pickStyle(input: AnalysisInput, test200: TestMetrics): string {
   return "Der Gleiter";
 }
 
+export function explainStyle(style: string): NonNullable<AnalysisResult["styleProfile"]> {
+  if (style.includes("Windmühle")) {
+    return {
+      name: "Die Windmühle",
+      description: "Hohe Frequenz, viel Einsatz, aber oft zu wenig Länge pro Zug.",
+      trainingFocus: "Frequenz beruhigen, Catch früher setzen und DPS unter Belastung stabilisieren.",
+    };
+  }
+
+  if (style.includes("Galopper")) {
+    return {
+      name: "Der Galopper",
+      description: "Leistungsorientierter Stil mit klarer Druckphase und hoher Belastungstoleranz.",
+      trainingFocus: "Pace kontrollieren, Atmung stabil halten und Ermüdung im zweiten Teil reduzieren.",
+    };
+  }
+
+  if (style.includes("Gleiter")) {
+    return {
+      name: "Der Gleiter",
+      description: "Langer Zug und ruhige Wasserlage, aber manchmal zu wenig Frequenzwechsel.",
+      trainingFocus: "Länge behalten und gezielt mehr Rhythmus für Wettkampftempo aufbauen.",
+    };
+  }
+
+  return {
+    name: "Der Mühelose",
+    description: "Ruhiger Ansatz mit Technikpotenzial, bei dem Effizienz vor Intensität steht.",
+    trainingFocus: "Wasserlage, Atmung und saubere Wiederholungen festigen, bevor das Tempo steigt.",
+  };
+}
+
 function pickPlan(
   input: AnalysisInput,
   vlaLevel: AnalysisResult["vla"]["level"],
@@ -211,9 +288,42 @@ function pickPlan(
   legSink: boolean,
 ): AnalysisResult["plan"] {
   if (legSink || input.level === "Einsteiger") {
-    return { name: "Wasserlage & Balance", phase: "Technik-Fundament", weeks: 6 };
+    return { slug: "wasserlage-balance", name: "Wasserlage & Balance", phase: "Technik-Fundament", weeks: 6 };
   }
-  if (vo2Level === "niedrig") return { name: "VO2max-Builder", phase: "Basephase", weeks: 8 };
-  if (vlaLevel === "hoch") return { name: "VLamax Senker", phase: "Buildphase", weeks: 6 };
-  return { name: "Tempohärte", phase: "Peakphase", weeks: 6 };
+  if (vo2Level === "niedrig") return { slug: "vo2max-builder", name: "VO2max-Builder", phase: "Basephase", weeks: 8 };
+  if (vlaLevel === "hoch") return { slug: "vlamax-senker", name: "VLamax Senker", phase: "Buildphase", weeks: 6 };
+  return { slug: "tempohaerte", name: "Tempohärte", phase: "Peakphase", weeks: 6 };
+}
+
+function inferTargetDistance(goal: AnalysisInput["goal"]): TargetDistance {
+  if (goal === "Freiwasserschwimmen") return "Freiwasser";
+  if (goal === "Triathlon") return "OD";
+  if (goal === "Beckenschwimmen") return "Becken";
+  return DEFAULT_TARGET_DISTANCE;
+}
+
+function buildTimeframeLabel(raceDate: string | undefined, weeks: number): string {
+  if (!raceDate) return `${weeks} Wochen Aufbau`;
+  if (weeks <= 3) return "Kurzfristig bis zum Wettkampf";
+  if (weeks <= 6) return "Wettkampfnaher Aufbau";
+  return "Aufbau bis zum Wettkampf";
+}
+
+function buildRetestHint(raceDate: string | undefined, weeks: number): string {
+  if (!raceDate) return `ReTest nach ${weeks} Wochen einplanen.`;
+  if (weeks <= 3) return "ReTest als kurzer Technik-Check vor dem Wettkampf.";
+  return `ReTest nach ${weeks} Wochen oder spätestens 10-14 Tage vor dem Wettkampf.`;
+}
+
+function getWeeksUntilRace(raceDate: string | undefined, now: Date): number | null {
+  if (!raceDate) return null;
+  const timestamp = Date.parse(`${raceDate}T12:00:00`);
+  if (!Number.isFinite(timestamp)) return null;
+  const diffMs = timestamp - now.getTime();
+  const weekMs = 7 * 24 * 60 * 60 * 1000;
+  return Math.max(1, Math.ceil(diffMs / weekMs));
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
 }

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_ANALYSIS_INPUT } from "./constants";
-import { computeCSS, computeTest, parseTime, runAnalysis } from "./calculations";
+import { analysisInputSchema } from "./schema";
+import { computeCSS, computeTest, derivePlanLength, parseTime, runAnalysis } from "./calculations";
+import type { AnalysisInput } from "./types";
 
 describe("swim analysis calculations", () => {
   it("parses seconds and minute formats", () => {
@@ -31,6 +33,54 @@ describe("swim analysis calculations", () => {
     const result = runAnalysis(DEFAULT_ANALYSIS_INPUT);
     expect(result).not.toBeNull();
     expect(result?.plan.name).toBe("Wasserlage & Balance");
+    expect(result?.plan.slug).toBe("wasserlage-balance");
+    expect(result?.plan.weeks).toBe(6);
     expect(result?.strengths.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("derives plan length from sessions and race date", () => {
+    const now = new Date("2026-04-26T12:00:00");
+
+    expect(derivePlanLength(6, 2)).toBe(8);
+    expect(derivePlanLength(6, 3)).toBe(6);
+    expect(derivePlanLength(6, 5)).toBe(5);
+    expect(derivePlanLength(8, 2, "2026-05-10", now)).toBe(2);
+  });
+
+  it("keeps legacy inputs without race context renderable", () => {
+    const legacyInput: AnalysisInput = {
+      ...DEFAULT_ANALYSIS_INPUT,
+      targetDistance: undefined,
+      raceDate: undefined,
+      swimSessionsPerWeek: undefined,
+    };
+
+    const result = runAnalysis(legacyInput);
+
+    expect(result).not.toBeNull();
+    expect(result?.plan.targetDistance).toBe("OD");
+    expect(result?.plan.swimSessionsPerWeek).toBe(3);
+  });
+
+  it("validates race context and rejects impossible values", () => {
+    expect(analysisInputSchema.safeParse(DEFAULT_ANALYSIS_INPUT).success).toBe(true);
+    expect(
+      analysisInputSchema.safeParse({
+        ...DEFAULT_ANALYSIS_INPUT,
+        swimSessionsPerWeek: -1,
+      }).success,
+    ).toBe(false);
+    expect(
+      analysisInputSchema.safeParse({
+        ...DEFAULT_ANALYSIS_INPUT,
+        targetDistance: undefined,
+      }).success,
+    ).toBe(false);
+    expect(
+      analysisInputSchema.safeParse({
+        ...DEFAULT_ANALYSIS_INPUT,
+        raceDate: "2026-99-99",
+      }).success,
+    ).toBe(false);
   });
 });

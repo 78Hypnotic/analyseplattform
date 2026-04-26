@@ -1,5 +1,6 @@
 export type Gender = "weiblich" | "maennlich" | "divers";
 export type PoolLength = 25 | 50;
+export type TargetDistance = "Sprint" | "OD" | "MD" | "LD" | "Becken" | "Freiwasser";
 export type SwimGoal =
   | "Kraulen lernen"
   | "Beckenschwimmen"
@@ -35,6 +36,9 @@ export type AnalysisInput = {
   t50?: string;
   goal: SwimGoal;
   level: SwimLevel;
+  targetDistance?: TargetDistance;
+  raceDate?: string;
+  swimSessionsPerWeek?: number;
   challenges: string[];
 };
 
@@ -72,10 +76,21 @@ export type AnalysisResult = {
     description: string;
   };
   style: string;
+  styleProfile?: {
+    name: string;
+    description: string;
+    trainingFocus: string;
+  };
   plan: {
+    slug?: string;
     name: string;
     phase: string;
+    baseWeeks?: number;
     weeks: number;
+    timeframeLabel?: string;
+    retestHint?: string;
+    targetDistance?: TargetDistance;
+    swimSessionsPerWeek?: number;
   };
 };
 

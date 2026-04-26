@@ -53,11 +53,12 @@ export default async function AnalysesPage() {
                   <h2 className="font-medium">{analysis.title}</h2>
                   <p className="muted mt-1 text-sm">
                     {new Date(analysis.created_at).toLocaleDateString("de-DE")} | {analysis.input.goal}
+                    {analysis.input.targetDistance ? ` | ${analysis.input.targetDistance}` : ""}
                   </p>
                 </div>
                 <SmallMetric label="CSS" value={formatPace(analysis.result.cssPace)} />
                 <SmallMetric label="DPS 400" value={analysis.result.test400.dps.toFixed(2)} />
-                <SmallMetric label="Plan" value={analysis.result.plan.name} />
+                <SmallMetric label="Plan" value={`${analysis.result.plan.name} · ${analysis.result.plan.weeks} Wo.`} />
               </Link>
             ))}
           </div>

@@ -1,16 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { Activity, LogOut, Menu, UserRound, X } from "lucide-react";
+import { Activity, LogOut, Menu, ShieldCheck, UserRound, X } from "lucide-react";
 import Link from "next/link";
 import { signOut } from "@/app/login/actions";
 import { Button } from "./button";
 
 export function MobileHeaderMenu({
   isAuthenticated,
+  isAdmin,
   profileLabel,
 }: {
   isAuthenticated: boolean;
+  isAdmin: boolean;
   profileLabel: string | null;
 }) {
   const [open, setOpen] = useState(false);
@@ -35,6 +37,9 @@ export function MobileHeaderMenu({
             <MobileLink href="/#methodik" label="Methodik" onClick={() => setOpen(false)} />
             <MobileLink href="/#preise" label="Preise" onClick={() => setOpen(false)} />
             <MobileLink href="/analyse" label="Analyse" icon={<Activity size={16} />} onClick={() => setOpen(false)} />
+            {isAdmin ? (
+              <MobileLink href="/admin" label="Admin" icon={<ShieldCheck size={16} />} onClick={() => setOpen(false)} />
+            ) : null}
             {isAuthenticated ? (
               <>
                 <MobileLink

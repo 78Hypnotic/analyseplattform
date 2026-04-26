@@ -6,7 +6,7 @@ import Link from "next/link";
 import { ArrowRight, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/button";
 import { ReportView } from "@/components/report-view";
-import { CHALLENGE_GROUPS, GOALS, LEVELS } from "@/lib/analysis/constants";
+import { CHALLENGE_GROUPS, GOALS, LEVELS, TARGET_DISTANCES } from "@/lib/analysis/constants";
 import { runAnalysis } from "@/lib/analysis/calculations";
 import { analysisInputSchema } from "@/lib/analysis/schema";
 import type { AnalysisInput } from "@/lib/analysis/types";
@@ -15,6 +15,7 @@ import { createAnalysis } from "../actions";
 type AnalysisDraft = Omit<
   AnalysisInput,
   "age" | "gender" | "height" | "weight" | "poolLength" | "s200" | "s400" | "goal" | "level"
+  | "targetDistance" | "swimSessionsPerWeek"
 > & {
   age: number | "";
   gender: AnalysisInput["gender"] | "";
@@ -25,6 +26,8 @@ type AnalysisDraft = Omit<
   s400: number | "";
   goal: AnalysisInput["goal"] | "";
   level: AnalysisInput["level"] | "";
+  targetDistance: AnalysisInput["targetDistance"] | "";
+  swimSessionsPerWeek: number | "";
 };
 
 const EMPTY_ANALYSIS_INPUT: AnalysisDraft = {
@@ -41,6 +44,9 @@ const EMPTY_ANALYSIS_INPUT: AnalysisDraft = {
   t50: "",
   goal: "",
   level: "",
+  targetDistance: "",
+  raceDate: "",
+  swimSessionsPerWeek: "",
   challenges: [],
 };
 
@@ -210,6 +216,43 @@ function ContextStep({
               <span className="muted mt-2 block text-sm">{level.description}</span>
             </button>
           ))}
+        </div>
+      </div>
+
+      <div className="surface p-5">
+        <p className="mono mb-4 text-xs uppercase tracking-[0.18em] text-[var(--subtle)]">
+          Zielwettkampf
+        </p>
+        <div className="grid gap-3 md:grid-cols-6">
+          {TARGET_DISTANCES.map((distance) => (
+            <button
+              key={distance.id}
+              onClick={() => update({ targetDistance: distance.id })}
+              className={
+                input.targetDistance === distance.id
+                  ? "rounded-lg border border-[var(--accent)] bg-[var(--panel-2)] p-4 text-left"
+                  : "rounded-lg border border-[var(--line)] bg-black/10 p-4 text-left"
+              }
+            >
+              <span className="block font-medium">{distance.label}</span>
+              <span className="muted mt-2 block text-sm">{distance.description}</span>
+            </button>
+          ))}
+        </div>
+        <div className="mt-5 grid gap-4 md:grid-cols-2">
+          <Field
+            label="Wettkampfdatum (optional)"
+            type="date"
+            value={input.raceDate ?? ""}
+            onChange={(value) => update({ raceDate: value })}
+          />
+          <Field
+            label="Schwimmeinheiten pro Woche"
+            type="number"
+            value={input.swimSessionsPerWeek}
+            placeholder="z. B. 3"
+            onChange={(value) => update({ swimSessionsPerWeek: optionalNumber(value) })}
+          />
         </div>
       </div>
 

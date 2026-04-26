@@ -1,14 +1,19 @@
-import { Activity, LogOut, UserRound, Waves } from "lucide-react";
+import { Activity, LogOut, ShieldCheck, UserRound, Waves } from "lucide-react";
 import Link from "next/link";
 import { signOut } from "@/app/login/actions";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import type { AppRole } from "@/lib/auth/roles";
 import { Button } from "./button";
 import { MobileHeaderMenu } from "./mobile-header-menu";
 
 export async function AppHeader({ userEmail }: { userEmail?: string | null }) {
-  const currentUser = userEmail === undefined ? await getCurrentUserProfile() : { email: userEmail, name: null };
+  const currentUser =
+    userEmail === undefined
+      ? await getCurrentUserProfile()
+      : { email: userEmail, name: null, role: null };
   const resolvedUserEmail = currentUser.email;
   const profileLabel = currentUser.name || currentUser.email;
+  const isAdmin = currentUser.role === "admin";
 
   return (
     <header className="relative border-b border-[var(--line)] bg-black/30">
@@ -39,6 +44,12 @@ export async function AppHeader({ userEmail }: { userEmail?: string | null }) {
             <Activity size={16} />
             Analyse
           </Link>
+          {isAdmin ? (
+            <Link className="flex items-center gap-2 rounded-lg px-3 py-2 text-[var(--muted)] hover:text-white" href="/admin">
+              <ShieldCheck size={16} />
+              Admin
+            </Link>
+          ) : null}
           {resolvedUserEmail ? (
             <div className="flex items-center gap-2">
               <Link
@@ -63,7 +74,11 @@ export async function AppHeader({ userEmail }: { userEmail?: string | null }) {
             </Link>
           )}
         </nav>
-        <MobileHeaderMenu isAuthenticated={Boolean(resolvedUserEmail)} profileLabel={profileLabel} />
+        <MobileHeaderMenu
+          isAuthenticated={Boolean(resolvedUserEmail)}
+          isAdmin={isAdmin}
+          profileLabel={profileLabel}
+        />
       </div>
     </header>
   );
@@ -76,26 +91,38 @@ async function getCurrentUserProfile() {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (!user) return { email: null, name: null };
+    if (!user) return { email: null, name: null, role: null };
 
     const metadataName =
       typeof user.user_metadata?.full_name === "string"
         ? user.user_metadata.full_name
         : null;
 
-    const { data } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", user.id)
-      .maybeSingle();
+    const [{ data: profileData }, { data: roleData }] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .maybeSingle(),
+      supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .maybeSingle(),
+    ]);
 
-    const profile = data as { full_name?: string | null } | null;
+    const profile = profileData as { full_name?: string | null } | null;
+    const role =
+      roleData?.role === "admin" || roleData?.role === "user"
+        ? (roleData.role as AppRole)
+        : null;
 
     return {
       email: user.email ?? null,
       name: profile?.full_name || metadataName,
+      role,
     };
   } catch {
-    return { email: null, name: null };
+    return { email: null, name: null, role: null };
   }
 }

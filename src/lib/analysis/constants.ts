@@ -46,6 +46,39 @@ export const LEVELS = [
   },
 ] as const;
 
+export const TARGET_DISTANCES = [
+  {
+    id: "Sprint",
+    label: "Sprint",
+    description: "Kurze Becken- oder Triathlonstrecken",
+  },
+  {
+    id: "OD",
+    label: "OD",
+    description: "Olympische Distanz im Triathlon",
+  },
+  {
+    id: "MD",
+    label: "MD",
+    description: "Mitteldistanz mit längerer Belastung",
+  },
+  {
+    id: "LD",
+    label: "LD",
+    description: "Langdistanz und lange Freiwasseranteile",
+  },
+  {
+    id: "Becken",
+    label: "Becken",
+    description: "Pool-Wettkampf oder strukturierter Test",
+  },
+  {
+    id: "Freiwasser",
+    label: "Freiwasser",
+    description: "Orientierung, Rhythmus und Robustheit",
+  },
+] as const;
+
 export const CHALLENGE_GROUPS = [
   {
     group: "Wasserlage",
@@ -119,6 +152,9 @@ export const DEFAULT_ANALYSIS_INPUT: AnalysisInput = {
   t50: "38.2",
   goal: "Triathlon",
   level: "Fortgeschritten",
+  targetDistance: "OD",
+  raceDate: "",
+  swimSessionsPerWeek: 3,
   challenges: [
     "Meine Beine sinken ab",
     "Ich habe Probleme mit dem frühen Wasserfassen",

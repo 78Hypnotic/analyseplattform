@@ -29,12 +29,14 @@ body {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
 
 input,
-select {
+select,
+textarea {
   background: #101114;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -46,6 +48,15 @@ select {
 input:focus,
 select:focus {
   border-color: var(--accent);
+}
+
+textarea:focus {
+  border-color: var(--accent);
+}
+
+input[type="checkbox"] {
+  accent-color: var(--accent);
+  padding: 0;
 }
 
 .metric-grid {

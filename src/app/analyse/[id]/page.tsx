@@ -4,6 +4,7 @@ import { PdfExportButton } from "@/components/pdf-export-button";
 import { ReportView } from "@/components/report-view";
 import { getAnalysisById } from "@/lib/analyses";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getActiveTrainingPlanPreview } from "@/lib/training-plans/data";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +23,7 @@ export default async function AnalysisDetailPage({
   const { id } = await params;
   const analysis = await getAnalysisById(id);
   if (!analysis) notFound();
+  const trainingPlanPreview = await getActiveTrainingPlanPreview(analysis.result.plan.slug);
 
   return (
     <>
@@ -36,7 +38,7 @@ export default async function AnalysisDetailPage({
           </div>
           <PdfExportButton />
         </div>
-        <ReportView input={analysis.input} result={analysis.result} />
+        <ReportView input={analysis.input} result={analysis.result} trainingPlanPreview={trainingPlanPreview} />
       </main>
     </>
   );
