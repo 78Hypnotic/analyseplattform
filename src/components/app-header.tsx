@@ -3,6 +3,7 @@ import Link from "next/link";
 import { signOut } from "@/app/login/actions";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { Button } from "./button";
+import { MobileHeaderMenu } from "./mobile-header-menu";
 
 export async function AppHeader({ userEmail }: { userEmail?: string | null }) {
   const currentUser = userEmail === undefined ? await getCurrentUserProfile() : { email: userEmail, name: null };
@@ -10,7 +11,7 @@ export async function AppHeader({ userEmail }: { userEmail?: string | null }) {
   const profileLabel = currentUser.name || currentUser.email;
 
   return (
-    <header className="border-b border-[var(--line)] bg-black/30">
+    <header className="relative border-b border-[var(--line)] bg-black/30">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
         <Link href="/" className="flex items-center gap-3">
           <span className="flex size-9 items-center justify-center rounded-lg bg-white text-black">
@@ -24,17 +25,17 @@ export async function AppHeader({ userEmail }: { userEmail?: string | null }) {
           </span>
         </Link>
 
-        <nav className="flex items-center gap-1 text-sm">
-          <Link className="hidden rounded-lg px-3 py-2 text-[var(--muted)] hover:text-white md:block" href="/#disciplines">
+        <nav className="hidden items-center gap-1 text-sm md:flex">
+          <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-white" href="/#disciplines">
             Disziplinen
           </Link>
-          <Link className="hidden rounded-lg px-3 py-2 text-[var(--muted)] hover:text-white md:block" href="/#methodik">
+          <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-white" href="/#methodik">
             Methodik
           </Link>
-          <Link className="hidden rounded-lg px-3 py-2 text-[var(--muted)] hover:text-white md:block" href="/#preise">
+          <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-white" href="/#preise">
             Preise
           </Link>
-          <Link className="hidden items-center gap-2 rounded-lg px-3 py-2 text-[var(--muted)] hover:text-white sm:flex" href="/analyse">
+          <Link className="flex items-center gap-2 rounded-lg px-3 py-2 text-[var(--muted)] hover:text-white" href="/analyse">
             <Activity size={16} />
             Analyse
           </Link>
@@ -51,9 +52,9 @@ export async function AppHeader({ userEmail }: { userEmail?: string | null }) {
                 </span>
               </Link>
               <form action={signOut}>
-              <Button variant="ghost" className="px-2" title="Abmelden">
-                <LogOut size={16} />
-              </Button>
+                <Button variant="ghost" className="px-2" title="Abmelden">
+                  <LogOut size={16} />
+                </Button>
               </form>
             </div>
           ) : (
@@ -62,6 +63,7 @@ export async function AppHeader({ userEmail }: { userEmail?: string | null }) {
             </Link>
           )}
         </nav>
+        <MobileHeaderMenu isAuthenticated={Boolean(resolvedUserEmail)} profileLabel={profileLabel} />
       </div>
     </header>
   );
