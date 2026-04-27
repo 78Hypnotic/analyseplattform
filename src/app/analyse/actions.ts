@@ -10,7 +10,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type CreateAnalysisState =
   | { ok: true; id: string }
-  | { ok: false; message: string };
+  | { ok: false; message: string; reason?: "unauthenticated" | "validation" | "error" };
 
 export async function createAnalysis(input: AnalysisInput): Promise<CreateAnalysisState> {
   try {
@@ -20,7 +20,11 @@ export async function createAnalysis(input: AnalysisInput): Promise<CreateAnalys
 
     if (!result) {
       const messages = getAnalysisValidationMessages(parsed);
-      return { ok: false, message: messages[0] ?? "Die Testdaten sind nicht plausibel." };
+      return {
+        ok: false,
+        reason: "validation",
+        message: messages[0] ?? "Die Testdaten sind nicht plausibel.",
+      };
     }
 
     const supabase = await createSupabaseServerClient();
@@ -29,7 +33,11 @@ export async function createAnalysis(input: AnalysisInput): Promise<CreateAnalys
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return { ok: false, message: "Bitte melde dich an, um die Analyse zu speichern." };
+      return {
+        ok: false,
+        reason: "unauthenticated",
+        message: "Bitte melde dich an, um die Analyse zu speichern.",
+      };
     }
 
     const title = `${parsed.name} · ${new Date().toLocaleDateString("de-DE")}`;
@@ -44,12 +52,12 @@ export async function createAnalysis(input: AnalysisInput): Promise<CreateAnalys
       .select("id")
       .single();
 
-    if (error) return { ok: false, message: error.message };
+    if (error) return { ok: false, reason: "error", message: error.message };
 
     revalidatePath("/analyse");
     return { ok: true, id: data.id as string };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Analyse konnte nicht gespeichert werden.";
-    return { ok: false, message };
+    return { ok: false, reason: "error", message };
   }
 }

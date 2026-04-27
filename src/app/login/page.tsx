@@ -3,7 +3,15 @@ import { LoginForm } from "./login-form";
 
 export const dynamic = "force-dynamic";
 
-export default function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ next?: string | string[] }>;
+}) {
+  const params = await searchParams;
+  const nextParam = Array.isArray(params?.next) ? params.next[0] : params?.next;
+  const nextPath = getSafeNextPath(nextParam);
+
   return (
     <>
       <AppHeader />
@@ -17,9 +25,17 @@ export default function LoginPage() {
             Melde dich mit E-Mail und Passwort an oder erstelle direkt einen
             Account.
           </p>
-          <LoginForm />
+          <LoginForm nextPath={nextPath} />
         </section>
       </main>
     </>
   );
+}
+
+function getSafeNextPath(next: string | undefined) {
+  if (!next || !next.startsWith("/") || next.startsWith("//")) {
+    return "";
+  }
+
+  return next;
 }

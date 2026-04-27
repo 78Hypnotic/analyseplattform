@@ -8,12 +8,14 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 const signInSchema = z.object({
   email: z.string().trim().email("Bitte gib eine gültige E-Mail-Adresse ein."),
   password: z.string().min(1, "Bitte gib dein Passwort ein."),
+  next: z.preprocess((value) => (typeof value === "string" ? value : undefined), z.string().optional()),
 });
 
 const signUpSchema = z.object({
   fullName: z.string().trim().min(2, "Bitte gib deinen Namen ein.").max(80),
   email: z.string().trim().email("Bitte gib eine gültige E-Mail-Adresse ein."),
   password: z.string().min(8, "Das Passwort muss mindestens 8 Zeichen haben."),
+  next: z.preprocess((value) => (typeof value === "string" ? value : undefined), z.string().optional()),
 });
 
 export type LoginActionState = {
@@ -27,11 +29,14 @@ export async function signInWithPassword(
   const parsed = signInSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
+    next: formData.get("next"),
   });
 
   if (!parsed.success) {
     return { message: parsed.error.issues[0]?.message ?? "Bitte prüfe deine Eingaben." };
   }
+
+  const nextPath = getSafeNextPath(parsed.data.next);
 
   try {
     await assertRateLimit("login-password", 8, 60_000);
@@ -49,7 +54,7 @@ export async function signInWithPassword(
     return { message: mapActionError(error, "Login fehlgeschlagen.") };
   }
 
-  redirect("/analyse");
+  redirect(nextPath);
 }
 
 export async function signUpWithPassword(
@@ -60,17 +65,19 @@ export async function signUpWithPassword(
     fullName: formData.get("fullName"),
     email: formData.get("email"),
     password: formData.get("password"),
+    next: formData.get("next"),
   });
 
   if (!parsed.success) {
     return { message: parsed.error.issues[0]?.message ?? "Bitte prüfe deine Eingaben." };
   }
 
+  const nextPath = getSafeNextPath(parsed.data.next);
+
   try {
     await assertRateLimit("signup-password", 5, 60_000);
     const supabase = await createSupabaseServerClient();
     const origin = getAuthRedirectOrigin();
-
     const { data, error } = await supabase.auth.signUp({
       email: parsed.data.email,
       password: parsed.data.password,
@@ -78,7 +85,7 @@ export async function signUpWithPassword(
         data: {
           full_name: parsed.data.fullName,
         },
-        emailRedirectTo: `${origin}/auth/callback`,
+        emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent(nextPath)}`,
       },
     });
 
@@ -104,7 +111,7 @@ export async function signUpWithPassword(
     return { message: mapActionError(error, "Account konnte nicht erstellt werden.") };
   }
 
-  redirect("/analyse");
+  redirect(nextPath);
 }
 
 export async function signOut() {
@@ -155,4 +162,12 @@ function getAuthRedirectOrigin() {
   }
 
   return "http://localhost:3000";
+}
+
+function getSafeNextPath(next: string | undefined) {
+  if (!next || !next.startsWith("/") || next.startsWith("//")) {
+    return "/analyse";
+  }
+
+  return next;
 }
