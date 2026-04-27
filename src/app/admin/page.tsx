@@ -7,8 +7,14 @@ import { getTrainingPlans } from "@/lib/training-plans/data";
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
-  await requireAdmin();
-  const plans = await getTrainingPlans(20);
+  const { supabase } = await requireAdmin();
+  const [{ count: userCount, error: userCountError }, plans] = await Promise.all([
+    supabase.from("user_roles").select("user_id", { count: "exact", head: true }),
+    getTrainingPlans(20),
+  ]);
+
+  if (userCountError) throw new Error(userCountError.message);
+
   const activePlans = plans.filter((plan) => plan.is_active).length;
 
   return (
@@ -34,9 +40,9 @@ export default async function AdminPage() {
         </div>
 
         <section className="mt-8 grid gap-4 md:grid-cols-3">
+          <AdminMetric label="User gesamt" value={String(userCount ?? 0)} />
           <AdminMetric label="Pläne gesamt" value={String(plans.length)} />
           <AdminMetric label="Aktiv" value={String(activePlans)} />
-          <AdminMetric label="Rollenmodell" value="DB-only" />
         </section>
       </main>
     </>
