@@ -5,6 +5,7 @@ import { Activity, LogOut, Menu, ShieldCheck, UserRound, X } from "lucide-react"
 import Link from "next/link";
 import { signOut } from "@/app/login/actions";
 import { Button } from "./button";
+import { ThemeToggle } from "./theme-toggle";
 
 export function MobileHeaderMenu({
   isAuthenticated,
@@ -33,7 +34,7 @@ export function MobileHeaderMenu({
       </Button>
 
       {open ? (
-        <div className="absolute inset-x-0 top-16 z-50 border-b border-[var(--line)] bg-[rgba(11,12,13,0.98)] px-5 py-4 shadow-2xl shadow-black/40">
+        <div className="absolute inset-x-0 top-16 z-50 border-b border-[var(--line)] bg-[var(--overlay-bg)] px-5 py-4 shadow-[0_24px_60px_var(--shadow-color)]">
           <nav className="mx-auto grid max-w-6xl gap-2 text-sm">
             <MobileLink href="/#disciplines" label="Disziplinen" onClick={() => setOpen(false)} />
             <MobileLink href="/#methodik" label="Methodik" onClick={() => setOpen(false)} />
@@ -42,6 +43,10 @@ export function MobileHeaderMenu({
             {isAdmin ? (
               <MobileLink href="/admin" label="Admin" icon={<ShieldCheck size={16} />} onClick={() => setOpen(false)} />
             ) : null}
+            <div className="flex items-center justify-between rounded-lg px-3 py-2 text-[var(--muted)]">
+              <span>Theme</span>
+              <ThemeToggle />
+            </div>
             {isAuthenticated ? (
               <>
                 <MobileLink
@@ -69,7 +74,7 @@ export function MobileHeaderMenu({
 
 function MobileAvatar({ avatarUrl, label }: { avatarUrl?: string | null; label: string }) {
   return (
-    <span className="flex size-5 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--panel-2)] text-[9px] font-semibold text-white">
+    <span className="flex size-5 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--panel-2)] text-[9px] font-semibold text-[var(--foreground)]">
       {avatarUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={avatarUrl} alt="" className="size-full object-cover" />
@@ -96,7 +101,7 @@ function MobileLink({
     <Link
       href={href}
       onClick={onClick}
-      className="flex items-center gap-2 rounded-lg px-3 py-3 text-[var(--muted)] hover:bg-[var(--panel)] hover:text-white"
+      className="flex items-center gap-2 rounded-lg px-3 py-3 text-[var(--muted)] hover:bg-[var(--panel)] hover:text-[var(--foreground)]"
     >
       {icon}
       {label}

@@ -27,7 +27,7 @@ export function ProfileForm({
         <input value={email} disabled />
       </label>
       {state.message ? (
-        <p className="rounded-lg border border-[var(--line)] bg-black/20 p-3 text-sm text-[var(--muted)]">
+        <p className="rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-3 text-sm text-[var(--muted)]">
           {state.message}
         </p>
       ) : null}

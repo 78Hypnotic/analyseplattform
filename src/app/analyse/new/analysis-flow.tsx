@@ -106,7 +106,7 @@ export function AnalysisFlow() {
               onClick={() => setStep(index)}
               className={
                 index === step
-                  ? "rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-medium text-black"
+                  ? "rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-medium text-[var(--accent-foreground)]"
                   : "rounded-lg border border-[var(--line)] px-3 py-2 text-sm text-[var(--muted)]"
               }
             >
@@ -187,7 +187,7 @@ function ContextStep({
               className={
                 input.goal === goal.id
                   ? "rounded-lg border border-[var(--accent)] bg-[var(--panel-2)] p-4 text-left"
-                  : "rounded-lg border border-[var(--line)] bg-black/10 p-4 text-left"
+                  : "rounded-lg border border-[var(--line)] bg-[var(--soft-bg)] p-4 text-left"
               }
             >
               <span className="block font-medium">{goal.label}</span>
@@ -209,7 +209,7 @@ function ContextStep({
               className={
                 input.level === level.id
                   ? "rounded-lg border border-[var(--accent)] bg-[var(--panel-2)] p-4 text-left"
-                  : "rounded-lg border border-[var(--line)] bg-black/10 p-4 text-left"
+                  : "rounded-lg border border-[var(--line)] bg-[var(--soft-bg)] p-4 text-left"
               }
             >
               <span className="block font-medium">{level.label}</span>
@@ -231,7 +231,7 @@ function ContextStep({
               className={
                 input.targetDistance === distance.id
                   ? "rounded-lg border border-[var(--accent)] bg-[var(--panel-2)] p-4 text-left"
-                  : "rounded-lg border border-[var(--line)] bg-black/10 p-4 text-left"
+                  : "rounded-lg border border-[var(--line)] bg-[var(--soft-bg)] p-4 text-left"
               }
             >
               <span className="block font-medium">{distance.label}</span>

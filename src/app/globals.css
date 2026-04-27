@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 :root {
+  color-scheme: dark;
   --background: #0b0c0d;
   --foreground: #f4f3ef;
   --panel: #151618;
@@ -9,8 +10,44 @@
   --muted: #aaa7a0;
   --subtle: #77746d;
   --accent: #5ee3d3;
+  --accent-hover: #7ff0e3;
+  --accent-foreground: #061211;
+  --accent-ring: rgb(94 227 211 / 0.14);
   --accent-2: #d8f36a;
   --warn: #f3bd67;
+  --header-bg: rgb(0 0 0 / 0.3);
+  --overlay-bg: rgb(11 12 13 / 0.98);
+  --raised-bg: rgb(0 0 0 / 0.2);
+  --soft-bg: rgb(0 0 0 / 0.1);
+  --brand-bg: #ffffff;
+  --brand-fg: #000000;
+  --hero-overlay: linear-gradient(to right, #0b0c0d, rgb(11 12 13 / 0.94), rgb(11 12 13 / 0.82));
+  --shadow-color: rgb(0 0 0 / 0.4);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --background: #f7f8f5;
+  --foreground: #171916;
+  --panel: #ffffff;
+  --panel-2: #eef2ed;
+  --line: #d8ded6;
+  --muted: #4f5b55;
+  --subtle: #738077;
+  --accent: #087f73;
+  --accent-hover: #0a6f65;
+  --accent-foreground: #ffffff;
+  --accent-ring: rgb(8 127 115 / 0.16);
+  --accent-2: #657800;
+  --warn: #9a5f08;
+  --header-bg: rgb(247 248 245 / 0.84);
+  --overlay-bg: rgb(247 248 245 / 0.98);
+  --raised-bg: rgb(255 255 255 / 0.72);
+  --soft-bg: rgb(255 255 255 / 0.52);
+  --brand-bg: #171916;
+  --brand-fg: #ffffff;
+  --hero-overlay: linear-gradient(to right, rgb(247 248 245 / 0.96), rgb(247 248 245 / 0.9), rgb(247 248 245 / 0.78));
+  --shadow-color: rgb(34 43 38 / 0.16);
 }
 
 @theme inline {
@@ -37,7 +74,7 @@ textarea {
 input,
 select,
 textarea {
-  background: #101114;
+  background: var(--panel-2);
   border: 1px solid var(--line);
   border-radius: 8px;
   color: var(--foreground);

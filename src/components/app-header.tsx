@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { AppRole } from "@/lib/auth/roles";
 import { Button } from "./button";
 import { MobileHeaderMenu } from "./mobile-header-menu";
+import { ThemeToggle } from "./theme-toggle";
 
 export async function AppHeader({ userEmail }: { userEmail?: string | null }) {
   const currentUser =
@@ -17,10 +18,10 @@ export async function AppHeader({ userEmail }: { userEmail?: string | null }) {
   const profileInitials = buildInitials(profileLabel ?? "Profil");
 
   return (
-    <header className="relative border-b border-[var(--line)] bg-black/30">
+    <header className="relative border-b border-[var(--line)] bg-[var(--header-bg)]">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
         <Link href="/" className="flex items-center gap-3">
-          <span className="flex size-9 items-center justify-center rounded-lg bg-white text-black">
+          <span className="flex size-9 items-center justify-center rounded-lg bg-[var(--brand-bg)] text-[var(--brand-fg)]">
             <Waves size={18} />
           </span>
           <span>
@@ -32,33 +33,34 @@ export async function AppHeader({ userEmail }: { userEmail?: string | null }) {
         </Link>
 
         <nav className="hidden items-center gap-1 text-sm md:flex">
-          <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-white" href="/#disciplines">
+          <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/#disciplines">
             Disziplinen
           </Link>
-          <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-white" href="/#methodik">
+          <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/#methodik">
             Methodik
           </Link>
-          <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-white" href="/#preise">
+          <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/#preise">
             Preise
           </Link>
-          <Link className="flex items-center gap-2 rounded-lg px-3 py-2 text-[var(--muted)] hover:text-white" href="/analyse">
+          <Link className="flex items-center gap-2 rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/analyse">
             <Activity size={16} />
             Analyse
           </Link>
           {isAdmin ? (
-            <Link className="flex items-center gap-2 rounded-lg px-3 py-2 text-[var(--muted)] hover:text-white" href="/admin">
+            <Link className="flex items-center gap-2 rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/admin">
               <ShieldCheck size={16} />
               Admin
             </Link>
           ) : null}
+          <ThemeToggle />
           {resolvedUserEmail ? (
             <div className="flex items-center gap-2">
               <Link
                 href="/profile"
-                className="flex items-center gap-2 rounded-lg border border-[var(--line)] bg-[var(--panel-2)] px-3 py-2 text-[var(--muted)] transition hover:border-[var(--accent)] hover:text-white"
+                className="flex items-center gap-2 rounded-lg border border-[var(--line)] bg-[var(--panel-2)] px-3 py-2 text-[var(--muted)] transition hover:border-[var(--accent)] hover:text-[var(--foreground)]"
                 title="Profil bearbeiten"
               >
-                <span className="flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-full bg-black/30 text-[10px] font-semibold text-white">
+                <span className="flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--raised-bg)] text-[10px] font-semibold text-[var(--foreground)]">
                   {currentUser.avatarUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={currentUser.avatarUrl} alt="" className="size-full object-cover" />
@@ -77,7 +79,7 @@ export async function AppHeader({ userEmail }: { userEmail?: string | null }) {
               </form>
             </div>
           ) : (
-            <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-white" href="/login">
+            <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/login">
               Login
             </Link>
           )}

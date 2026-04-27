@@ -21,7 +21,7 @@ export default async function AdminPage() {
         </p>
         <div className="mt-5 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
-            <h1 className="display-serif text-5xl leading-tight text-white">Steuerzentrale.</h1>
+            <h1 className="display-serif text-5xl leading-tight text-[var(--foreground)]">Steuerzentrale.</h1>
             <p className="muted mt-4 max-w-2xl leading-7">
               Rollen sind serverseitig geschützt. Trainingspläne werden hier gepflegt und
               später im Report als gesperrte Vorschau ausgespielt.

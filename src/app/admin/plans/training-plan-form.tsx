@@ -247,7 +247,7 @@ export function TrainingPlanForm({ plan }: TrainingPlanFormProps) {
             </div>
 
             {week.sessions.map((session, sessionIndex) => (
-              <div key={`${session.title}-${sessionIndex}`} className="rounded-lg border border-[var(--line)] bg-black/20 p-4">
+              <div key={`${session.title}-${sessionIndex}`} className="rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-4">
                 <div className="grid gap-4 md:grid-cols-[1fr_1fr_auto]">
                   <Field label="Einheit" value={session.title} onChange={(value) => updateSession(weekIndex, sessionIndex, { title: value })} />
                   <Field label="Fokus" value={session.focus} onChange={(value) => updateSession(weekIndex, sessionIndex, { focus: value })} />

@@ -93,7 +93,7 @@ export function AvatarUploader({
             JPG, PNG oder WebP bis 2 MB. Das Bild wird oben im Profil angezeigt.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
-            <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg bg-[var(--accent)] px-4 text-sm font-medium text-black transition hover:bg-[#7ff0e3]">
+            <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg bg-[var(--accent)] px-4 text-sm font-medium text-[var(--accent-foreground)] transition hover:bg-[var(--accent-hover)]">
               {isPending ? <Loader2 className="animate-spin" size={16} /> : <Upload size={16} />}
               Hochladen
               <input
@@ -114,7 +114,7 @@ export function AvatarUploader({
         </div>
       </div>
       {message ? (
-        <p className="mt-4 rounded-lg border border-[var(--line)] bg-black/20 p-3 text-sm text-[var(--muted)]">
+        <p className="mt-4 rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-3 text-sm text-[var(--muted)]">
           {message}
         </p>
       ) : null}

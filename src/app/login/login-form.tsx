@@ -26,18 +26,18 @@ export function LoginForm() {
 
   return (
     <div className="mt-6">
-      <div className="grid grid-cols-2 gap-2 rounded-lg border border-[var(--line)] bg-black/20 p-1">
+      <div className="grid grid-cols-2 gap-2 rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-1">
         <button
           type="button"
           onClick={() => setMode("login")}
-          className={mode === "login" ? "rounded-md bg-white px-3 py-2 text-sm text-black" : "px-3 py-2 text-sm text-[var(--muted)]"}
+          className={mode === "login" ? "rounded-md bg-[var(--brand-bg)] px-3 py-2 text-sm text-[var(--brand-fg)]" : "px-3 py-2 text-sm text-[var(--muted)]"}
         >
           Einloggen
         </button>
         <button
           type="button"
           onClick={() => setMode("signup")}
-          className={mode === "signup" ? "rounded-md bg-white px-3 py-2 text-sm text-black" : "px-3 py-2 text-sm text-[var(--muted)]"}
+          className={mode === "signup" ? "rounded-md bg-[var(--brand-bg)] px-3 py-2 text-sm text-[var(--brand-fg)]" : "px-3 py-2 text-sm text-[var(--muted)]"}
         >
           Account erstellen
         </button>
@@ -69,7 +69,7 @@ export function LoginForm() {
         </label>
 
         {state.message ? (
-          <p className="rounded-lg border border-[var(--warn)] bg-black/20 p-3 text-sm text-[var(--warn)]">
+          <p className="rounded-lg border border-[var(--warn)] bg-[var(--raised-bg)] p-3 text-sm text-[var(--warn)]">
             {state.message}
           </p>
         ) : null}
@@ -85,7 +85,7 @@ export function LoginForm() {
         </Button>
 
         {mode === "login" ? (
-          <Link href="/reset-password" className="block text-center text-sm text-[var(--muted)] hover:text-white">
+          <Link href="/reset-password" className="block text-center text-sm text-[var(--muted)] hover:text-[var(--foreground)]">
             Passwort vergessen?
           </Link>
         ) : null}

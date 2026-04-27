@@ -21,7 +21,7 @@ export function UpdatePasswordForm() {
       </label>
 
       {state.message ? (
-        <p className="rounded-lg border border-[var(--warn)] bg-black/20 p-3 text-sm text-[var(--warn)]">
+        <p className="rounded-lg border border-[var(--warn)] bg-[var(--raised-bg)] p-3 text-sm text-[var(--warn)]">
           {state.message}
         </p>
       ) : null}

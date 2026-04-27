@@ -18,7 +18,7 @@ export function ResetPasswordForm() {
       </label>
 
       {state.message ? (
-        <p className="rounded-lg border border-[var(--warn)] bg-black/20 p-3 text-sm text-[var(--warn)]">
+        <p className="rounded-lg border border-[var(--warn)] bg-[var(--raised-bg)] p-3 text-sm text-[var(--warn)]">
           {state.message}
         </p>
       ) : null}
@@ -27,7 +27,7 @@ export function ResetPasswordForm() {
         {isPending ? "Wird gesendet..." : "Reset-Link senden"}
       </Button>
 
-      <Link href="/login" className="block text-center text-sm text-[var(--muted)] hover:text-white">
+      <Link href="/login" className="block text-center text-sm text-[var(--muted)] hover:text-[var(--foreground)]">
         Zurück zum Login
       </Link>
     </form>

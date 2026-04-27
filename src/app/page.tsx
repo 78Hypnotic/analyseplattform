@@ -64,15 +64,15 @@ function Hero({ isAuthenticated }: { isAuthenticated: boolean }) {
         priority
         className="object-cover opacity-15"
       />
-      <div className="absolute inset-0 bg-gradient-to-r from-[#0b0c0d] via-[#0b0c0d]/94 to-[#0b0c0d]/82" />
+      <div className="absolute inset-0 bg-[image:var(--hero-overlay)]" />
       <div className="relative mx-auto flex min-h-[calc(100svh-4.25rem)] max-w-6xl flex-col justify-center px-5 pb-24 pt-20">
         <div className="grid gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
           <div>
-            <p className="mono inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-black/25 px-3 py-2 text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
-              <span className="size-2 rounded-full bg-[var(--accent)] shadow-[0_0_0_4px_rgba(94,227,211,0.14)]" />
+            <p className="mono inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--raised-bg)] px-3 py-2 text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
+              <span className="size-2 rounded-full bg-[var(--accent)] shadow-[0_0_0_4px_var(--accent-ring)]" />
               Endurance Coaching · Live für Schwimmen
             </p>
-            <h1 className="display-serif mt-6 max-w-3xl text-6xl leading-[0.95] text-white sm:text-8xl">
+            <h1 className="display-serif mt-6 max-w-3xl text-6xl leading-[0.95] text-[var(--foreground)] sm:text-8xl">
               Deine Zeit. Dein <em className="text-[var(--muted)]">Hebel.</em>{" "}
               <em className="text-[var(--accent)]">Klar.</em>
             </h1>
@@ -116,7 +116,7 @@ function Stats() {
 function Stat({ value, label }: { value: string; label: string }) {
   return (
     <div>
-      <p className="display-serif text-4xl leading-none text-white sm:text-5xl">{value}</p>
+      <p className="display-serif text-4xl leading-none text-[var(--foreground)] sm:text-5xl">{value}</p>
       <p className="mono mt-2 text-xs uppercase tracking-[0.16em] text-[var(--subtle)]">
         {label}
       </p>
@@ -126,7 +126,7 @@ function Stat({ value, label }: { value: string; label: string }) {
 
 function ReportPreview() {
   return (
-    <div className="surface rounded-[20px] bg-[color-mix(in_oklab,var(--panel)_92%,var(--accent)_8%)] p-7 shadow-2xl shadow-black/40">
+    <div className="surface rounded-[20px] bg-[color-mix(in_oklab,var(--panel)_92%,var(--accent)_8%)] p-7 shadow-[0_24px_60px_var(--shadow-color)]">
       <div className="mb-6 flex items-center justify-between">
         <p className="mono text-[10px] uppercase tracking-[0.22em] text-[var(--subtle)]">
           Analyse-Ergebnis · Lena B.
@@ -143,8 +143,8 @@ function ReportPreview() {
         <PreviewMetric label="CSS" value="1:55" hint="Schwelle" active />
         <PreviewMetric label="DPS 400" value="1.11" hint="m / Zug" />
       </div>
-      <div className="mt-5 rounded-lg border border-[color-mix(in_oklab,var(--warn)_35%,var(--line))] bg-[rgba(245,194,107,0.06)] p-4">
-        <p className="mono mb-2 inline-flex rounded bg-[rgba(245,194,107,0.12)] px-2 py-1 text-[10px] uppercase tracking-[0.12em] text-[var(--warn)]">
+      <div className="mt-5 rounded-lg border border-[color-mix(in_oklab,var(--warn)_35%,var(--line))] bg-[color-mix(in_oklab,var(--panel)_94%,var(--warn)_6%)] p-4">
+        <p className="mono mb-2 inline-flex rounded bg-[color-mix(in_oklab,var(--warn)_12%,transparent)] px-2 py-1 text-[10px] uppercase tracking-[0.12em] text-[var(--warn)]">
           Hauptproblem
         </p>
         <h3 className="font-semibold">Wasserlage: die Hüfte liegt zu tief</h3>
@@ -169,7 +169,7 @@ function PreviewMetric({
   active?: boolean;
 }) {
   return (
-    <div className={active ? "rounded-lg border border-[var(--accent)] bg-[rgba(94,227,211,0.08)] p-4" : "rounded-lg border border-[var(--line)] bg-black/20 p-4"}>
+    <div className={active ? "rounded-lg border border-[var(--accent)] bg-[color-mix(in_oklab,var(--accent)_8%,transparent)] p-4" : "rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-4"}>
       <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--subtle)]">{label}</p>
       <p className={active ? "display-serif mt-3 text-3xl text-[var(--accent)]" : "display-serif mt-3 text-3xl"}>
         {value}
@@ -243,7 +243,7 @@ function DisciplineCard({
 }) {
   return (
     <div className={live ? "surface border-[var(--accent)] p-5" : "surface p-5"}>
-      <div className={live ? "mb-5 flex size-11 items-center justify-center rounded-lg bg-[var(--accent)] text-black" : "mb-5 flex size-11 items-center justify-center rounded-lg bg-[var(--panel-2)] text-[var(--accent)]"}>
+      <div className={live ? "mb-5 flex size-11 items-center justify-center rounded-lg bg-[var(--accent)] text-[var(--accent-foreground)]" : "mb-5 flex size-11 items-center justify-center rounded-lg bg-[var(--panel-2)] text-[var(--accent)]"}>
         {icon}
       </div>
       <p className="mono text-xs uppercase tracking-[0.16em] text-[var(--subtle)]">{meta}</p>
@@ -423,7 +423,7 @@ function Plan({
   return (
     <div className={popular ? "surface border-[var(--accent)] p-6" : "surface p-6"}>
       {popular ? (
-        <p className="mb-4 inline-flex rounded bg-[var(--accent)] px-2 py-1 text-xs font-medium text-black">
+        <p className="mb-4 inline-flex rounded bg-[var(--accent)] px-2 py-1 text-xs font-medium text-[var(--accent-foreground)]">
           Beliebt
         </p>
       ) : null}
@@ -480,7 +480,7 @@ function Cta({ isAuthenticated }: { isAuthenticated: boolean }) {
           <p className="mono mb-4 inline-flex rounded-full border border-[var(--line)] px-3 py-2 text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">
             Bereit?
           </p>
-          <h2 className="display-serif max-w-xl text-5xl leading-[0.98] text-white">
+          <h2 className="display-serif max-w-xl text-5xl leading-[0.98] text-[var(--foreground)]">
             Zwei Tests. Ein Hebel. <em>Dein nächster Block wird anders.</em>
           </h2>
           <p className="muted mt-4 max-w-2xl leading-7">
@@ -544,11 +544,11 @@ function Section({
 
 function Footer() {
   return (
-    <footer className="border-t border-[var(--line)] bg-black/30">
+    <footer className="border-t border-[var(--line)] bg-[var(--header-bg)]">
       <div className="mx-auto grid max-w-6xl gap-8 px-5 py-10 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
         <div>
           <div className="flex items-center gap-3">
-            <span className="flex size-9 items-center justify-center rounded-lg bg-white text-black">
+            <span className="flex size-9 items-center justify-center rounded-lg bg-[var(--brand-bg)] text-[var(--brand-fg)]">
               <Waves size={18} />
             </span>
             <div>
@@ -602,7 +602,7 @@ function FooterCol({ title, links }: { title: string; links: Array<{ label: stri
       <ul className="space-y-2 text-sm text-[var(--muted)]">
         {links.map((link) => (
           <li key={link.label}>
-            <Link href={link.href} className="hover:text-white">
+            <Link href={link.href} className="hover:text-[var(--foreground)]">
               {link.label}
             </Link>
           </li>

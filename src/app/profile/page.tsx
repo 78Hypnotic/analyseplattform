@@ -34,7 +34,7 @@ export default async function ProfilePage() {
         <p className="mono inline-flex rounded-full border border-[var(--line)] px-3 py-2 text-xs uppercase tracking-[0.18em] text-[var(--subtle)]">
           Profil
         </p>
-        <h1 className="display-serif mt-4 text-5xl leading-tight text-white">
+        <h1 className="display-serif mt-4 text-5xl leading-tight text-[var(--foreground)]">
           Deine Daten.
         </h1>
         <p className="muted mt-4 max-w-2xl leading-7">

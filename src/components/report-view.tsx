@@ -88,7 +88,7 @@ export function ReportView({
           </p>
           <div className="mt-4 grid gap-3 md:grid-cols-2">
             {result.issues.slice(1, 5).map((secondaryIssue) => (
-              <div key={secondaryIssue.title} className="rounded-lg border border-[var(--line)] bg-black/20 p-4">
+              <div key={secondaryIssue.title} className="rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-4">
                 <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--warn)]">
                   {secondaryIssue.tag}
                 </p>
@@ -164,17 +164,17 @@ function PrimaryIssueCard({
       <h2 className="text-2xl font-semibold">{issue.title}</h2>
       <p className="muted mt-3 leading-7">{issue.cause}</p>
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
-        <div className="rounded-lg border border-[var(--line)] bg-black/20 p-4">
+        <div className="rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-4">
           <p className="mono mb-2 text-xs uppercase text-[var(--subtle)]">Cue</p>
           <p>{issue.cue}</p>
         </div>
-        <div className="rounded-lg border border-[var(--line)] bg-black/20 p-4">
+        <div className="rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-4">
           <p className="mono mb-2 text-xs uppercase text-[var(--subtle)]">Drill</p>
           <p>{issue.drill}</p>
         </div>
       </div>
       {issue.note ? (
-        <p className="mt-4 rounded-lg border border-[var(--line)] bg-black/20 p-3 text-sm text-[var(--muted)]">
+        <p className="mt-4 rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-3 text-sm text-[var(--muted)]">
           {issue.note}
         </p>
       ) : null}
@@ -192,7 +192,7 @@ function StyleProfileCard({
       <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--accent)]">Stilprofil</p>
       <h2 className="mt-3 text-2xl font-semibold">{profile.name}</h2>
       <p className="muted mt-3 leading-7">{profile.description}</p>
-      <div className="mt-4 rounded-lg border border-[var(--line)] bg-black/20 p-4">
+      <div className="mt-4 rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-4">
         <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--subtle)]">
           Was bedeutet das im Training?
         </p>
@@ -226,7 +226,7 @@ function TrainingPlanCard({
       </p>
       <h2 className="mt-3 text-2xl font-semibold">{trainingPlanPreview?.title ?? result.plan.name}</h2>
       <p className="muted mt-2">{trainingPlanPreview?.summary ?? `${result.plan.weeks} Wochen mit ReTest am Ende.`}</p>
-      <div className="mt-5 rounded-lg border border-[var(--line)] bg-black/20 p-4">
+      <div className="mt-5 rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-4">
         <div className="flex items-center gap-2 text-sm font-medium text-[var(--accent)]">
           <Lock size={16} />
           Gesperrte Planvorschau
@@ -237,7 +237,7 @@ function TrainingPlanCard({
       </div>
       <div className="mt-5 grid gap-3">
         {phases.map((phase) => (
-          <div key={phase.title} className="rounded-lg border border-[var(--line)] bg-black/20 p-4">
+          <div key={phase.title} className="rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-4">
             <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--accent)]">{phase.title}</p>
             <p className="muted mt-2 text-sm leading-6">{phase.text}</p>
           </div>
@@ -269,7 +269,7 @@ function RetestCard({ result }: { result: AnalysisResult }) {
 
 function RetestMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-[var(--line)] bg-black/20 p-4">
+    <div className="rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-4">
       <CalendarCheck2 size={18} className="text-[var(--accent)]" />
       <p className="mono mt-3 text-[10px] uppercase tracking-[0.14em] text-[var(--subtle)]">{label}</p>
       <p className="mt-2 text-sm font-medium">{value}</p>
@@ -328,7 +328,7 @@ function MetricMeaningGrid({ result }: { result: AnalysisResult }) {
       </p>
       <div className="mt-4 grid gap-3 md:grid-cols-2">
         {meanings.map((item) => (
-          <div key={item.label} className="rounded-lg border border-[var(--line)] bg-black/20 p-4">
+          <div key={item.label} className="rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-4">
             <h3 className="font-semibold text-[var(--accent)]">{item.label}</h3>
             <p className="muted mt-2 text-sm leading-6">{item.text}</p>
           </div>
@@ -352,7 +352,7 @@ function Triangle({ result }: { result: AnalysisResult }) {
     .join(" ");
 
   return (
-    <div className="rounded-lg border border-[var(--line)] bg-black/20 p-4">
+    <div className="rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-4">
       <svg viewBox="0 0 180 165" className="h-48 w-full">
         <polygon points="90,12 20,145 160,145" fill="none" stroke="var(--line)" />
         <polygon points="90,56 55,123 125,123" fill="none" stroke="var(--line)" opacity="0.55" />
@@ -393,7 +393,7 @@ function RawDataDetails({ input, result }: { input: AnalysisInput; result: Analy
 
 function MiniFact({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-[var(--line)] bg-black/20 p-3">
+    <div className="rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-3">
       <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--subtle)]">{label}</p>
       <p className="mt-2 text-sm font-medium">{value}</p>
     </div>
@@ -411,7 +411,7 @@ function TriangleNote({ label, text }: { label: string; text: string }) {
 
 function RawData({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-[var(--line)] bg-black/20 p-4">
+    <div className="rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-4">
       <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--subtle)]">{label}</p>
       <p className="mt-2 text-sm font-medium">{value}</p>
     </div>
