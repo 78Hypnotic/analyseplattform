@@ -42,7 +42,6 @@ export default async function ProfilePage() {
           Reports verwendet werden.
         </p>
         <AvatarUploader
-          userId={user.id}
           fullName={fullName || user.email || "Profil"}
           avatarUrl={profile?.avatar_url}
         />

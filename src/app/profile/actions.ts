@@ -10,6 +10,13 @@ const profileSchema = z.object({
   fullName: z.string().trim().min(2, "Name ist zu kurz.").max(80, "Name ist zu lang."),
 });
 
+const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
+const ALLOWED_AVATAR_TYPES = new Map([
+  ["image/jpeg", "jpg"],
+  ["image/png", "png"],
+  ["image/webp", "webp"],
+]);
+
 const avatarPathSchema = z
   .string()
   .trim()
@@ -69,10 +76,24 @@ export type AvatarActionState =
   | { ok: true; message: string; avatarUrl: string | null }
   | { ok: false; message: string };
 
-export async function updateAvatar(avatarPath: string): Promise<AvatarActionState> {
+export async function uploadAvatar(formData: FormData): Promise<AvatarActionState> {
   try {
     await assertRateLimit("profile-avatar-update", 12, 60_000);
-    const parsed = avatarPathSchema.parse(avatarPath);
+    const file = formData.get("avatar");
+
+    if (!(file instanceof File)) {
+      return { ok: false, message: "Bitte wähle ein Profilbild aus." };
+    }
+
+    const extension = ALLOWED_AVATAR_TYPES.get(file.type);
+    if (!extension) {
+      return { ok: false, message: "Bitte JPG, PNG oder WebP hochladen." };
+    }
+
+    if (file.size > MAX_AVATAR_BYTES) {
+      return { ok: false, message: "Das Bild darf maximal 2 MB groß sein." };
+    }
+
     const supabase = await createSupabaseServerClient();
     const {
       data: { user },
@@ -80,11 +101,24 @@ export async function updateAvatar(avatarPath: string): Promise<AvatarActionStat
 
     if (!user) return { ok: false, message: "Bitte melde dich erneut an." };
 
-    if (!parsed.startsWith(`${user.id}/`)) {
+    const avatarPath = `${user.id}/avatar.${extension}`;
+    const parsedAvatarPath = avatarPathSchema.parse(avatarPath);
+
+    if (!parsedAvatarPath.startsWith(`${user.id}/`)) {
       return { ok: false, message: "Du kannst nur dein eigenes Profilbild speichern." };
     }
 
-    const { data } = supabase.storage.from("avatars").getPublicUrl(parsed);
+    const { error: uploadError } = await supabase.storage.from("avatars").upload(parsedAvatarPath, file, {
+      cacheControl: "3600",
+      contentType: file.type,
+      upsert: true,
+    });
+
+    if (uploadError) {
+      return { ok: false, message: uploadError.message };
+    }
+
+    const { data } = supabase.storage.from("avatars").getPublicUrl(parsedAvatarPath);
     const avatarUrl = `${data.publicUrl}?v=${Date.now()}`;
 
     const { error: authError } = await supabase.auth.updateUser({
@@ -96,7 +130,7 @@ export async function updateAvatar(avatarPath: string): Promise<AvatarActionStat
     const { error } = await supabase.from("profiles").upsert({
       id: user.id,
       email: user.email,
-      avatar_path: parsed,
+      avatar_path: parsedAvatarPath,
       avatar_url: avatarUrl,
     });
 

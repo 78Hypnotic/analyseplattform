@@ -3,8 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { ImagePlus, Loader2, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/button";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { removeAvatar, updateAvatar } from "./actions";
+import { removeAvatar, uploadAvatar } from "./actions";
 
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 const ALLOWED_TYPES = new Map([
@@ -14,11 +13,9 @@ const ALLOWED_TYPES = new Map([
 ]);
 
 export function AvatarUploader({
-  userId,
   fullName,
   avatarUrl,
 }: {
-  userId: string;
   fullName: string;
   avatarUrl?: string | null;
 }) {
@@ -43,22 +40,10 @@ export function AvatarUploader({
     }
 
     startTransition(async () => {
-      const supabase = createSupabaseBrowserClient();
-      const avatarPath = `${userId}/avatar.${extension}`;
-      const { error } = await supabase.storage
-        .from("avatars")
-        .upload(avatarPath, file, {
-          cacheControl: "3600",
-          contentType: file.type,
-          upsert: true,
-        });
+      const formData = new FormData();
+      formData.set("avatar", file);
 
-      if (error) {
-        setMessage(error.message);
-        return;
-      }
-
-      const state = await updateAvatar(avatarPath);
+      const state = await uploadAvatar(formData);
       setMessage(state.message);
       if (state.ok) setCurrentAvatarUrl(state.avatarUrl);
     });
