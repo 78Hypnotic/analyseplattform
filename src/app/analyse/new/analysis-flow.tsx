@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, Check, Loader2 } from "lucide-react";
@@ -51,12 +51,20 @@ const EMPTY_ANALYSIS_INPUT: AnalysisDraft = {
   challenges: [],
 };
 
-export function AnalysisFlow() {
+const PENDING_ANALYSIS_STORAGE_KEY = "pending-analysis-input";
+const PENDING_ANALYSIS_NEXT_PATH = "/analyse/new?resume=1";
+
+export function AnalysisFlow({
+  resumePendingAnalysis = false,
+}: {
+  resumePendingAnalysis?: boolean;
+}) {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [input, setInput] = useState<AnalysisDraft>(EMPTY_ANALYSIS_INPUT);
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const resumeStarted = useRef(false);
   const parsedInput = useMemo(() => {
     const parsed = analysisInputSchema.safeParse(input);
     return parsed.success ? parsed.data : null;
@@ -67,6 +75,30 @@ export function AnalysisFlow() {
   function update(patch: Partial<AnalysisDraft>) {
     setInput((current) => ({ ...current, ...patch }));
   }
+
+  useEffect(() => {
+    if (!resumePendingAnalysis || resumeStarted.current) return;
+    resumeStarted.current = true;
+
+    const pendingInput = readPendingAnalysisInput();
+    if (!pendingInput) return;
+
+    startTransition(async () => {
+      const state = await createAnalysis(pendingInput);
+      if (state.ok) {
+        clearPendingAnalysisInput();
+        router.replace(`/analyse/${state.id}`);
+        return;
+      }
+
+      if (state.reason === "unauthenticated") {
+        router.replace(`/login?next=${encodeURIComponent(PENDING_ANALYSIS_NEXT_PATH)}`);
+        return;
+      }
+
+      setMessage(state.message);
+    });
+  }, [resumePendingAnalysis, router, startTransition]);
 
   function save() {
     setMessage(null);
@@ -79,11 +111,13 @@ export function AnalysisFlow() {
     startTransition(async () => {
       const state = await createAnalysis(parsedInput);
       if (state.ok) {
+        clearPendingAnalysisInput();
         router.push(`/analyse/${state.id}`);
         return;
       }
-      if (state.message.includes("melde dich")) {
-        setMessage("Analyse ist berechnet. Zum Speichern bitte einloggen.");
+      if (state.reason === "unauthenticated") {
+        storePendingAnalysisInput(parsedInput);
+        router.push(`/login?next=${encodeURIComponent(PENDING_ANALYSIS_NEXT_PATH)}`);
         return;
       }
       setMessage(state.message);
@@ -98,11 +132,11 @@ export function AnalysisFlow() {
             Neue Analyse
           </p>
           <h1 className="mt-2 text-3xl font-semibold">
-            {["Kontext", "Testdaten", "Report"][step]}
+            {["Kontext", "Testdaten"][step]}
           </h1>
         </div>
         <div className="flex gap-2">
-          {["Kontext", "Daten", "Report"].map((label, index) => (
+          {["Kontext", "Daten"].map((label, index) => (
             <button
               key={label}
               onClick={() => setStep(index)}
@@ -122,7 +156,13 @@ export function AnalysisFlow() {
         <ContextStep input={input} update={update} next={() => setStep(1)} />
       ) : null}
       {step === 1 ? (
-        <DataStep input={input} update={update} back={() => setStep(0)} next={() => setStep(2)} />
+        <DataStep
+          input={input}
+          update={update}
+          back={() => setStep(0)}
+          save={save}
+          isPending={isPending}
+        />
       ) : null}
       {step === 2 ? (
         <section className="space-y-6">
@@ -310,12 +350,14 @@ function DataStep({
   input,
   update,
   back,
-  next,
+  save,
+  isPending,
 }: {
   input: AnalysisDraft;
   update: (patch: Partial<AnalysisDraft>) => void;
   back: () => void;
-  next: () => void;
+  save: () => void;
+  isPending: boolean;
 }) {
   return (
     <section className="space-y-6">
@@ -376,8 +418,9 @@ function DataStep({
         <Button variant="ghost" onClick={back}>
           Zurück
         </Button>
-        <Button variant="primary" onClick={next}>
-          Report anzeigen <ArrowRight size={16} />
+        <Button variant="primary" onClick={save} disabled={isPending}>
+          {isPending ? <Loader2 className="animate-spin" size={16} /> : <Check size={16} />}
+          Report anzeigen
         </Button>
       </div>
     </section>
@@ -431,4 +474,24 @@ function Field({
 
 function optionalNumber(value: string) {
   return value === "" ? "" : Number(value);
+}
+
+function storePendingAnalysisInput(input: AnalysisInput) {
+  window.sessionStorage.setItem(PENDING_ANALYSIS_STORAGE_KEY, JSON.stringify(input));
+}
+
+function clearPendingAnalysisInput() {
+  window.sessionStorage.removeItem(PENDING_ANALYSIS_STORAGE_KEY);
+}
+
+function readPendingAnalysisInput() {
+  const rawInput = window.sessionStorage.getItem(PENDING_ANALYSIS_STORAGE_KEY);
+  if (!rawInput) return null;
+
+  try {
+    const parsedInput = analysisInputSchema.safeParse(JSON.parse(rawInput));
+    return parsedInput.success ? parsedInput.data : null;
+  } catch {
+    return null;
+  }
 }

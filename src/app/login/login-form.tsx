@@ -11,7 +11,7 @@ import {
 
 const initialState: LoginActionState = {};
 
-export function LoginForm() {
+export function LoginForm({ nextPath = "" }: { nextPath?: string }) {
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [loginState, loginAction, isLoginPending] = useActionState(
     signInWithPassword,
@@ -44,6 +44,8 @@ export function LoginForm() {
       </div>
 
       <form action={mode === "login" ? loginAction : signupAction} className="mt-5 space-y-4">
+        <input type="hidden" name="next" value={nextPath} />
+
         {mode === "signup" ? (
           <label className="block">
             <span className="mb-2 block text-sm text-[var(--muted)]">Name</span>
