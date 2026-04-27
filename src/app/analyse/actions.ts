@@ -5,6 +5,7 @@ import { assertRateLimit } from "@/lib/rate-limit/server";
 import { analysisInputSchema } from "@/lib/analysis/schema";
 import { runAnalysis } from "@/lib/analysis/calculations";
 import type { AnalysisInput } from "@/lib/analysis/types";
+import { getAnalysisValidationMessages } from "@/lib/analysis/validation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type CreateAnalysisState =
@@ -18,7 +19,8 @@ export async function createAnalysis(input: AnalysisInput): Promise<CreateAnalys
     const result = runAnalysis(parsed);
 
     if (!result) {
-      return { ok: false, message: "Die Testdaten sind nicht plausibel." };
+      const messages = getAnalysisValidationMessages(parsed);
+      return { ok: false, message: messages[0] ?? "Die Testdaten sind nicht plausibel." };
     }
 
     const supabase = await createSupabaseServerClient();

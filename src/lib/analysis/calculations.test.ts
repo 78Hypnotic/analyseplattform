@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_ANALYSIS_INPUT } from "./constants";
 import { analysisInputSchema } from "./schema";
 import { computeCSS, computeTest, derivePlanLength, parseTime, runAnalysis } from "./calculations";
+import { getAnalysisValidationMessages } from "./validation";
 import type { AnalysisInput } from "./types";
 
 describe("swim analysis calculations", () => {
@@ -82,5 +83,24 @@ describe("swim analysis calculations", () => {
         raceDate: "2026-99-99",
       }).success,
     ).toBe(false);
+  });
+
+  it("returns actionable validation messages for missing context fields", () => {
+    const messages = getAnalysisValidationMessages({
+      ...DEFAULT_ANALYSIS_INPUT,
+      swimSessionsPerWeek: "",
+    });
+
+    expect(messages[0]).toContain("Schwimmeinheiten pro Woche");
+  });
+
+  it("returns actionable validation messages for impossible test timing", () => {
+    const messages = getAnalysisValidationMessages({
+      ...DEFAULT_ANALYSIS_INPUT,
+      t200: "3:20",
+      t400: "3:10",
+    });
+
+    expect(messages).toContain("400 m Zeit: muss langsamer sein als die 200 m Zeit.");
   });
 });

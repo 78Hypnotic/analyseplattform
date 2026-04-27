@@ -10,6 +10,7 @@ import { CHALLENGE_GROUPS, GOALS, LEVELS, TARGET_DISTANCES } from "@/lib/analysi
 import { runAnalysis } from "@/lib/analysis/calculations";
 import { analysisInputSchema } from "@/lib/analysis/schema";
 import type { AnalysisInput } from "@/lib/analysis/types";
+import { getAnalysisValidationMessages } from "@/lib/analysis/validation";
 import { createAnalysis } from "../actions";
 
 type AnalysisDraft = Omit<
@@ -61,6 +62,7 @@ export function AnalysisFlow() {
     return parsed.success ? parsed.data : null;
   }, [input]);
   const result = useMemo(() => (parsedInput ? runAnalysis(parsedInput) : null), [parsedInput]);
+  const validationMessages = useMemo(() => getAnalysisValidationMessages(input), [input]);
 
   function update(patch: Partial<AnalysisDraft>) {
     setInput((current) => ({ ...current, ...patch }));
@@ -70,7 +72,7 @@ export function AnalysisFlow() {
     setMessage(null);
 
     if (!parsedInput) {
-      setMessage("Bitte fülle alle Pflichtfelder mit plausiblen Werten aus.");
+      setMessage(validationMessages[0] ?? "Bitte fülle alle Pflichtfelder mit plausiblen Werten aus.");
       return;
     }
 
@@ -129,7 +131,15 @@ export function AnalysisFlow() {
           ) : (
             <div className="surface p-6">
               <h2 className="text-xl font-semibold">Daten nicht plausibel</h2>
-              <p className="muted mt-2">Bitte prüfe Zeiten und Zugzahlen.</p>
+              <p className="muted mt-2">Bitte prüfe diese Eingaben:</p>
+              <ul className="mt-4 space-y-2 text-sm text-[var(--warn)]">
+                {(validationMessages.length > 0
+                  ? validationMessages
+                  : ["Zeiten und Zugzahlen passen nicht zusammen."]
+                ).map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
             </div>
           )}
           {message ? (
