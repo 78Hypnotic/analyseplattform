@@ -59,27 +59,22 @@ const FITNESS_LEVEL_OPTIONS = [
   {
     value: 1,
     label: "Anfänger",
-    description: "Erste strukturierte Schritte mit klarer Basis und moderatem Umfang.",
   },
   {
     value: 2,
     label: "Fortgeschritten",
-    description: "Regelmäßiges Training und erste Wettkämpfe mit solider Grundlage.",
   },
   {
     value: 3,
     label: "Mittelstufe",
-    description: "Konstantes strukturiertes Training und stabile Wettkampferfahrung.",
   },
   {
     value: 4,
     label: "Ambitioniert",
-    description: "Mehrere Saisons Struktur, hohe Umfänge und klare Leistungsziele.",
   },
   {
     value: 5,
     label: "Master",
-    description: "Sehr erfahrenes Niveau, bei dem kleine Stellschrauben zählen.",
   },
 ] as const;
 
@@ -614,7 +609,7 @@ function PoolLengthSegment({
   return (
     <div className="grid gap-2 text-sm">
       <span>Becken</span>
-      <div className="grid grid-cols-2 gap-1 rounded-lg border border-[var(--line)] bg-[var(--soft-bg)] p-1">
+      <div className="grid grid-cols-2 gap-1 rounded-lg border border-[var(--line)] bg-[var(--panel-2)] p-1">
         {options.map((option) => {
           const active = value === option;
           return (
@@ -625,7 +620,7 @@ function PoolLengthSegment({
               className={
                 active
                   ? "rounded-md bg-[var(--brand-bg)] px-3 py-2.5 text-sm text-[var(--brand-fg)]"
-                  : "rounded-md px-3 py-2.5 text-sm text-[var(--muted)] transition hover:text-[var(--foreground)]"
+                  : "rounded-md px-3 py-2.5 text-sm text-[var(--muted)] transition hover:bg-[var(--soft-bg)] hover:text-[var(--foreground)]"
               }
               onClick={() => onChange(option)}
             >
@@ -653,29 +648,30 @@ function FitnessLevelSlider({
   const meta = FITNESS_LEVEL_OPTIONS.find((item) => item.value === sliderValue) ?? FITNESS_LEVEL_OPTIONS[2];
 
   return (
-    <div className="grid gap-3 rounded-lg border border-[var(--line)] bg-[var(--soft-bg)] p-4 text-sm md:col-span-2">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--subtle)]">
-            Fitnesslevel
+    <div className="grid gap-2 text-sm md:col-span-2">
+      <div className="flex items-center justify-between gap-3">
+        <span>Fitnesslevel</span>
+        <div className="flex shrink-0 items-center gap-2">
+          <span className="mono text-xs text-[var(--muted)]">
+            {value === "" ? "nicht erfasst" : `${meta.label} · ${value}/5`}
           </span>
-          <p className="display-serif mt-1 text-2xl leading-none text-[var(--foreground)]">
-            {value === "" ? "Nicht erfasst" : meta.label}
-          </p>
+          {value !== "" ? (
+            <button
+              type="button"
+              className="text-xs text-[var(--subtle)] underline underline-offset-4 hover:text-[var(--foreground)]"
+              onClick={() => onChange("")}
+            >
+              Zurücksetzen
+            </button>
+          ) : null}
         </div>
-        <span className="mono shrink-0 text-xs text-[var(--muted)]">
-          {value === "" ? "nicht erfasst" : `${value}/5`}
-        </span>
       </div>
-      <p className="text-xs leading-5 text-[var(--muted)]">
-        {value === "" ? "Optional. Ziehe den Regler, wenn du dein aktuelles Trainingsniveau einschätzen möchtest." : meta.description}
-      </p>
-      <div className="grid gap-2">
-        <div className="relative h-8">
-          <div className="absolute left-0 right-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-[var(--accent)]" />
+      <div className="rounded-lg border border-[var(--line)] bg-[var(--panel-2)] px-3 py-2.5">
+        <div className="relative h-6">
+          <div className="absolute left-0 right-0 top-1/2 h-0.5 -translate-y-1/2 rounded-full bg-[color-mix(in_oklab,var(--accent)_70%,var(--line))]" />
           <div
             aria-hidden
-            className="pointer-events-none absolute top-1/2 size-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[var(--brand-bg)] bg-[var(--panel-2)] shadow-lg shadow-[var(--shadow-color)]"
+            className="pointer-events-none absolute top-1/2 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[var(--brand-bg)] bg-[var(--panel-2)] shadow-md shadow-[var(--shadow-color)]"
             style={{ left: `${progress}%` }}
           />
           <input
@@ -689,29 +685,12 @@ function FitnessLevelSlider({
             onChange={(event) => onChange(Number(event.target.value))}
           />
         </div>
-        <div className="grid grid-cols-5 gap-2 text-[10px] uppercase tracking-[0.16em] text-[var(--subtle)]">
-          {FITNESS_LEVEL_OPTIONS.map((item, index) => (
-            <span
-              key={item.value}
-              className={
-                "min-w-0 break-words leading-3 " +
-                (index === 0 ? "text-left" : index === FITNESS_LEVEL_OPTIONS.length - 1 ? "text-right" : "text-center")
-              }
-            >
-              {item.label}
-            </span>
-          ))}
+        <div className="mt-1.5 flex justify-between text-[9px] uppercase tracking-[0.12em] text-[var(--subtle)]">
+          <span>Anfänger</span>
+          <span>{value === "" ? "optional" : meta.label}</span>
+          <span>Master</span>
         </div>
       </div>
-      {value !== "" ? (
-        <button
-          type="button"
-          className="justify-self-start text-xs text-[var(--muted)] underline underline-offset-4 hover:text-[var(--foreground)]"
-          onClick={() => onChange("")}
-        >
-          Fitnesslevel zurücksetzen
-        </button>
-      ) : null}
     </div>
   );
 }
