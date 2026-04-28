@@ -16,6 +16,7 @@ const profileSchema = z.object({
   heightCm: optionalIntegerSchema(100, 230),
   weightKg: optionalIntegerSchema(25, 180),
   bodyFatPercentage: optionalNumberSchema(3, 60),
+  fitnessLevel: optionalIntegerSchema(1, 10),
 });
 
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
@@ -49,6 +50,7 @@ export async function updateProfile(
     heightCm: formData.get("heightCm"),
     weightKg: formData.get("weightKg"),
     bodyFatPercentage: formData.get("bodyFatPercentage"),
+    fitnessLevel: formData.get("fitnessLevel"),
   });
 
   if (!parsed.success) {
@@ -77,6 +79,7 @@ export async function updateProfile(
     height_cm: parsed.data.heightCm,
     weight_kg: parsed.data.weightKg,
     body_fat_percentage: parsed.data.bodyFatPercentage,
+    fitness_level: parsed.data.fitnessLevel,
   });
 
   if (profileError && !profileError.message.includes("full_name")) {

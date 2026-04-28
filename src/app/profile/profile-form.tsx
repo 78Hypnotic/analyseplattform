@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Button } from "@/components/button";
 import { updateProfile, type ProfileActionState } from "./actions";
 
@@ -12,6 +12,7 @@ export function ProfileForm({
   heightCm,
   weightKg,
   bodyFatPercentage,
+  fitnessLevel,
 }: {
   email: string;
   fullName: string;
@@ -20,7 +21,9 @@ export function ProfileForm({
   heightCm: number | null;
   weightKg: number | null;
   bodyFatPercentage: number | null;
+  fitnessLevel: number | null;
 }) {
+  const [selectedFitnessLevel, setSelectedFitnessLevel] = useState<number | null>(fitnessLevel);
   const [state, formAction, isPending] = useActionState<ProfileActionState, FormData>(
     updateProfile,
     {},
@@ -70,6 +73,30 @@ export function ProfileForm({
             placeholder="z. B. 21.5"
           />
         </label>
+        <div className="grid gap-3 text-sm md:col-span-2">
+          <div className="flex items-center justify-between gap-3">
+            <span>Fitnesslevel</span>
+            <span className="mono text-xs text-[var(--muted)]">
+              {selectedFitnessLevel ? `${selectedFitnessLevel}/10` : "nicht erfasst"}
+            </span>
+          </div>
+          <input type="hidden" name="fitnessLevel" value={selectedFitnessLevel ?? ""} />
+          <input
+            type="range"
+            min={1}
+            max={10}
+            step={1}
+            value={selectedFitnessLevel ?? 5}
+            onChange={(event) => setSelectedFitnessLevel(Number(event.target.value))}
+          />
+          <button
+            type="button"
+            className="justify-self-start text-sm text-[var(--muted)] underline underline-offset-4 hover:text-[var(--foreground)]"
+            onClick={() => setSelectedFitnessLevel(null)}
+          >
+            Fitnesslevel zurücksetzen
+          </button>
+        </div>
       </div>
       {state.message ? (
         <p className="rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-3 text-sm text-[var(--muted)]">

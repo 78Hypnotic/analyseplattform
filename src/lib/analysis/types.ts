@@ -29,6 +29,7 @@ export type AnalysisInput = {
   height: number;
   weight: number;
   bodyFatPercentage?: number;
+  fitnessLevel?: number;
   poolLength: PoolLength;
   t200: string;
   s200: number;

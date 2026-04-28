@@ -12,6 +12,7 @@ type ProfileData = {
   height_cm?: number | null;
   weight_kg?: number | null;
   body_fat_percentage?: number | string | null;
+  fitness_level?: number | null;
 };
 
 export default async function NewAnalysisPage({
@@ -43,7 +44,7 @@ async function getInitialAnalysisInput(): Promise<InitialAnalysisInput | undefin
 
   const { data } = await supabase
     .from("profiles")
-    .select("full_name,age,gender,height_cm,weight_kg,body_fat_percentage")
+    .select("full_name,age,gender,height_cm,weight_kg,body_fat_percentage,fitness_level")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -57,6 +58,7 @@ async function getInitialAnalysisInput(): Promise<InitialAnalysisInput | undefin
     height: toOptionalInteger(profile.height_cm),
     weight: toOptionalInteger(profile.weight_kg),
     bodyFatPercentage: toOptionalNumber(profile.body_fat_percentage),
+    fitnessLevel: toOptionalInteger(profile.fitness_level),
   };
 }
 

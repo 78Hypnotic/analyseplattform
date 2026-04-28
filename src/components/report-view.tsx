@@ -383,6 +383,7 @@ function RawDataDetails({ input, result }: { input: AnalysisInput; result: Analy
         <RawData label="Züge 200 m" value={String(input.s200)} />
         <RawData label="Züge 400 m" value={String(input.s400)} />
         <RawData label="KFA" value={input.bodyFatPercentage ? `${input.bodyFatPercentage} %` : "nicht erfasst"} />
+        <RawData label="Fitnesslevel" value={input.fitnessLevel ? `${input.fitnessLevel}/10` : "nicht erfasst"} />
         <RawData label="Becken" value={`${input.poolLength} m`} />
         <RawData label="Pace-Differenz" value={`${result.comparison.paceDiff.toFixed(1)} s/100 m`} />
         <RawData label="DPS-Differenz" value={`${result.comparison.dpsDiff.toFixed(2)} m`} />

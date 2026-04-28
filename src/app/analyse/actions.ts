@@ -50,6 +50,7 @@ export async function createAnalysis(input: AnalysisInput): Promise<CreateAnalys
       height_cm: parsed.height,
       weight_kg: parsed.weight,
       body_fat_percentage: parsed.bodyFatPercentage ?? null,
+      fitness_level: parsed.fitnessLevel ?? null,
     });
 
     if (profileError) return { ok: false, reason: "error", message: profileError.message };
