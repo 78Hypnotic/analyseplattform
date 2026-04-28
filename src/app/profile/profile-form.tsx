@@ -122,7 +122,8 @@ export function ProfileForm({
   const [selectedDisciplines, setSelectedDisciplines] = useState(() => new Set(initialDisciplines));
   const [selectedVisibility, setSelectedVisibility] = useState<ProfileVisibility>(profileVisibility);
   const [activeTab, setActiveTab] = useState<ProfileTab>("profile");
-  const [hasChanges, setHasChanges] = useState(false);
+  const [isSaveBarMounted, setIsSaveBarMounted] = useState(false);
+  const [isSaveBarVisible, setIsSaveBarVisible] = useState(false);
   const [state, formAction, isPending] = useActionState<ProfileActionState, FormData>(submitProfile, {});
   const fullNameValue = `${firstName} ${lastName}`.trim();
   const resolvedFitnessLevel = selectedFitnessLevel ?? 3;
@@ -130,6 +131,15 @@ export function ProfileForm({
   const bodyFatSliderValue = clamp(bodyFatValue ?? 22, 8, 42);
   const bodyFatStatus = getBodyFatStatus(visualSex, bodyFatValue);
   const bodyFatPresets = BODY_FAT_PRESETS[visualSex];
+
+  function markChanged() {
+    setIsSaveBarMounted(true);
+    window.requestAnimationFrame(() => setIsSaveBarVisible(true));
+  }
+
+  function clearChanges() {
+    setIsSaveBarVisible(false);
+  }
 
   function resetControlledFields() {
     setFirstName(initialName.firstName);
@@ -141,26 +151,26 @@ export function ProfileForm({
     setVisualSex(initialVisualSex);
     setSelectedDisciplines(new Set(initialDisciplines));
     setSelectedVisibility(profileVisibility);
-    setHasChanges(false);
+    clearChanges();
   }
 
   function setSelectedGenderValue(nextGender: Gender | null) {
     setSelectedGender(nextGender);
     if (nextGender === "weiblich") setVisualSex("female");
     if (nextGender === "maennlich") setVisualSex("male");
-    setHasChanges(true);
+    markChanged();
   }
 
   function setMeasuredBodyFat(nextValue: number | null) {
     setBodyFatValue(nextValue);
     setBodyFatMode("measured");
-    setHasChanges(true);
+    markChanged();
   }
 
   function setVisualBodyFat(nextValue: number | null) {
     setBodyFatValue(nextValue);
     setBodyFatMode("visual");
-    setHasChanges(true);
+    markChanged();
   }
 
   function toggleDiscipline(label: string) {
@@ -173,13 +183,13 @@ export function ProfileForm({
       }
       return next;
     });
-    setHasChanges(true);
+    markChanged();
   }
 
   async function submitProfile(previousState: ProfileActionState, formData: FormData) {
     const result = await updateProfile(previousState, formData);
     if (result.message === "Profil gespeichert.") {
-      setHasChanges(false);
+      clearChanges();
     }
     return result;
   }
@@ -206,7 +216,7 @@ export function ProfileForm({
             value={firstName}
             onChange={(value) => {
               setFirstName(value);
-              setHasChanges(true);
+              markChanged();
             }}
             placeholder="Vorname"
           />
@@ -215,7 +225,7 @@ export function ProfileForm({
             value={lastName}
             onChange={(value) => {
               setLastName(value);
-              setHasChanges(true);
+              markChanged();
             }}
             placeholder="Nachname"
           />
@@ -223,8 +233,8 @@ export function ProfileForm({
             <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--subtle)]">E-Mail</span>
             <input value={email} disabled className="w-full" />
           </label>
-          <TextInput label="Stadt" name="city" defaultValue={city} placeholder="z. B. Hamburg" onDirty={() => setHasChanges(true)} />
-          <NumberField label="Alter" name="age" min={8} max={100} defaultValue={age} placeholder="z. B. 34" onDirty={() => setHasChanges(true)} />
+          <TextInput label="Stadt" name="city" defaultValue={city} placeholder="z. B. Hamburg" onDirty={markChanged} />
+          <NumberField label="Alter" name="age" min={8} max={100} defaultValue={age} placeholder="z. B. 34" onDirty={markChanged} />
           <div className="grid gap-2 text-sm">
             <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--subtle)]">
               Biologisches Geschlecht
@@ -238,14 +248,14 @@ export function ProfileForm({
             </div>
             <span className="text-xs text-[var(--subtle)]">Beeinflusst Normwerte für VO₂max, FTP und Pace-Bereiche.</span>
           </div>
-          <NumberField label="Körpergröße" name="heightCm" min={100} max={230} defaultValue={heightCm} suffix="cm" placeholder="z. B. 172" onDirty={() => setHasChanges(true)} />
-          <NumberField label="Körpergewicht" name="weightKg" min={25} max={180} defaultValue={weightKg} suffix="kg" placeholder="z. B. 64" onDirty={() => setHasChanges(true)} />
+          <NumberField label="Körpergröße" name="heightCm" min={100} max={230} defaultValue={heightCm} suffix="cm" placeholder="z. B. 172" onDirty={markChanged} />
+          <NumberField label="Körpergewicht" name="weightKg" min={25} max={180} defaultValue={weightKg} suffix="kg" placeholder="z. B. 64" onDirty={markChanged} />
         </div>
       </ProfileSection>
 
       <DisciplinesSection selectedDisciplines={selectedDisciplines} onToggle={toggleDiscipline} />
 
-      <ProfileSection title="Fitnessniveau" eyebrow="02 · Selbsteinschätzung" description="Wir gewichten Testergebnisse anhand deines Niveaus. Schiebe den Regler dorthin, wo du dich am ehesten siehst.">
+      <ProfileSection title="Fitnessniveau" eyebrow="03 · Selbsteinschätzung" description="Wir gewichten Testergebnisse anhand deines Niveaus. Schiebe den Regler dorthin, wo du dich am ehesten siehst.">
         <input type="hidden" name="fitnessLevel" value={selectedFitnessLevel ?? ""} />
         <div className="grid gap-8">
           <div className="flex items-end justify-between gap-6">
@@ -268,7 +278,7 @@ export function ProfileForm({
               value={resolvedFitnessLevel}
               onChange={(value) => {
                 setSelectedFitnessLevel(value);
-                setHasChanges(true);
+                markChanged();
               }}
             />
             <div className="grid grid-cols-5 gap-2 text-[10px] uppercase tracking-[0.16em] text-[var(--subtle)]">
@@ -283,7 +293,7 @@ export function ProfileForm({
               className="justify-self-start text-sm text-[var(--muted)] underline underline-offset-4 hover:text-[var(--foreground)]"
               onClick={() => {
                 setSelectedFitnessLevel(null);
-                setHasChanges(true);
+                markChanged();
               }}
             >
               Fitnesslevel zurücksetzen
@@ -292,7 +302,7 @@ export function ProfileForm({
         </div>
       </ProfileSection>
 
-      <ProfileSection title="Leistungsmetriken" eyebrow="00 · Performance" description="Deine zentralen physiologischen Schwellenwerte. Wenn nicht gemessen, leer lassen - wir schätzen aus Tests.">
+      <ProfileSection title="Leistungsmetriken" eyebrow="04 · Performance" description="Deine zentralen physiologischen Schwellenwerte. Wenn nicht gemessen, leer lassen - wir schätzen aus Tests.">
         <div className="grid gap-4 md:grid-cols-3">
           <NumberField
             label="VO₂max"
@@ -304,7 +314,7 @@ export function ProfileForm({
             suffix="ml/kg/min"
             placeholder="-"
             helper="Maximale aerobe Kapazität."
-            onDirty={() => setHasChanges(true)}
+            onDirty={markChanged}
           />
           <NumberField
             label="VLamax"
@@ -316,7 +326,7 @@ export function ProfileForm({
             suffix="mmol/l/s"
             placeholder="-"
             helper="Maximale Laktatbildungsrate."
-            onDirty={() => setHasChanges(true)}
+            onDirty={markChanged}
           />
           <NumberField
             label="FTP (Rad)"
@@ -327,12 +337,12 @@ export function ProfileForm({
             suffix="W"
             placeholder="-"
             helper="Funktionelle Schwellenleistung."
-            onDirty={() => setHasChanges(true)}
+            onDirty={markChanged}
           />
         </div>
       </ProfileSection>
 
-      <ProfileSection title="Körperzusammensetzung" eyebrow="02 · Körper" description="Hilft beim Schätzen der laktischen Kapazität und der relativen Leistung. Wenn du keinen gemessenen KFA hast, schätze visuell.">
+      <ProfileSection title="Körperzusammensetzung" eyebrow="05 · Körper" description="Hilft beim Schätzen der laktischen Kapazität und der relativen Leistung. Wenn du keinen gemessenen KFA hast, schätze visuell.">
         <div className="grid gap-4 md:grid-cols-2">
           <ControlledNumberField
             label="Körperfett - gemessen"
@@ -356,7 +366,7 @@ export function ProfileForm({
             suffix="kg"
             placeholder="-"
             helper="Optionaler Labor- oder Waagenwert."
-            onDirty={() => setHasChanges(true)}
+            onDirty={markChanged}
           />
         </div>
 
@@ -455,7 +465,7 @@ export function ProfileForm({
           onSelect={(value) => {
             if (value === selectedVisibility) return;
             setSelectedVisibility(value);
-            setHasChanges(true);
+            markChanged();
           }}
         />
       </div>
@@ -466,26 +476,14 @@ export function ProfileForm({
         </p>
       ) : null}
 
-      {hasChanges ? (
-        <div className="sticky bottom-4 z-20 rounded-xl border border-[var(--line)] bg-[color-mix(in_oklab,var(--panel)_94%,black)] p-4 shadow-2xl shadow-[var(--shadow-color)]">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2 text-sm text-[var(--muted)]">
-              <Circle size={10} className="fill-[var(--warn)] text-[var(--warn)]" />
-              Ungespeicherte Änderungen
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button type="reset" variant="secondary" onClick={resetControlledFields} disabled={isPending}>
-                <RotateCcw size={16} />
-                Verwerfen
-              </Button>
-              <Button variant="primary" disabled={isPending || !fullNameValue}>
-                <Save size={16} />
-                {isPending ? "Speichert..." : "Speichern"}
-              </Button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <AnimatedSaveBar
+        mounted={isSaveBarMounted}
+        visible={isSaveBarVisible}
+        isPending={isPending}
+        canSave={Boolean(fullNameValue)}
+        onReset={resetControlledFields}
+        onExited={() => setIsSaveBarMounted(false)}
+      />
     </form>
   );
 }
@@ -522,6 +520,54 @@ function ProfileTabs({
   );
 }
 
+function AnimatedSaveBar({
+  mounted,
+  visible,
+  isPending,
+  canSave,
+  onReset,
+  onExited,
+}: {
+  mounted: boolean;
+  visible: boolean;
+  isPending: boolean;
+  canSave: boolean;
+  onReset: () => void;
+  onExited: () => void;
+}) {
+  if (!mounted) return null;
+
+  return (
+    <div
+      aria-hidden={!visible}
+      onTransitionEnd={(event) => {
+        if (event.propertyName === "opacity" && !visible) onExited();
+      }}
+      className={
+        "sticky bottom-4 z-20 rounded-xl border border-[var(--line)] bg-[color-mix(in_oklab,var(--panel)_94%,black)] p-4 shadow-2xl shadow-[var(--shadow-color)] transition-all duration-200 ease-out " +
+        (visible ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-3 opacity-0")
+      }
+    >
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2 text-sm text-[var(--muted)]">
+          <Circle size={10} className="fill-[var(--warn)] text-[var(--warn)]" />
+          Ungespeicherte Änderungen
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button type="reset" variant="secondary" onClick={onReset} disabled={isPending}>
+            <RotateCcw size={16} />
+            Verwerfen
+          </Button>
+          <Button variant="primary" disabled={isPending || !canSave}>
+            <Save size={16} />
+            {isPending ? "Speichert..." : "Speichern"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DisciplinesSection({
   selectedDisciplines,
   onToggle,
@@ -530,7 +576,7 @@ function DisciplinesSection({
   onToggle: (discipline: string) => void;
 }) {
   return (
-    <ProfileSection title="Disziplinen" eyebrow="03 · Was du machst" description="Aktiviere alle Disziplinen, die du regelmäßig trainierst. Bestimmt, welche Analysen wir dir vorschlagen.">
+    <ProfileSection title="Disziplinen" eyebrow="02 · Was du machst" description="Aktiviere alle Disziplinen, die du regelmäßig trainierst. Bestimmt, welche Analysen wir dir vorschlagen.">
       <div className="flex flex-wrap gap-2">
         {DISCIPLINE_OPTIONS.map((label) => {
           const active = selectedDisciplines.has(label);
@@ -571,7 +617,7 @@ function PrivacyPanel({
   ];
 
   return (
-    <ProfileSection title="Sichtbarkeit deiner Daten" eyebrow="13 · Privat" description="Du entscheidest, was wir tun dürfen. Standard ist nur für dich.">
+    <ProfileSection title="Sichtbarkeit deiner Daten" eyebrow="06 · Privat" description="Du entscheidest, was wir tun dürfen. Standard ist nur für dich.">
       <div className="grid gap-3 md:grid-cols-2">
         {privacyOptions.map((option) => {
           const active = selectedVisibility === option.value;
