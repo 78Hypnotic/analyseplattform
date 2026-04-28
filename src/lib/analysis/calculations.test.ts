@@ -68,6 +68,12 @@ describe("swim analysis calculations", () => {
     expect(
       analysisInputSchema.safeParse({
         ...DEFAULT_ANALYSIS_INPUT,
+        bodyFatPercentage: "",
+      }).success,
+    ).toBe(true);
+    expect(
+      analysisInputSchema.safeParse({
+        ...DEFAULT_ANALYSIS_INPUT,
         swimSessionsPerWeek: -1,
       }).success,
     ).toBe(false);
@@ -81,6 +87,12 @@ describe("swim analysis calculations", () => {
       analysisInputSchema.safeParse({
         ...DEFAULT_ANALYSIS_INPUT,
         raceDate: "2026-99-99",
+      }).success,
+    ).toBe(false);
+    expect(
+      analysisInputSchema.safeParse({
+        ...DEFAULT_ANALYSIS_INPUT,
+        bodyFatPercentage: 99,
       }).success,
     ).toBe(false);
   });

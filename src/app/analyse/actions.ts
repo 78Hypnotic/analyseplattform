@@ -41,6 +41,19 @@ export async function createAnalysis(input: AnalysisInput): Promise<CreateAnalys
     }
 
     const title = `${parsed.name} · ${new Date().toLocaleDateString("de-DE")}`;
+    const { error: profileError } = await supabase.from("profiles").upsert({
+      id: user.id,
+      email: user.email,
+      full_name: parsed.name,
+      age: parsed.age,
+      gender: parsed.gender,
+      height_cm: parsed.height,
+      weight_kg: parsed.weight,
+      body_fat_percentage: parsed.bodyFatPercentage ?? null,
+    });
+
+    if (profileError) return { ok: false, reason: "error", message: profileError.message };
+
     const { data, error } = await supabase
       .from("analyses")
       .insert({
@@ -54,6 +67,7 @@ export async function createAnalysis(input: AnalysisInput): Promise<CreateAnalys
 
     if (error) return { ok: false, reason: "error", message: error.message };
 
+    revalidatePath("/profile");
     revalidatePath("/analyse");
     return { ok: true, id: data.id as string };
   } catch (error) {
