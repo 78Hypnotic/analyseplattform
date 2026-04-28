@@ -47,21 +47,6 @@ export default async function ProfilePage() {
       : "";
   const fullName = profile?.full_name ?? metadataName;
   const profileSummary = buildProfileSummary(profile);
-  const exportHref = buildProfileExportHref({
-    email: user.email ?? "",
-    fullName,
-    city: profile?.city ?? null,
-    age: profile?.age ?? null,
-    gender: profile?.gender ?? null,
-    heightCm: profile?.height_cm ?? null,
-    weightKg: profile?.weight_kg ?? null,
-    bodyFatPercentage: toNullableNumber(profile?.body_fat_percentage),
-    fitnessLevel: profile?.fitness_level ?? null,
-    vo2max: toNullableNumber(profile?.vo2max),
-    vlamax: toNullableNumber(profile?.vlamax),
-    ftpRad: profile?.ftp_rad ?? null,
-    muscleMassKg: toNullableNumber(profile?.muscle_mass_kg),
-  });
   const completion = calculateProfileCompletion({
     email: user.email,
     fullName,
@@ -97,34 +82,23 @@ export default async function ProfilePage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <a
-              href={exportHref}
-              download="athleten-profil.json"
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[var(--line)] bg-[var(--panel-2)] px-4 text-sm font-medium text-[var(--foreground)] transition hover:border-[var(--accent)]"
-            >
-              Daten exportieren
-            </a>
             <Button form="profile-form" variant="primary">
               Änderungen speichern
             </Button>
           </div>
         </section>
 
-        <section className="surface relative overflow-hidden bg-[linear-gradient(110deg,var(--panel)_0%,var(--panel)_58%,color-mix(in_oklab,var(--accent)_14%,var(--panel))_100%)] p-6 sm:p-7">
+        <section className="surface relative overflow-hidden p-6 sm:p-7">
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-y-0 right-0 w-1/2 bg-[radial-gradient(circle_at_100%_0%,color-mix(in_oklab,var(--accent)_28%,transparent)_0%,transparent_64%)]"
+            className="pointer-events-none absolute right-0 top-0 h-28 w-80 bg-[radial-gradient(circle_at_100%_0%,color-mix(in_oklab,var(--accent)_18%,transparent)_0%,transparent_68%)]"
           />
           <div className="relative flex flex-col justify-between gap-8 md:flex-row md:items-center">
             <div className="flex items-center gap-5">
-              <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[color-mix(in_oklab,var(--accent)_35%,var(--line))] bg-[color-mix(in_oklab,var(--accent)_12%,var(--panel))] text-2xl font-semibold sm:size-24">
-                {profile?.avatar_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={profile.avatar_url} alt="Profilbild" className="size-full object-cover" />
-                ) : (
-                  <span>{buildInitials(fullName || user.email || "Profil")}</span>
-                )}
-              </div>
+              <AvatarUploader
+                fullName={fullName || user.email || "Profil"}
+                avatarUrl={profile?.avatar_url}
+              />
               <div>
                 <h2 className="display-serif text-4xl text-[var(--foreground)]">
                   {fullName || "Dein Profil"}
@@ -152,12 +126,6 @@ export default async function ProfilePage() {
           </div>
         </section>
 
-        <nav className="inline-flex rounded-xl border border-[var(--line)] bg-[var(--panel)] p-1 text-sm">
-          <span className="rounded-lg bg-[var(--brand-bg)] px-4 py-2 text-[var(--brand-fg)]">Stammdaten</span>
-          <span className="px-4 py-2 text-[var(--muted)]">Training</span>
-          <span className="px-4 py-2 text-[var(--muted)]">Privatsphäre</span>
-        </nav>
-
         <ProfileForm
           email={user.email ?? ""}
           fullName={fullName}
@@ -172,10 +140,6 @@ export default async function ProfilePage() {
           vlamax={toNullableNumber(profile?.vlamax)}
           ftpRad={profile?.ftp_rad ?? null}
           muscleMassKg={toNullableNumber(profile?.muscle_mass_kg)}
-        />
-        <AvatarUploader
-          fullName={fullName || user.email || "Profil"}
-          avatarUrl={profile?.avatar_url}
         />
       </main>
     </>
@@ -233,35 +197,6 @@ function buildProfileSummary(profile: ProfileData | null) {
     profile?.fitness_level ? `Fitness ${normalizeFitnessLevel(profile.fitness_level)}/5` : null,
   ];
   return items.filter((item): item is string => Boolean(item));
-}
-
-function buildInitials(label: string) {
-  const parts = label.trim().split(/\s+/).filter(Boolean);
-  const first = parts[0]?.[0] ?? "?";
-  const second = parts.length > 1 ? parts[parts.length - 1]?.[0] : "";
-  return `${first}${second}`.toUpperCase();
-}
-
-function buildProfileExportHref(profile: {
-  email: string;
-  fullName: string;
-  city: string | null;
-  age: number | null;
-  gender: string | null;
-  heightCm: number | null;
-  weightKg: number | null;
-  bodyFatPercentage: number | null;
-  fitnessLevel: number | null;
-  vo2max: number | null;
-  vlamax: number | null;
-  ftpRad: number | null;
-  muscleMassKg: number | null;
-}) {
-  const payload = {
-    exportedAt: new Date().toISOString(),
-    profile,
-  };
-  return `data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(payload, null, 2))}`;
 }
 
 function normalizeFitnessLevel(value: number) {

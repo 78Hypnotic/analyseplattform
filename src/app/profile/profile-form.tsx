@@ -8,6 +8,8 @@ import { updateProfile, type ProfileActionState } from "./actions";
 
 type Gender = "weiblich" | "maennlich" | "divers";
 type BodyFatSex = "female" | "male";
+type BodyFatMode = "measured" | "visual";
+type ProfileTab = "profile" | "training" | "privacy";
 
 type ProfileFormProps = {
   email: string;
@@ -96,7 +98,9 @@ export function ProfileForm({
   const [selectedGender, setSelectedGender] = useState<Gender | null>(gender);
   const [selectedFitnessLevel, setSelectedFitnessLevel] = useState<number | null>(initialFitnessLevel);
   const [bodyFatValue, setBodyFatValue] = useState<number | null>(bodyFatPercentage);
+  const [bodyFatMode, setBodyFatMode] = useState<BodyFatMode>(bodyFatPercentage === null ? "visual" : "measured");
   const [visualSex, setVisualSex] = useState<BodyFatSex>(initialVisualSex);
+  const [activeTab, setActiveTab] = useState<ProfileTab>("profile");
   const [hasChanges, setHasChanges] = useState(false);
   const [state, formAction, isPending] = useActionState<ProfileActionState, FormData>(submitProfile, {});
   const fullNameValue = `${firstName} ${lastName}`.trim();
@@ -112,6 +116,7 @@ export function ProfileForm({
     setSelectedGender(gender);
     setSelectedFitnessLevel(initialFitnessLevel);
     setBodyFatValue(bodyFatPercentage);
+    setBodyFatMode(bodyFatPercentage === null ? "visual" : "measured");
     setVisualSex(initialVisualSex);
     setHasChanges(false);
   }
@@ -123,8 +128,15 @@ export function ProfileForm({
     setHasChanges(true);
   }
 
-  function setBodyFat(nextValue: number | null) {
+  function setMeasuredBodyFat(nextValue: number | null) {
     setBodyFatValue(nextValue);
+    setBodyFatMode("measured");
+    setHasChanges(true);
+  }
+
+  function setVisualBodyFat(nextValue: number | null) {
+    setBodyFatValue(nextValue);
+    setBodyFatMode("visual");
     setHasChanges(true);
   }
 
@@ -141,10 +153,12 @@ export function ProfileForm({
       id="profile-form"
       action={formAction}
       className="space-y-6 pb-4"
-      onChange={() => setHasChanges(true)}
     >
       <input type="hidden" name="fullName" value={fullNameValue} />
 
+      <ProfileTabs activeTab={activeTab} onSelect={setActiveTab} />
+
+      <div className={activeTab === "profile" ? "space-y-6" : "hidden"}>
       <ProfileSection title="Stammdaten" eyebrow="01 · Wer bist du" description="Wir nutzen Alter, Größe und Gewicht, um deine Tests im richtigen Kontext einzuordnen.">
         <div className="grid gap-4 md:grid-cols-2">
           <TextField
@@ -169,8 +183,8 @@ export function ProfileForm({
             <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--subtle)]">E-Mail</span>
             <input value={email} disabled className="w-full" />
           </label>
-          <TextInput label="Stadt" name="city" defaultValue={city} placeholder="z. B. Hamburg" />
-          <NumberField label="Alter" name="age" min={8} max={100} defaultValue={age} placeholder="z. B. 34" />
+          <TextInput label="Stadt" name="city" defaultValue={city} placeholder="z. B. Hamburg" onDirty={() => setHasChanges(true)} />
+          <NumberField label="Alter" name="age" min={8} max={100} defaultValue={age} placeholder="z. B. 34" onDirty={() => setHasChanges(true)} />
           <div className="grid gap-2 text-sm">
             <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--subtle)]">
               Biologisches Geschlecht
@@ -184,8 +198,8 @@ export function ProfileForm({
             </div>
             <span className="text-xs text-[var(--subtle)]">Beeinflusst Normwerte für VO₂max, FTP und Pace-Bereiche.</span>
           </div>
-          <NumberField label="Körpergröße" name="heightCm" min={100} max={230} defaultValue={heightCm} suffix="cm" placeholder="z. B. 172" />
-          <NumberField label="Körpergewicht" name="weightKg" min={25} max={180} defaultValue={weightKg} suffix="kg" placeholder="z. B. 64" />
+          <NumberField label="Körpergröße" name="heightCm" min={100} max={230} defaultValue={heightCm} suffix="cm" placeholder="z. B. 172" onDirty={() => setHasChanges(true)} />
+          <NumberField label="Körpergewicht" name="weightKg" min={25} max={180} defaultValue={weightKg} suffix="kg" placeholder="z. B. 64" onDirty={() => setHasChanges(true)} />
         </div>
       </ProfileSection>
 
@@ -248,6 +262,7 @@ export function ProfileForm({
             suffix="ml/kg/min"
             placeholder="-"
             helper="Maximale aerobe Kapazität."
+            onDirty={() => setHasChanges(true)}
           />
           <NumberField
             label="VLamax"
@@ -259,6 +274,7 @@ export function ProfileForm({
             suffix="mmol/l/s"
             placeholder="-"
             helper="Maximale Laktatbildungsrate."
+            onDirty={() => setHasChanges(true)}
           />
           <NumberField
             label="FTP (Rad)"
@@ -269,6 +285,7 @@ export function ProfileForm({
             suffix="W"
             placeholder="-"
             helper="Funktionelle Schwellenleistung."
+            onDirty={() => setHasChanges(true)}
           />
         </div>
       </ProfileSection>
@@ -282,7 +299,7 @@ export function ProfileForm({
             max={60}
             step="0.1"
             value={bodyFatValue}
-            onChange={setBodyFat}
+            onChange={setMeasuredBodyFat}
             suffix="%"
             placeholder="-"
             helper="Aus DXA, Caliper oder Bioimpedanz."
@@ -296,6 +313,8 @@ export function ProfileForm({
             defaultValue={muscleMassKg}
             suffix="kg"
             placeholder="-"
+            helper="Optionaler Labor- oder Waagenwert."
+            onDirty={() => setHasChanges(true)}
           />
         </div>
 
@@ -311,8 +330,16 @@ export function ProfileForm({
               </p>
             </div>
             <div className="grid grid-cols-2 gap-1 rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-1 text-sm">
-              <button type="button" className="rounded-md px-4 py-2 text-[var(--muted)]">Gemessen</button>
-              <button type="button" className="rounded-md bg-[var(--brand-bg)] px-4 py-2 text-[var(--brand-fg)]">Visuell schätzen</button>
+              <SegmentButton
+                label="Gemessen"
+                active={bodyFatMode === "measured"}
+                onClick={() => setBodyFatMode("measured")}
+              />
+              <SegmentButton
+                label="Visuell schätzen"
+                active={bodyFatMode === "visual"}
+                onClick={() => setBodyFatMode("visual")}
+              />
             </div>
           </div>
 
@@ -320,20 +347,14 @@ export function ProfileForm({
             <button
               type="button"
               className={visualSex === "female" ? "rounded-md bg-[var(--brand-bg)] px-8 py-2 text-[var(--brand-fg)]" : "rounded-md px-8 py-2 text-[var(--muted)]"}
-              onClick={() => {
-                setVisualSex("female");
-                setHasChanges(true);
-              }}
+              onClick={() => setVisualSex("female")}
             >
               Weiblich
             </button>
             <button
               type="button"
               className={visualSex === "male" ? "rounded-md bg-[var(--brand-bg)] px-8 py-2 text-[var(--brand-fg)]" : "rounded-md px-8 py-2 text-[var(--muted)]"}
-              onClick={() => {
-                setVisualSex("male");
-                setHasChanges(true);
-              }}
+              onClick={() => setVisualSex("male")}
             >
               Männlich
             </button>
@@ -348,7 +369,7 @@ export function ProfileForm({
                 value={preset.value}
                 sex={visualSex}
                 active={preset.label === bodyFatStatus}
-                onClick={() => setBodyFat(preset.value)}
+                onClick={() => setVisualBodyFat(preset.value)}
               />
             ))}
           </div>
@@ -361,7 +382,7 @@ export function ProfileForm({
                 max={42}
                 step={0.5}
                 value={bodyFatSliderValue}
-                onChange={setBodyFat}
+                onChange={setVisualBodyFat}
               />
               <div className="mt-3 grid grid-cols-5 gap-2 text-[10px] uppercase tracking-[0.16em] text-[var(--subtle)]">
                 {BODY_FAT_PRESETS.female.map((item, index) => (
@@ -384,6 +405,15 @@ export function ProfileForm({
           </p>
         </div>
       </ProfileSection>
+      </div>
+
+      <div className={activeTab === "training" ? "space-y-6" : "hidden"}>
+        <TrainingPanel />
+      </div>
+
+      <div className={activeTab === "privacy" ? "space-y-6" : "hidden"}>
+        <PrivacyPanel />
+      </div>
 
       {state.message ? (
         <p className="rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-3 text-sm text-[var(--muted)]">
@@ -410,6 +440,214 @@ export function ProfileForm({
         </div>
       </div>
     </form>
+  );
+}
+
+function ProfileTabs({
+  activeTab,
+  onSelect,
+}: {
+  activeTab: ProfileTab;
+  onSelect: (tab: ProfileTab) => void;
+}) {
+  const tabs: Array<{ id: ProfileTab; label: string }> = [
+    { id: "profile", label: "Stammdaten" },
+    { id: "training", label: "Training" },
+    { id: "privacy", label: "Privatsphäre" },
+  ];
+
+  return (
+    <nav className="inline-flex rounded-xl border border-[var(--line)] bg-[var(--panel)] p-1 text-sm">
+      {tabs.map((tab) => (
+        <button
+          key={tab.id}
+          type="button"
+          className={
+            activeTab === tab.id
+              ? "rounded-lg bg-[var(--brand-bg)] px-4 py-2 text-[var(--brand-fg)]"
+              : "px-4 py-2 text-[var(--muted)] transition hover:text-[var(--foreground)]"
+          }
+          onClick={() => onSelect(tab.id)}
+        >
+          {tab.label}
+        </button>
+      ))}
+    </nav>
+  );
+}
+
+/**
+ * Mirrors the training tab from the standalone profile template with local interactive controls.
+ */
+function TrainingPanel() {
+  const [disciplines, setDisciplines] = useState(() => new Set(["Schwimmen", "Laufen", "Radfahren", "Triathlon"]));
+  const disciplineOptions = [
+    "Schwimmen",
+    "Laufen",
+    "Radfahren",
+    "Triathlon",
+    "Open Water",
+    "Crosstraining",
+    "Krafttraining",
+    "Yoga / Mobility",
+  ];
+  const personalBests = [
+    { discipline: "Schwimmen", distance: "400 m Kraul", best: "6:42", date: "2025-09-12" },
+    { discipline: "Laufen", distance: "5 km", best: "22:18", date: "2025-10-04" },
+    { discipline: "Rad", distance: "FTP", best: "218 W", date: "2026-01-22" },
+  ];
+
+  function toggleDiscipline(label: string) {
+    setDisciplines((current) => {
+      const next = new Set(current);
+      if (next.has(label)) {
+        next.delete(label);
+      } else {
+        next.add(label);
+      }
+      return next;
+    });
+  }
+
+  return (
+    <>
+      <ProfileSection title="Disziplinen" eyebrow="03 · Was du machst" description="Aktiviere alle Disziplinen, die du regelmäßig trainierst. Bestimmt, welche Analysen wir dir vorschlagen.">
+        <div className="flex flex-wrap gap-2">
+          {disciplineOptions.map((label) => (
+            <button
+              key={label}
+              type="button"
+              className={
+                disciplines.has(label)
+                  ? "rounded-full border border-[var(--accent)] bg-[color-mix(in_oklab,var(--accent)_14%,var(--panel))] px-4 py-2 text-sm text-[var(--foreground)]"
+                  : "rounded-full border border-[var(--line)] bg-[var(--soft-bg)] px-4 py-2 text-sm text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--foreground)]"
+              }
+              onClick={() => toggleDiscipline(label)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </ProfileSection>
+
+      <ProfileSection title="Aktuelle Bestzeiten" eyebrow="04 · PRs (optional)" description="Ein Anker für die Modellierung. Du kannst später jederzeit aktualisieren oder leer lassen.">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px] border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-[var(--line)] text-left mono text-[10px] uppercase tracking-[0.14em] text-[var(--subtle)]">
+                <th className="py-3 pr-4 font-normal">Disziplin</th>
+                <th className="px-4 py-3 font-normal">Distanz</th>
+                <th className="px-4 py-3 font-normal">Bestzeit</th>
+                <th className="py-3 pl-4 font-normal">Datum</th>
+              </tr>
+            </thead>
+            <tbody>
+              {personalBests.map((best) => (
+                <tr key={`${best.discipline}-${best.distance}`} className="border-b border-[var(--line)] last:border-b-0">
+                  <td className="py-3 pr-4 font-medium">{best.discipline}</td>
+                  <td className="px-4 py-3 text-[var(--muted)]">{best.distance}</td>
+                  <td className="px-4 py-3">
+                    <input defaultValue={best.best} className="w-32 border-0 bg-transparent p-0 font-serif text-xl text-[var(--accent)]" />
+                  </td>
+                  <td className="py-3 pl-4">
+                    <input type="date" defaultValue={best.date} className="w-40 border-0 bg-transparent p-0 mono text-xs text-[var(--muted)]" />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </ProfileSection>
+    </>
+  );
+}
+
+/**
+ * Renders privacy controls from the standalone profile template without destructive account actions.
+ */
+function PrivacyPanel() {
+  const [privacy, setPrivacy] = useState("Privat");
+  const [notifications, setNotifications] = useState({
+    retest: true,
+    weekly: true,
+    overload: true,
+    marketing: false,
+  });
+  const privacyOptions = [
+    { title: "Privat", text: "Nur du siehst deine Daten. Kein Teilen, keine Aggregation." },
+    { title: "Coach-Zugriff", text: "Dein verknüpfter Coach kann deine Reports einsehen." },
+    { title: "Anonyme Aggregation", text: "Anonyme Daten können in Benchmarks einfließen." },
+    { title: "Öffentliches Profil", text: "PRs und Saisonziel sind öffentlich sichtbar." },
+  ];
+  const notificationOptions = [
+    { id: "retest", title: "ReTest-Erinnerung", text: "Nach 6-8 Wochen Trainingsplan automatisch zum ReTest auffordern." },
+    { id: "weekly", title: "Wöchentlicher Report", text: "Zusammenfassung deiner Trends per E-Mail." },
+    { id: "overload", title: "Übertrainings-Warnung", text: "Bei abfallender HRV und erhöhtem Ruhepuls." },
+    { id: "marketing", title: "Marketing & Updates", text: "Neue Features, Disziplinen und Events." },
+  ] as const;
+
+  return (
+    <>
+      <ProfileSection title="Sichtbarkeit deiner Daten" eyebrow="13 · Privat" description="Du entscheidest, was wir tun dürfen. Standard ist nur für dich.">
+        <div className="grid gap-3 md:grid-cols-2">
+          {privacyOptions.map((option) => (
+            <button
+              key={option.title}
+              type="button"
+              className={
+                privacy === option.title
+                  ? "rounded-lg border border-[var(--accent)] bg-[color-mix(in_oklab,var(--accent)_12%,var(--panel))] p-4 text-left"
+                  : "rounded-lg border border-[var(--line)] bg-[var(--soft-bg)] p-4 text-left hover:border-[var(--accent)]"
+              }
+              onClick={() => setPrivacy(option.title)}
+            >
+              <span className="flex items-center justify-between gap-3">
+                <span className="font-medium">{option.title}</span>
+                <span className="flex size-6 items-center justify-center rounded-full border border-[var(--line)] text-xs text-[var(--accent)]">
+                  {privacy === option.title ? "✓" : ""}
+                </span>
+              </span>
+              <span className="mt-3 block text-sm leading-6 text-[var(--muted)]">{option.text}</span>
+            </button>
+          ))}
+        </div>
+      </ProfileSection>
+
+      <ProfileSection title="Benachrichtigungen" eyebrow="14" description="Wann sollen wir uns melden?">
+        <div className="divide-y divide-[var(--line)] rounded-lg border border-[var(--line)] bg-[var(--soft-bg)]">
+          {notificationOptions.map((option) => {
+            const active = notifications[option.id];
+            return (
+              <div key={option.id} className="flex items-center justify-between gap-5 p-4">
+                <div>
+                  <p className="font-medium">{option.title}</p>
+                  <p className="mt-1 text-sm leading-6 text-[var(--muted)]">{option.text}</p>
+                </div>
+                <button
+                  type="button"
+                  aria-label={`${option.title} ${active ? "deaktivieren" : "aktivieren"}`}
+                  className={
+                    active
+                      ? "relative h-7 w-12 rounded-full bg-[var(--accent)]"
+                      : "relative h-7 w-12 rounded-full bg-[var(--line)]"
+                  }
+                  aria-pressed={active}
+                  onClick={() => setNotifications((current) => ({ ...current, [option.id]: !active }))}
+                >
+                  <span
+                    className={
+                      active
+                        ? "absolute right-1 top-1 size-5 rounded-full bg-[var(--accent-foreground)] transition"
+                        : "absolute left-1 top-1 size-5 rounded-full bg-[var(--foreground)] transition"
+                    }
+                  />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </ProfileSection>
+    </>
   );
 }
 
@@ -462,16 +700,18 @@ function TextInput({
   name,
   defaultValue,
   placeholder,
+  onDirty,
 }: {
   label: string;
   name: string;
   defaultValue: string | null;
   placeholder?: string;
+  onDirty?: () => void;
 }) {
   return (
     <label className="grid gap-2 text-sm">
       <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--subtle)]">{label}</span>
-      <input name={name} defaultValue={defaultValue ?? ""} placeholder={placeholder} className="w-full" />
+      <input name={name} defaultValue={defaultValue ?? ""} placeholder={placeholder} className="w-full" onChange={onDirty} />
     </label>
   );
 }
@@ -486,6 +726,7 @@ function NumberField({
   placeholder,
   step,
   helper,
+  onDirty,
 }: {
   label: string;
   name: string;
@@ -496,6 +737,7 @@ function NumberField({
   placeholder?: string;
   step?: string;
   helper?: string;
+  onDirty?: () => void;
 }) {
   return (
     <label className="grid gap-2 text-sm">
@@ -510,6 +752,7 @@ function NumberField({
           defaultValue={defaultValue ?? ""}
           placeholder={placeholder}
           className={suffix ? "w-full pr-24" : "w-full"}
+          onChange={onDirty}
         />
         {suffix ? (
           <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-xs text-[var(--subtle)]">
