@@ -6,10 +6,11 @@ import {
   Gauge,
   Lock,
   RefreshCcw,
+  ShoppingCart,
   Target,
 } from "lucide-react";
-import { explainStyle, formatPace } from "@/lib/analysis/calculations";
-import type { AnalysisInput, AnalysisResult } from "@/lib/analysis/types";
+import { explainStyle, formatPace, isTechniqueOnlyResult } from "@/lib/analysis/calculations";
+import type { AnalysisInput, AnalysisResult, StandardAnalysisResult, TechniqueOnlyAnalysisResult } from "@/lib/analysis/types";
 import type { TrainingPlanPreview } from "@/lib/training-plans/types";
 
 export function ReportView({
@@ -21,10 +22,33 @@ export function ReportView({
   result: AnalysisResult;
   trainingPlanPreview?: TrainingPlanPreview | null;
 }) {
+  if (isTechniqueOnlyResult(result)) {
+    return (
+      <TechniqueOnlyReportView
+        input={input}
+        result={result}
+        trainingPlanPreview={trainingPlanPreview}
+      />
+    );
+  }
+
+  return <StandardReportView input={input} result={result} trainingPlanPreview={trainingPlanPreview} />;
+}
+
+function StandardReportView({
+  input,
+  result,
+  trainingPlanPreview,
+}: {
+  input: AnalysisInput;
+  result: StandardAnalysisResult;
+  trainingPlanPreview?: TrainingPlanPreview | null;
+}) {
   const issue = result.issues[0];
   const styleProfile = result.styleProfile ?? explainStyle(result.style);
   const targetDistance = input.targetDistance ?? result.plan.targetDistance ?? "Becken";
   const sessionsPerWeek = input.swimSessionsPerWeek ?? result.plan.swimSessionsPerWeek ?? 3;
+  const techniqueGate = getTechniqueGate(result);
 
   return (
     <div className="space-y-6">
@@ -40,7 +64,8 @@ export function ReportView({
             Profil: {input.level}, Ziel: {input.goal}, Zielstrecke: {targetDistance}.
             Der nächste sinnvolle Block ist {result.plan.name}.
           </p>
-          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <MiniFact label="Technikklasse" value={techniqueGate.techniqueClass ?? techniqueGate.status.toUpperCase()} />
             <MiniFact label="Einheiten/Woche" value={String(sessionsPerWeek)} />
             <MiniFact label="Zeitrahmen" value={result.plan.timeframeLabel ?? `${result.plan.weeks} Wochen`} />
             <MiniFact label="ReTest" value={`${result.plan.weeks} Wo.`} />
@@ -48,6 +73,12 @@ export function ReportView({
         </div>
         <Triangle result={result} />
       </section>
+
+      {techniqueGate.status === "gelb" ? (
+        <section className="surface border-[var(--warn)] p-4 text-sm text-[var(--warn)]">
+          {techniqueGate.message}
+        </section>
+      ) : null}
 
       <SprintReserveCard result={result} />
 
@@ -57,7 +88,7 @@ export function ReportView({
         <Metric label="CSS" value={formatPace(result.cssPace)} detail="/100 m Schwelle" accent />
         <Metric label="DPS 400 m" value={result.test400.dps.toFixed(2)} detail="m/Zug" />
         <Metric label="SR 400 m" value={result.test400.sr.toFixed(1)} detail="Züge/min" />
-        <Metric label="VLa-Proxy" value={levelLabel(result.vla.level)} detail={`${Math.round(result.vla.drop * 100)} % Drop`} />
+        <Metric label="VLa-Proxy" value={result.vla.profile} detail={`${Math.round(result.vla.drop * 100)} % Drop`} />
       </section>
 
       <MetricMeaningGrid result={result} />
@@ -122,7 +153,67 @@ export function ReportView({
   );
 }
 
-function SprintReserveCard({ result }: { result: AnalysisResult }) {
+function TechniqueOnlyReportView({
+  input,
+  result,
+  trainingPlanPreview,
+}: {
+  input: AnalysisInput;
+  result: TechniqueOnlyAnalysisResult;
+  trainingPlanPreview?: TrainingPlanPreview | null;
+}) {
+  const issue = result.issues[0];
+  const styleProfile = result.styleProfile ?? explainStyle(result.style);
+
+  return (
+    <div className="space-y-6">
+      <section className="surface grid gap-6 border-[color-mix(in_oklab,var(--warn)_68%,var(--line))] p-6 lg:grid-cols-[1.1fr_0.9fr]">
+        <div>
+          <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--warn)]">
+            {result.techniqueGate.title}
+          </p>
+          <h1 className="mt-3 max-w-3xl text-3xl font-semibold tracking-tight sm:text-5xl">
+            Erst Technik stabilisieren, dann physiologisch auswerten.
+          </h1>
+          <p className="muted mt-4 max-w-2xl leading-7">{result.techniqueGate.message}</p>
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            <MiniFact label="Technikklasse" value={result.techniqueGate.techniqueClass ?? "Technik-Gate"} />
+            <MiniFact label="200 m Pace" value={formatPace(result.test200.pace)} />
+            <MiniFact label="Plan" value={result.plan.name} />
+          </div>
+        </div>
+        <div className="rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-5">
+          <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--subtle)]">Warum blockiert?</p>
+          <h2 className="mt-3 text-2xl font-semibold">{issue?.title ?? "Technik-Gate Rot"}</h2>
+          <p className="muted mt-3 leading-7">{issue?.cause ?? result.techniqueGate.message}</p>
+        </div>
+      </section>
+
+      {issue ? <PrimaryIssueCard issue={issue} /> : null}
+
+      <section className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
+        <StyleProfileCard profile={styleProfile} />
+        <TrainingPlanCard result={result} trainingPlanPreview={trainingPlanPreview} />
+      </section>
+
+      <section className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
+        <div className="surface p-5">
+          <div className="mb-2 flex items-center gap-2 text-sm font-medium">
+            <Target size={18} className="text-[var(--accent-2)]" />
+            Ziel des Blocks
+          </div>
+          <h2 className="text-3xl font-semibold">{result.potential.paceGain}</h2>
+          <p className="muted mt-3 leading-7">{result.potential.description}</p>
+        </div>
+        <RetestCard result={result} />
+      </section>
+
+      <RawDataDetails input={input} result={result} />
+    </div>
+  );
+}
+
+function SprintReserveCard({ result }: { result: StandardAnalysisResult }) {
   const value = result.sprintReserve;
 
   return (
@@ -227,9 +318,18 @@ function TrainingPlanCard({
       <h2 className="mt-3 text-2xl font-semibold">{trainingPlanPreview?.title ?? result.plan.name}</h2>
       <p className="muted mt-2">{trainingPlanPreview?.summary ?? `${result.plan.weeks} Wochen mit ReTest am Ende.`}</p>
       <div className="mt-5 rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-4">
-        <div className="flex items-center gap-2 text-sm font-medium text-[var(--accent)]">
-          <Lock size={16} />
-          Gesperrte Planvorschau
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2 text-sm font-medium text-[var(--accent)]">
+            <Lock size={16} />
+            Gesperrte Planvorschau
+          </div>
+          <button
+            type="button"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[var(--accent)] px-4 text-sm font-medium text-[var(--accent-foreground)] transition hover:bg-[var(--accent-hover)]"
+          >
+            <ShoppingCart size={16} />
+            Trainingsplan freischalten
+          </button>
         </div>
         <p className="muted mt-3 text-sm leading-6">
           {trainingPlanPreview?.preview ?? "Der passende Plan ist vorbereitet. Die vollständigen Wochen, Einheiten und Drills werden später über die Freischaltung sichtbar."}
@@ -299,7 +399,7 @@ function Metric({
   );
 }
 
-function MetricMeaningGrid({ result }: { result: AnalysisResult }) {
+function MetricMeaningGrid({ result }: { result: StandardAnalysisResult }) {
   const meanings = [
     {
       label: "CSS",
@@ -338,7 +438,7 @@ function MetricMeaningGrid({ result }: { result: AnalysisResult }) {
   );
 }
 
-function Triangle({ result }: { result: AnalysisResult }) {
+function Triangle({ result }: { result: StandardAnalysisResult }) {
   const cssScore = Math.min(1, Math.max(0.2, 1 - (result.cssPace - 85) / 80));
   const points = [
     { label: "VO2", score: result.vo2.score, x: 90, y: 12 },
@@ -374,22 +474,30 @@ function Triangle({ result }: { result: AnalysisResult }) {
 
 function RawDataDetails({ input, result }: { input: AnalysisInput; result: AnalysisResult }) {
   const fitnessLevel = input.fitnessLevel ? normalizeFitnessLevel(input.fitnessLevel) : null;
+  const isTechniqueOnly = isTechniqueOnlyResult(result);
+  const techniqueGate = getTechniqueGate(result);
 
   return (
     <details className="surface p-5">
       <summary className="cursor-pointer text-sm font-medium">Rohdaten anzeigen</summary>
       <div className="mt-4 grid gap-3 md:grid-cols-3">
-        <RawData label="200 m Zeit" value={input.t200} />
-        <RawData label="400 m Zeit" value={input.t400} />
         <RawData label="50 m Zeit" value={input.t50 || "nicht erfasst"} />
+        <RawData label="200 m Zeit" value={input.t200} />
+        <RawData label="400 m Zeit" value={input.t400 || "nicht erfasst"} />
         <RawData label="Züge 200 m" value={String(input.s200)} />
-        <RawData label="Züge 400 m" value={String(input.s400)} />
+        <RawData label="Züge 400 m" value={input.s400 ? String(input.s400) : "nicht erfasst"} />
         <RawData label="KFA" value={input.bodyFatPercentage ? `${input.bodyFatPercentage} %` : "nicht erfasst"} />
         <RawData label="Fitnesslevel" value={fitnessLevel ? `${fitnessLevel}/5` : "nicht erfasst"} />
         <RawData label="Becken" value={`${input.poolLength} m`} />
-        <RawData label="Pace-Differenz" value={`${result.comparison.paceDiff.toFixed(1)} s/100 m`} />
-        <RawData label="DPS-Differenz" value={`${result.comparison.dpsDiff.toFixed(2)} m`} />
-        <RawData label="SR-Differenz" value={`${result.comparison.srDiff.toFixed(1)} Züge/min`} />
+        <RawData label="Technik-Gate" value={techniqueGate.status.toUpperCase()} />
+        <RawData label="Technikklasse" value={techniqueGate.techniqueClass ?? "nicht erfasst"} />
+        {!isTechniqueOnly ? (
+          <>
+            <RawData label="Pace-Differenz" value={`${result.comparison.paceDiff.toFixed(1)} s/100 m`} />
+            <RawData label="DPS-Differenz" value={`${result.comparison.dpsDiff.toFixed(2)} m`} />
+            <RawData label="SR-Differenz" value={`${result.comparison.srDiff.toFixed(1)} Züge/min`} />
+          </>
+        ) : null}
       </div>
     </details>
   );
@@ -398,6 +506,16 @@ function RawDataDetails({ input, result }: { input: AnalysisInput; result: Analy
 function normalizeFitnessLevel(value: number) {
   if (value <= 5) return value;
   return Math.min(5, Math.max(1, Math.round(value / 2)));
+}
+
+function getTechniqueGate(result: AnalysisResult) {
+  return result.techniqueGate ?? {
+    status: "gruen" as const,
+    reason: "technique_stable" as const,
+    techniqueClass: null,
+    title: "Technik-Gate Grün",
+    message: "Technik ausreichend stabil. Die physiologische Auswertung ist möglich.",
+  };
 }
 
 function MiniFact({ label, value }: { label: string; value: string }) {
@@ -427,7 +545,8 @@ function RawData({ label, value }: { label: string; value: string }) {
   );
 }
 
-function levelLabel(level: AnalysisResult["vla"]["level"] | AnalysisResult["vo2"]["level"]) {
+function levelLabel(level: StandardAnalysisResult["vla"]["level"] | StandardAnalysisResult["vo2"]["level"]) {
+  if (level === "nicht_ermittelbar") return "nicht ermittelbar";
   if (level === "hoch") return "hoch";
   if (level === "mittel") return "mittel";
   return "niedrig";

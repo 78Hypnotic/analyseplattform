@@ -1,5 +1,7 @@
 export type Gender = "weiblich" | "maennlich" | "divers";
 export type PoolLength = 25 | 50;
+export type SwimTestType = "water_start" | "dive_start" | "wall_push";
+export type SwimEquipment = "ohne" | "pullbuoy" | "neo" | "paddles";
 export type TargetDistance = "Sprint" | "OD" | "MD" | "LD" | "Becken" | "Freiwasser";
 export type SwimGoal =
   | "Kraulen lernen"
@@ -11,6 +13,38 @@ export type SwimLevel =
   | "Fortgeschritten"
   | "Ambitioniert"
   | "Leistungsschwimmer";
+
+export type TechniqueStatus = "rot" | "gelb" | "gruen";
+export type TechniqueClass =
+  | "Technik-Einsteiger"
+  | "Technik in Aufbau"
+  | "Solider Hobbyschwimmer"
+  | "Ambitionierter Hobbyschwimmer"
+  | "Starker Agegrouper"
+  | "Leistungsschwimmer";
+export type TechniqueGateReason =
+  | "cannot_swim_400m"
+  | "equipment_used"
+  | "pace_over_2_00"
+  | "pace_between_1_50_and_2_00"
+  | "technique_stable";
+export type AnalysisMode = "standard" | "technique_only";
+export type VLaProfile = "Diesel" | "Allrounder" | "Sprinter";
+export type ProxyLevel = "niedrig" | "mittel" | "hoch";
+export type Vo2ProxyLevel = ProxyLevel | "nicht_ermittelbar";
+export type ReferenceLabel =
+  | "Alters-Elite oder besser"
+  | "Sehr nah an der Alters-Elite"
+  | "Gutes Altersniveau"
+  | "Solides Hobbyniveau"
+  | "Großes Entwicklungspotenzial"
+  | "Keine Referenz verfügbar";
+
+export type SprintMetrics = {
+  distance: 50;
+  time: number;
+  pace: number;
+};
 
 export type TestMetrics = {
   distance: 200 | 400;
@@ -31,11 +65,14 @@ export type AnalysisInput = {
   bodyFatPercentage?: number;
   fitnessLevel?: number;
   poolLength: PoolLength;
+  canSwim400m: boolean;
+  testType: SwimTestType;
+  equipment: SwimEquipment;
+  t50: string;
   t200: string;
   s200: number;
-  t400: string;
-  s400: number;
-  t50?: string;
+  t400?: string;
+  s400?: number;
   goal: SwimGoal;
   level: SwimLevel;
   targetDistance?: TargetDistance;
@@ -44,26 +81,47 @@ export type AnalysisInput = {
   challenges: string[];
 };
 
-export type AnalysisResult = {
+export type TechniqueGateResult = {
+  status: TechniqueStatus;
+  reason: TechniqueGateReason;
+  techniqueClass?: TechniqueClass | null;
+  title: string;
+  message: string;
+};
+
+export type ReferenceComparison = {
+  ageBucket: number | null;
+  sex: "maennlich" | "weiblich" | null;
+  t50: ReferenceIndex | null;
+  t200: ReferenceIndex | null;
+  t400: ReferenceIndex | null;
+  css: ReferenceIndex | null;
+};
+
+export type ReferenceIndex = {
+  reference: number;
+  value: number;
+  index: number;
+  label: ReferenceLabel;
+};
+
+type AnalysisPlan = {
+  slug?: string;
+  name: string;
+  phase: string;
+  baseWeeks?: number;
+  weeks: number;
+  timeframeLabel?: string;
+  retestHint?: string;
+  targetDistance?: TargetDistance;
+  swimSessionsPerWeek?: number;
+};
+
+type AnalysisBaseResult = {
+  mode: AnalysisMode;
+  techniqueGate: TechniqueGateResult;
+  test50: SprintMetrics;
   test200: TestMetrics;
-  test400: TestMetrics;
-  comparison: {
-    paceDiff: number;
-    dpsDiff: number;
-    srDiff: number;
-  };
-  cssMs: number;
-  cssPace: number;
-  vla: {
-    level: "niedrig" | "mittel" | "hoch";
-    score: number;
-    drop: number;
-  };
-  vo2: {
-    level: "niedrig" | "mittel" | "hoch";
-    score: number;
-  };
-  sprintReserve: number | null;
   strengths: Array<{ title: string; description: string }>;
   issues: Array<{
     tag: string;
@@ -83,18 +141,48 @@ export type AnalysisResult = {
     description: string;
     trainingFocus: string;
   };
-  plan: {
-    slug?: string;
-    name: string;
-    phase: string;
-    baseWeeks?: number;
-    weeks: number;
-    timeframeLabel?: string;
-    retestHint?: string;
-    targetDistance?: TargetDistance;
-    swimSessionsPerWeek?: number;
-  };
+  plan: AnalysisPlan;
 };
+
+export type StandardAnalysisResult = AnalysisBaseResult & {
+  mode: "standard";
+  test200: TestMetrics;
+  test400: TestMetrics;
+  comparison: {
+    paceDiff: number;
+    dpsDiff: number;
+    srDiff: number;
+  };
+  cssMs: number;
+  cssPace: number;
+  vla: {
+    level: ProxyLevel;
+    profile: VLaProfile;
+    score: number;
+    drop: number;
+  };
+  vo2: {
+    level: Vo2ProxyLevel;
+    score: number;
+    deviation: number | null;
+  };
+  sprintReserve: number | null;
+  reference: ReferenceComparison;
+};
+
+export type TechniqueOnlyAnalysisResult = AnalysisBaseResult & {
+  mode: "technique_only";
+  test400?: TestMetrics;
+  comparison?: never;
+  cssMs?: never;
+  cssPace?: never;
+  vla?: never;
+  vo2?: never;
+  sprintReserve?: null;
+  reference?: ReferenceComparison;
+};
+
+export type AnalysisResult = StandardAnalysisResult | TechniqueOnlyAnalysisResult;
 
 export type StoredAnalysis = {
   id: string;

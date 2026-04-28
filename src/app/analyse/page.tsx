@@ -3,9 +3,10 @@ import { redirect } from "next/navigation";
 import { Plus } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
 import { ButtonLink } from "@/components/button";
-import { formatPace } from "@/lib/analysis/calculations";
+import { formatPace, isTechniqueOnlyResult } from "@/lib/analysis/calculations";
 import { getUserAnalyses } from "@/lib/analyses";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { DeleteAnalysisForm } from "./delete-analysis-form";
 
 export const dynamic = "force-dynamic";
 
@@ -43,24 +44,35 @@ export default async function AnalysesPage() {
           </section>
         ) : (
           <div className="grid gap-3">
-            {analyses.map((analysis) => (
-              <Link
-                href={`/analyse/${analysis.id}`}
-                key={analysis.id}
-                className="surface grid gap-4 p-4 transition hover:border-[var(--accent)] md:grid-cols-[1fr_140px_140px_140px]"
-              >
-                <div>
-                  <h2 className="font-medium">{analysis.title}</h2>
-                  <p className="muted mt-1 text-sm">
-                    {new Date(analysis.created_at).toLocaleDateString("de-DE")} | {analysis.input.goal}
-                    {analysis.input.targetDistance ? ` | ${analysis.input.targetDistance}` : ""}
-                  </p>
+            {analyses.map((analysis) => {
+              const techniqueOnly = isTechniqueOnlyResult(analysis.result);
+              return (
+                <div
+                  key={analysis.id}
+                  className="surface grid gap-4 p-4 md:grid-cols-[minmax(0,1fr)_110px_110px_160px_auto]"
+                >
+                  <div className="min-w-0">
+                    <h2 className="truncate font-medium">{analysis.title}</h2>
+                    <p className="muted mt-1 text-sm">
+                      {new Date(analysis.created_at).toLocaleDateString("de-DE")} | {analysis.input.goal}
+                      {analysis.input.targetDistance ? ` | ${analysis.input.targetDistance}` : ""}
+                    </p>
+                  </div>
+                  <SmallMetric label="CSS" value={techniqueOnly ? "Technik" : formatPace(analysis.result.cssPace)} />
+                  <SmallMetric label="DPS 400" value={analysis.result.test400 ? analysis.result.test400.dps.toFixed(2) : "-"} />
+                  <SmallMetric label="Plan" value={`${analysis.result.plan.name} · ${analysis.result.plan.weeks} Wo.`} />
+                  <div className="flex flex-wrap items-center gap-2 md:justify-end">
+                    <Link
+                      href={`/analyse/${analysis.id}`}
+                      className="inline-flex h-10 items-center justify-center rounded-lg border border-[var(--line)] px-3 text-sm font-medium transition hover:border-[var(--accent)]"
+                    >
+                      Öffnen
+                    </Link>
+                    <DeleteAnalysisForm id={analysis.id} title={analysis.title} />
+                  </div>
                 </div>
-                <SmallMetric label="CSS" value={formatPace(analysis.result.cssPace)} />
-                <SmallMetric label="DPS 400" value={analysis.result.test400.dps.toFixed(2)} />
-                <SmallMetric label="Plan" value={`${analysis.result.plan.name} · ${analysis.result.plan.weeks} Wo.`} />
-              </Link>
-            ))}
+              );
+            })}
           </div>
         )}
       </main>

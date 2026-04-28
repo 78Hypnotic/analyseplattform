@@ -21,6 +21,12 @@ type ProfileData = {
   muscle_mass_kg?: number | string | null;
   disciplines?: string[] | null;
   profile_visibility?: "private" | "public" | null;
+  latest_swim_analysis_id?: string | null;
+  latest_swim_analyzed_at?: string | null;
+  latest_swim_technique_status?: "rot" | "gelb" | "gruen" | null;
+  latest_swim_css_pace_sec?: number | string | null;
+  latest_swim_vo2_proxy?: "hoch" | "mittel" | "niedrig" | "nicht_ermittelbar" | null;
+  latest_swim_vla_profile?: "Diesel" | "Allrounder" | "Sprinter" | null;
 };
 
 export const dynamic = "force-dynamic";
@@ -128,6 +134,8 @@ export default async function ProfilePage() {
           </div>
         </section>
 
+        <LatestSwimSummary profile={profile} />
+
         <ProfileForm
           email={user.email ?? ""}
           fullName={fullName}
@@ -150,10 +158,65 @@ export default async function ProfilePage() {
   );
 }
 
+function LatestSwimSummary({ profile }: { profile: ProfileData | null }) {
+  const hasSummary = Boolean(profile?.latest_swim_analyzed_at || profile?.latest_swim_technique_status);
+
+  return (
+    <section className="surface p-6 sm:p-7">
+      <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+        <div>
+          <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--subtle)]">Schwimm-Diagnostik</p>
+          <h2 className="display-serif mt-2 text-3xl text-[var(--foreground)]">Letzte berechnete Werte</h2>
+        </div>
+        <p className="text-sm text-[var(--muted)]">
+          {hasSummary && profile?.latest_swim_analyzed_at
+            ? new Date(profile.latest_swim_analyzed_at).toLocaleDateString("de-DE")
+            : "Noch keine Analyse gespeichert"}
+        </p>
+      </div>
+      <div className="grid gap-3 md:grid-cols-4">
+        <SummaryMetric label="Technik-Gate" value={formatTechniqueStatus(profile?.latest_swim_technique_status)} />
+        <SummaryMetric label="CSS" value={formatSeconds(profile?.latest_swim_css_pace_sec)} />
+        <SummaryMetric label="VO2-Proxy" value={formatProxy(profile?.latest_swim_vo2_proxy)} />
+        <SummaryMetric label="VLa-Profil" value={profile?.latest_swim_vla_profile ?? "-"} />
+      </div>
+    </section>
+  );
+}
+
+function SummaryMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-4">
+      <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--subtle)]">{label}</p>
+      <p className="mt-2 text-sm font-medium">{value}</p>
+    </div>
+  );
+}
+
 function toNullableNumber(value: number | string | null | undefined) {
   if (value === null || value === undefined) return null;
   const numberValue = typeof value === "number" ? value : Number(value);
   return Number.isFinite(numberValue) ? numberValue : null;
+}
+
+function formatSeconds(value: number | string | null | undefined) {
+  const numberValue = toNullableNumber(value);
+  if (numberValue === null) return "-";
+  const minutes = Math.floor(numberValue / 60);
+  const seconds = Math.round(numberValue - minutes * 60);
+  return `${minutes}:${String(seconds).padStart(2, "0")} /100 m`;
+}
+
+function formatTechniqueStatus(value: ProfileData["latest_swim_technique_status"]) {
+  if (value === "rot") return "Rot";
+  if (value === "gelb") return "Gelb";
+  if (value === "gruen") return "Grün";
+  return "-";
+}
+
+function formatProxy(value: ProfileData["latest_swim_vo2_proxy"]) {
+  if (value === "nicht_ermittelbar") return "Nicht ermittelbar";
+  return value ?? "-";
 }
 
 function calculateProfileCompletion(profile: {
