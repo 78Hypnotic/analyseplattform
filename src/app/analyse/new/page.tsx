@@ -22,25 +22,32 @@ export default async function NewAnalysisPage({
 }) {
   const params = await searchParams;
   const resume = Array.isArray(params?.resume) ? params.resume[0] === "1" : params?.resume === "1";
-  const initialInput = await getInitialAnalysisInput();
+  const { initialInput, isAuthenticated } = await getInitialAnalysisContext();
 
   return (
     <>
       <AppHeader />
       <main className="mx-auto w-full max-w-6xl px-5 py-10">
-        <AnalysisFlow initialInput={initialInput} resumePendingAnalysis={resume} />
+        <AnalysisFlow
+          initialInput={initialInput}
+          isAuthenticated={isAuthenticated}
+          resumePendingAnalysis={resume}
+        />
       </main>
     </>
   );
 }
 
-async function getInitialAnalysisInput(): Promise<InitialAnalysisInput | undefined> {
+async function getInitialAnalysisContext(): Promise<{
+  initialInput?: InitialAnalysisInput;
+  isAuthenticated: boolean;
+}> {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) return undefined;
+  if (!user) return { isAuthenticated: false };
 
   const { data } = await supabase
     .from("profiles")
@@ -49,16 +56,19 @@ async function getInitialAnalysisInput(): Promise<InitialAnalysisInput | undefin
     .maybeSingle();
 
   const profile = data as ProfileData | null;
-  if (!profile) return undefined;
+  if (!profile) return { isAuthenticated: true };
 
   return {
-    name: profile.full_name ?? "",
-    age: toOptionalInteger(profile.age),
-    gender: profile.gender ?? "",
-    height: toOptionalInteger(profile.height_cm),
-    weight: toOptionalInteger(profile.weight_kg),
-    bodyFatPercentage: toOptionalNumber(profile.body_fat_percentage),
-    fitnessLevel: toOptionalFitnessLevel(profile.fitness_level),
+    isAuthenticated: true,
+    initialInput: {
+      name: profile.full_name ?? "",
+      age: toOptionalInteger(profile.age),
+      gender: profile.gender ?? "",
+      height: toOptionalInteger(profile.height_cm),
+      weight: toOptionalInteger(profile.weight_kg),
+      bodyFatPercentage: toOptionalNumber(profile.body_fat_percentage),
+      fitnessLevel: toOptionalFitnessLevel(profile.fitness_level),
+    },
   };
 }
 

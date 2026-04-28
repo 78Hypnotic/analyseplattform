@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, Check, Loader2 } from "lucide-react";
+import { ArrowRight, Check, Loader2, Lock, UserRound } from "lucide-react";
 import { Button } from "@/components/button";
 import { ReportView } from "@/components/report-view";
 import { CHALLENGE_GROUPS, GOALS, LEVELS, TARGET_DISTANCES } from "@/lib/analysis/constants";
@@ -64,9 +64,11 @@ const PENDING_ANALYSIS_NEXT_PATH = "/analyse/new?resume=1";
 
 export function AnalysisFlow({
   initialInput,
+  isAuthenticated,
   resumePendingAnalysis = false,
 }: {
   initialInput?: InitialAnalysisInput;
+  isAuthenticated: boolean;
   resumePendingAnalysis?: boolean;
 }) {
   const router = useRouter();
@@ -148,22 +150,14 @@ export function AnalysisFlow({
             {["Kontext", "Testdaten"][step]}
           </h1>
         </div>
-        <div className="flex gap-2">
-          {["Kontext", "Daten"].map((label, index) => (
-            <button
-              key={label}
-              onClick={() => setStep(index)}
-              className={
-                index === step
-                  ? "rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-medium text-[var(--accent-foreground)]"
-                  : "rounded-lg border border-[var(--line)] px-3 py-2 text-sm text-[var(--muted)]"
-              }
-            >
-              {label}
-            </button>
-          ))}
-        </div>
       </div>
+
+      <AnalysisProgress
+        currentStep={step}
+        isAuthenticated={isAuthenticated}
+        isSaving={isPending}
+        onSelectStep={setStep}
+      />
 
       {step === 0 ? (
         <ContextStep input={input} update={update} next={() => setStep(1)} />
@@ -215,6 +209,151 @@ export function AnalysisFlow({
         </section>
       ) : null}
     </div>
+  );
+}
+
+function AnalysisProgress({
+  currentStep,
+  isAuthenticated,
+  isSaving,
+  onSelectStep,
+}: {
+  currentStep: number;
+  isAuthenticated: boolean;
+  isSaving: boolean;
+  onSelectStep: (step: number) => void;
+}) {
+  const steps = [
+    { label: "Kontext", action: () => onSelectStep(0) },
+    { label: "Daten", action: () => onSelectStep(1) },
+    { label: "Report" },
+  ];
+  const activeStep = isSaving && isAuthenticated ? 2 : currentStep;
+
+  return (
+    <nav className="surface px-4 py-4 sm:px-5" aria-label="Analysefortschritt">
+      <ol className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:gap-3">
+        {steps.map((item, index) => (
+          <StepItem
+            key={item.label}
+            label={item.label}
+            index={index}
+            isActive={activeStep === index}
+            isComplete={activeStep > index}
+            onClick={item.action}
+          />
+        )).flatMap((item, index) => {
+          if (index === 0) return [item, <StepConnector key="connector-context-data" isActive={activeStep > 0} />];
+          if (index === 1) {
+            return [
+              item,
+              <AccountGate
+                key="connector-data-report"
+                isAuthenticated={isAuthenticated}
+                isActive={isSaving || activeStep > 1}
+              />,
+            ];
+          }
+          return [item];
+        })}
+      </ol>
+    </nav>
+  );
+}
+
+function StepItem({
+  label,
+  index,
+  isActive,
+  isComplete,
+  onClick,
+}: {
+  label: string;
+  index: number;
+  isActive: boolean;
+  isComplete: boolean;
+  onClick?: () => void;
+}) {
+  const stateLabel = isComplete ? "abgeschlossen" : isActive ? "aktiv" : "offen";
+  const className = isActive
+    ? "border-[var(--accent)] bg-[var(--accent-ring)] text-[var(--foreground)]"
+    : isComplete
+      ? "border-[var(--accent)] bg-[var(--panel-2)] text-[var(--foreground)]"
+      : "border-[var(--line)] bg-[var(--soft-bg)] text-[var(--muted)]";
+  const content = (
+    <>
+      <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-current text-xs">
+        {isComplete ? <Check size={14} /> : index + 1}
+      </span>
+      <span className="min-w-0">
+        <span className="mono block text-[0.65rem] uppercase tracking-[0.14em] text-[var(--subtle)]">
+          {stateLabel}
+        </span>
+        <span className="block truncate text-sm font-medium">{label}</span>
+      </span>
+    </>
+  );
+
+  if (!onClick) {
+    return (
+      <li
+        className={`flex min-w-0 items-center gap-2 rounded-lg border px-3 py-2 ${className}`}
+        aria-current={isActive ? "step" : undefined}
+      >
+        {content}
+      </li>
+    );
+  }
+
+  return (
+    <li className="min-w-0">
+      <button
+        type="button"
+        onClick={onClick}
+        aria-current={isActive ? "step" : undefined}
+        className={`flex w-full min-w-0 items-center gap-2 rounded-lg border px-3 py-2 text-left ${className}`}
+      >
+        {content}
+      </button>
+    </li>
+  );
+}
+
+function StepConnector({ isActive }: { isActive: boolean }) {
+  return (
+    <li
+      className={
+        isActive
+          ? "h-px min-w-5 bg-[var(--accent)] sm:min-w-8"
+          : "h-px min-w-5 bg-[var(--line)] sm:min-w-8"
+      }
+      aria-hidden="true"
+    />
+  );
+}
+
+function AccountGate({
+  isAuthenticated,
+  isActive,
+}: {
+  isAuthenticated: boolean;
+  isActive: boolean;
+}) {
+  const label = isAuthenticated ? "Profil verbunden" : "Login erforderlich";
+
+  return (
+    <li
+      className={
+        isActive || isAuthenticated
+          ? "flex min-w-14 items-center justify-center gap-1 rounded-full border border-[var(--accent)] bg-[var(--panel-2)] px-2 py-2 text-[var(--accent)]"
+          : "flex min-w-14 items-center justify-center gap-1 rounded-full border border-[var(--line)] bg-[var(--soft-bg)] px-2 py-2 text-[var(--muted)]"
+      }
+      aria-label={label}
+      title={label}
+    >
+      {isAuthenticated ? <Check size={14} aria-hidden="true" /> : <Lock size={14} aria-hidden="true" />}
+      <UserRound size={14} aria-hidden="true" />
+    </li>
   );
 }
 
