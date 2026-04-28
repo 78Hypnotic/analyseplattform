@@ -10,7 +10,7 @@ import {
   Target,
 } from "lucide-react";
 import { explainStyle, formatPace, isTechniqueOnlyResult } from "@/lib/analysis/calculations";
-import type { AnalysisInput, AnalysisResult, StandardAnalysisResult, TechniqueOnlyAnalysisResult } from "@/lib/analysis/types";
+import type { AnalysisInput, AnalysisResult, ReferenceIndex, StandardAnalysisResult, TechniqueOnlyAnalysisResult } from "@/lib/analysis/types";
 import type { TrainingPlanPreview } from "@/lib/training-plans/types";
 
 export function ReportView({
@@ -90,6 +90,8 @@ function StandardReportView({
         <Metric label="SR 400 m" value={result.test400.sr.toFixed(1)} detail="Züge/min" />
         <Metric label="VLa-Proxy" value={result.vla.profile} detail={`${Math.round(result.vla.drop * 100)} % Drop`} />
       </section>
+
+      <AgeClassComparisonCard result={result} />
 
       <MetricMeaningGrid result={result} />
 
@@ -238,6 +240,97 @@ function SprintReserveCard({ result }: { result: StandardAnalysisResult }) {
         </p>
       </div>
     </section>
+  );
+}
+
+function AgeClassComparisonCard({ result }: { result: StandardAnalysisResult }) {
+  const comparison = result.reference;
+  const rows = [
+    { label: "50 m", value: comparison.t50, kind: "time" },
+    { label: "200 m", value: comparison.t200, kind: "time" },
+    { label: "400 m", value: comparison.t400, kind: "time" },
+    { label: "CSS", value: comparison.css, kind: "pace" },
+  ] as const;
+  const hasReference = rows.some((row) => row.value !== null);
+
+  return (
+    <section className="surface p-5">
+      <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-start">
+        <div>
+          <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--subtle)]">
+            Altersklassen-Vergleich
+          </p>
+          <p className="muted mt-1 text-sm">
+            Vergleich mit starkem Agegroup-Niveau.
+          </p>
+          <h2 className="mt-2 text-2xl font-semibold">
+            {comparison.ageBucket && comparison.sex
+              ? `Referenz: ${comparison.ageBucket} Jahre · ${sexLabel(comparison.sex)}`
+              : "Keine AK-/Sex-Referenz verfügbar"}
+          </h2>
+        </div>
+        {hasReference ? (
+          <span className="rounded-full border border-[var(--line)] px-3 py-1 text-xs text-[var(--muted)]">
+            Leistungsorientierte AK-Referenz
+          </span>
+        ) : null}
+      </div>
+
+      {hasReference ? (
+        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {rows.map((row) => (
+            <ReferenceMetric
+              key={row.label}
+              label={row.label}
+              item={row.value}
+              kind={row.kind}
+            />
+          ))}
+        </div>
+      ) : (
+        <p className="muted mt-4 leading-7">
+          Für divers wird aktuell keine AK-/Sex-Referenzwertung angezeigt, damit keine falsche Vergleichsgruppe verwendet wird.
+        </p>
+      )}
+    </section>
+  );
+}
+
+function ReferenceMetric({
+  label,
+  item,
+  kind,
+}: {
+  label: string;
+  item: ReferenceIndex | null;
+  kind: "time" | "pace";
+}) {
+  if (!item) {
+    return (
+      <div className="rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-4">
+        <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--subtle)]">{label}</p>
+        <p className="muted mt-3 text-sm">Keine Referenz</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-4">
+      <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--subtle)]">{label}</p>
+      <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+        <div>
+          <p className="muted">Du</p>
+          <p className="font-medium">{formatReferenceValue(item.value, kind)}</p>
+        </div>
+        <div>
+          <p className="muted">AK-Referenz</p>
+          <p className="font-medium">{formatReferenceValue(item.reference, kind)}</p>
+        </div>
+      </div>
+      <p className="mt-3 text-sm font-medium text-[var(--accent)]">
+        {formatReferenceDelta(item.index)} · {item.label}
+      </p>
+    </div>
   );
 }
 
@@ -543,6 +636,20 @@ function RawData({ label, value }: { label: string; value: string }) {
       <p className="mt-2 text-sm font-medium">{value}</p>
     </div>
   );
+}
+
+function sexLabel(sex: "maennlich" | "weiblich") {
+  return sex === "maennlich" ? "männlich" : "weiblich";
+}
+
+function formatReferenceValue(value: number, kind: "time" | "pace") {
+  const formatted = value < 60 ? `${value.toFixed(1)} s` : formatPace(value);
+  return kind === "pace" ? `${formatted} /100 m` : formatted;
+}
+
+function formatReferenceDelta(index: number) {
+  if (index <= 0) return `${Math.abs(Math.round(index * 100))} % schneller`;
+  return `${Math.round(index * 100)} % über Referenz`;
 }
 
 function levelLabel(level: StandardAnalysisResult["vla"]["level"] | StandardAnalysisResult["vo2"]["level"]) {
