@@ -15,13 +15,14 @@ import { createAnalysis } from "../actions";
 
 type AnalysisDraft = Omit<
   AnalysisInput,
-  "age" | "gender" | "height" | "weight" | "poolLength" | "s200" | "s400" | "goal" | "level"
+  "age" | "gender" | "height" | "weight" | "bodyFatPercentage" | "poolLength" | "s200" | "s400" | "goal" | "level"
   | "targetDistance" | "swimSessionsPerWeek"
 > & {
   age: number | "";
   gender: AnalysisInput["gender"] | "";
   height: number | "";
   weight: number | "";
+  bodyFatPercentage: number | "";
   poolLength: AnalysisInput["poolLength"] | "";
   s200: number | "";
   s400: number | "";
@@ -37,6 +38,7 @@ const EMPTY_ANALYSIS_INPUT: AnalysisDraft = {
   gender: "",
   height: "",
   weight: "",
+  bodyFatPercentage: "",
   poolLength: "",
   t200: "",
   s200: "",
@@ -51,17 +53,26 @@ const EMPTY_ANALYSIS_INPUT: AnalysisDraft = {
   challenges: [],
 };
 
+export type InitialAnalysisInput = Partial<
+  Pick<AnalysisDraft, "name" | "age" | "gender" | "height" | "weight" | "bodyFatPercentage">
+>;
+
 const PENDING_ANALYSIS_STORAGE_KEY = "pending-analysis-input";
 const PENDING_ANALYSIS_NEXT_PATH = "/analyse/new?resume=1";
 
 export function AnalysisFlow({
+  initialInput,
   resumePendingAnalysis = false,
 }: {
+  initialInput?: InitialAnalysisInput;
   resumePendingAnalysis?: boolean;
 }) {
   const router = useRouter();
   const [step, setStep] = useState(0);
-  const [input, setInput] = useState<AnalysisDraft>(EMPTY_ANALYSIS_INPUT);
+  const [input, setInput] = useState<AnalysisDraft>(() => ({
+    ...EMPTY_ANALYSIS_INPUT,
+    ...initialInput,
+  }));
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const resumeStarted = useRef(false);
@@ -379,6 +390,7 @@ function DataStep({
           </label>
           <Field label="Größe (cm)" type="number" value={input.height} placeholder="z. B. 172" onChange={(value) => update({ height: optionalNumber(value) })} />
           <Field label="Gewicht (kg)" type="number" value={input.weight} placeholder="z. B. 63" onChange={(value) => update({ weight: optionalNumber(value) })} />
+          <Field label="KFA (%)" type="number" value={input.bodyFatPercentage} placeholder="z. B. 21.5" onChange={(value) => update({ bodyFatPercentage: optionalNumber(value) })} />
           <label className="grid gap-2 text-sm">
             Becken
             <select value={input.poolLength} onChange={(event) => update({ poolLength: optionalNumber(event.target.value) as AnalysisDraft["poolLength"] })}>

@@ -8,6 +8,14 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const profileSchema = z.object({
   fullName: z.string().trim().min(2, "Name ist zu kurz.").max(80, "Name ist zu lang."),
+  age: optionalIntegerSchema(8, 100),
+  gender: z.preprocess(
+    (value) => (value === "" || value === null ? null : value),
+    z.enum(["weiblich", "maennlich", "divers"]).nullable(),
+  ),
+  heightCm: optionalIntegerSchema(100, 230),
+  weightKg: optionalIntegerSchema(25, 180),
+  bodyFatPercentage: optionalNumberSchema(3, 60),
 });
 
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
@@ -36,6 +44,11 @@ export async function updateProfile(
   await assertRateLimit("profile-update", 20, 60_000);
   const parsed = profileSchema.safeParse({
     fullName: formData.get("fullName"),
+    age: formData.get("age"),
+    gender: formData.get("gender"),
+    heightCm: formData.get("heightCm"),
+    weightKg: formData.get("weightKg"),
+    bodyFatPercentage: formData.get("bodyFatPercentage"),
   });
 
   if (!parsed.success) {
@@ -59,6 +72,11 @@ export async function updateProfile(
     id: user.id,
     email: user.email,
     full_name: parsed.data.fullName,
+    age: parsed.data.age,
+    gender: parsed.data.gender,
+    height_cm: parsed.data.heightCm,
+    weight_kg: parsed.data.weightKg,
+    body_fat_percentage: parsed.data.bodyFatPercentage,
   });
 
   if (profileError && !profileError.message.includes("full_name")) {
@@ -195,4 +213,23 @@ function revalidateProfileSurfaces() {
   revalidatePath("/profile");
   revalidatePath("/analyse");
   revalidatePath("/admin");
+}
+
+function optionalIntegerSchema(min: number, max: number) {
+  return z.preprocess(
+    normalizeOptionalNumberInput,
+    z.coerce.number().int().min(min).max(max).nullable(),
+  );
+}
+
+function optionalNumberSchema(min: number, max: number) {
+  return z.preprocess(
+    normalizeOptionalNumberInput,
+    z.coerce.number().min(min).max(max).nullable(),
+  );
+}
+
+function normalizeOptionalNumberInput(value: unknown) {
+  if (value === "" || value === null) return null;
+  return typeof value === "string" ? value.replace(",", ".") : value;
 }

@@ -17,6 +17,10 @@ export const analysisInputSchema = z.object({
   gender: z.enum(["weiblich", "maennlich", "divers"]),
   height: z.coerce.number().int().min(100).max(230),
   weight: z.coerce.number().int().min(25).max(180),
+  bodyFatPercentage: z.preprocess(
+    (value) => (value === "" || value === null ? undefined : value),
+    z.coerce.number().min(3).max(60).optional(),
+  ),
   poolLength: z.coerce.number().pipe(z.union([z.literal(25), z.literal(50)])),
   t200: timeSchema,
   s200: z.coerce.number().positive().max(80),

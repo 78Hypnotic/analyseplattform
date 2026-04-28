@@ -1,7 +1,18 @@
 import { AppHeader } from "@/components/app-header";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import type { InitialAnalysisInput } from "./analysis-flow";
 import { AnalysisFlow } from "./analysis-flow";
 
 export const dynamic = "force-dynamic";
+
+type ProfileData = {
+  full_name?: string | null;
+  age?: number | null;
+  gender?: "weiblich" | "maennlich" | "divers" | null;
+  height_cm?: number | null;
+  weight_kg?: number | null;
+  body_fat_percentage?: number | string | null;
+};
 
 export default async function NewAnalysisPage({
   searchParams,
@@ -10,13 +21,51 @@ export default async function NewAnalysisPage({
 }) {
   const params = await searchParams;
   const resume = Array.isArray(params?.resume) ? params.resume[0] === "1" : params?.resume === "1";
+  const initialInput = await getInitialAnalysisInput();
 
   return (
     <>
       <AppHeader />
       <main className="mx-auto w-full max-w-6xl px-5 py-10">
-        <AnalysisFlow resumePendingAnalysis={resume} />
+        <AnalysisFlow initialInput={initialInput} resumePendingAnalysis={resume} />
       </main>
     </>
   );
+}
+
+async function getInitialAnalysisInput(): Promise<InitialAnalysisInput | undefined> {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return undefined;
+
+  const { data } = await supabase
+    .from("profiles")
+    .select("full_name,age,gender,height_cm,weight_kg,body_fat_percentage")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const profile = data as ProfileData | null;
+  if (!profile) return undefined;
+
+  return {
+    name: profile.full_name ?? "",
+    age: toOptionalInteger(profile.age),
+    gender: profile.gender ?? "",
+    height: toOptionalInteger(profile.height_cm),
+    weight: toOptionalInteger(profile.weight_kg),
+    bodyFatPercentage: toOptionalNumber(profile.body_fat_percentage),
+  };
+}
+
+function toOptionalInteger(value: number | null | undefined): number | "" {
+  return typeof value === "number" ? value : "";
+}
+
+function toOptionalNumber(value: number | string | null | undefined): number | "" {
+  if (value === null || value === undefined) return "";
+  const numberValue = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(numberValue) ? numberValue : "";
 }

@@ -144,6 +144,7 @@ export const DEFAULT_ANALYSIS_INPUT: AnalysisInput = {
   gender: "weiblich",
   height: 172,
   weight: 63,
+  bodyFatPercentage: 21.5,
   poolLength: 25,
   t200: "3:38",
   s200: 21,
