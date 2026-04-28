@@ -2,14 +2,15 @@
 
 import type { ReactNode } from "react";
 import { useActionState, useState } from "react";
-import { Circle, RotateCcw, Save } from "lucide-react";
+import { Check, Circle, RotateCcw, Save } from "lucide-react";
 import { Button } from "@/components/button";
 import { updateProfile, type ProfileActionState } from "./actions";
 
 type Gender = "weiblich" | "maennlich" | "divers";
 type BodyFatSex = "female" | "male";
 type BodyFatMode = "measured" | "visual";
-type ProfileTab = "profile" | "training" | "privacy";
+type ProfileTab = "profile" | "privacy";
+type ProfileVisibility = "private" | "public";
 
 type ProfileFormProps = {
   email: string;
@@ -25,7 +26,22 @@ type ProfileFormProps = {
   vlamax: number | null;
   ftpRad: number | null;
   muscleMassKg: number | null;
+  disciplines: string[];
+  profileVisibility: ProfileVisibility;
 };
+
+const DISCIPLINE_OPTIONS = [
+  "Schwimmen",
+  "Laufen",
+  "Radfahren",
+  "Triathlon",
+  "Open Water",
+  "Crosstraining",
+  "Krafttraining",
+  "Yoga / Mobility",
+] as const;
+
+const DEFAULT_DISCIPLINES = ["Schwimmen", "Laufen", "Radfahren", "Triathlon"];
 
 const FITNESS_LEVELS = [
   {
@@ -89,10 +105,13 @@ export function ProfileForm({
   vlamax,
   ftpRad,
   muscleMassKg,
+  disciplines,
+  profileVisibility,
 }: ProfileFormProps) {
   const initialName = splitName(fullName);
   const initialFitnessLevel = normalizeFitnessLevel(fitnessLevel);
   const initialVisualSex: BodyFatSex = gender === "maennlich" ? "male" : "female";
+  const initialDisciplines = disciplines.length > 0 ? disciplines : DEFAULT_DISCIPLINES;
   const [firstName, setFirstName] = useState(initialName.firstName);
   const [lastName, setLastName] = useState(initialName.lastName);
   const [selectedGender, setSelectedGender] = useState<Gender | null>(gender);
@@ -100,6 +119,8 @@ export function ProfileForm({
   const [bodyFatValue, setBodyFatValue] = useState<number | null>(bodyFatPercentage);
   const [bodyFatMode, setBodyFatMode] = useState<BodyFatMode>(bodyFatPercentage === null ? "visual" : "measured");
   const [visualSex, setVisualSex] = useState<BodyFatSex>(initialVisualSex);
+  const [selectedDisciplines, setSelectedDisciplines] = useState(() => new Set(initialDisciplines));
+  const [selectedVisibility, setSelectedVisibility] = useState<ProfileVisibility>(profileVisibility);
   const [activeTab, setActiveTab] = useState<ProfileTab>("profile");
   const [hasChanges, setHasChanges] = useState(false);
   const [state, formAction, isPending] = useActionState<ProfileActionState, FormData>(submitProfile, {});
@@ -118,6 +139,8 @@ export function ProfileForm({
     setBodyFatValue(bodyFatPercentage);
     setBodyFatMode(bodyFatPercentage === null ? "visual" : "measured");
     setVisualSex(initialVisualSex);
+    setSelectedDisciplines(new Set(initialDisciplines));
+    setSelectedVisibility(profileVisibility);
     setHasChanges(false);
   }
 
@@ -140,6 +163,19 @@ export function ProfileForm({
     setHasChanges(true);
   }
 
+  function toggleDiscipline(label: string) {
+    setSelectedDisciplines((current) => {
+      const next = new Set(current);
+      if (next.has(label)) {
+        next.delete(label);
+      } else {
+        next.add(label);
+      }
+      return next;
+    });
+    setHasChanges(true);
+  }
+
   async function submitProfile(previousState: ProfileActionState, formData: FormData) {
     const result = await updateProfile(previousState, formData);
     if (result.message === "Profil gespeichert.") {
@@ -155,6 +191,10 @@ export function ProfileForm({
       className="space-y-6 pb-4"
     >
       <input type="hidden" name="fullName" value={fullNameValue} />
+      <input type="hidden" name="profileVisibility" value={selectedVisibility} />
+      {[...selectedDisciplines].map((discipline) => (
+        <input key={discipline} type="hidden" name="disciplines" value={discipline} />
+      ))}
 
       <ProfileTabs activeTab={activeTab} onSelect={setActiveTab} />
 
@@ -202,6 +242,8 @@ export function ProfileForm({
           <NumberField label="Körpergewicht" name="weightKg" min={25} max={180} defaultValue={weightKg} suffix="kg" placeholder="z. B. 64" onDirty={() => setHasChanges(true)} />
         </div>
       </ProfileSection>
+
+      <DisciplinesSection selectedDisciplines={selectedDisciplines} onToggle={toggleDiscipline} />
 
       <ProfileSection title="Fitnessniveau" eyebrow="02 · Selbsteinschätzung" description="Wir gewichten Testergebnisse anhand deines Niveaus. Schiebe den Regler dorthin, wo du dich am ehesten siehst.">
         <input type="hidden" name="fitnessLevel" value={selectedFitnessLevel ?? ""} />
@@ -407,12 +449,15 @@ export function ProfileForm({
       </ProfileSection>
       </div>
 
-      <div className={activeTab === "training" ? "space-y-6" : "hidden"}>
-        <TrainingPanel />
-      </div>
-
       <div className={activeTab === "privacy" ? "space-y-6" : "hidden"}>
-        <PrivacyPanel />
+        <PrivacyPanel
+          selectedVisibility={selectedVisibility}
+          onSelect={(value) => {
+            if (value === selectedVisibility) return;
+            setSelectedVisibility(value);
+            setHasChanges(true);
+          }}
+        />
       </div>
 
       {state.message ? (
@@ -421,24 +466,26 @@ export function ProfileForm({
         </p>
       ) : null}
 
-      <div className="sticky bottom-4 z-20 rounded-xl border border-[var(--line)] bg-[color-mix(in_oklab,var(--panel)_94%,black)] p-4 shadow-2xl shadow-[var(--shadow-color)]">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2 text-sm text-[var(--muted)]">
-            <Circle size={10} className={hasChanges ? "fill-[var(--warn)] text-[var(--warn)]" : "fill-[var(--accent)] text-[var(--accent)]"} />
-            {hasChanges ? "Ungespeicherte Änderungen" : "Profil ist gespeichert"}
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button type="reset" variant="secondary" onClick={resetControlledFields} disabled={isPending}>
-              <RotateCcw size={16} />
-              Verwerfen
-            </Button>
-            <Button variant="primary" disabled={isPending || !fullNameValue}>
-              <Save size={16} />
-              {isPending ? "Speichert..." : "Speichern"}
-            </Button>
+      {hasChanges ? (
+        <div className="sticky bottom-4 z-20 rounded-xl border border-[var(--line)] bg-[color-mix(in_oklab,var(--panel)_94%,black)] p-4 shadow-2xl shadow-[var(--shadow-color)]">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2 text-sm text-[var(--muted)]">
+              <Circle size={10} className="fill-[var(--warn)] text-[var(--warn)]" />
+              Ungespeicherte Änderungen
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button type="reset" variant="secondary" onClick={resetControlledFields} disabled={isPending}>
+                <RotateCcw size={16} />
+                Verwerfen
+              </Button>
+              <Button variant="primary" disabled={isPending || !fullNameValue}>
+                <Save size={16} />
+                {isPending ? "Speichert..." : "Speichern"}
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
+      ) : null}
     </form>
   );
 }
@@ -452,7 +499,6 @@ function ProfileTabs({
 }) {
   const tabs: Array<{ id: ProfileTab; label: string }> = [
     { id: "profile", label: "Stammdaten" },
-    { id: "training", label: "Training" },
     { id: "privacy", label: "Privatsphäre" },
   ];
 
@@ -476,178 +522,82 @@ function ProfileTabs({
   );
 }
 
-/**
- * Mirrors the training tab from the standalone profile template with local interactive controls.
- */
-function TrainingPanel() {
-  const [disciplines, setDisciplines] = useState(() => new Set(["Schwimmen", "Laufen", "Radfahren", "Triathlon"]));
-  const disciplineOptions = [
-    "Schwimmen",
-    "Laufen",
-    "Radfahren",
-    "Triathlon",
-    "Open Water",
-    "Crosstraining",
-    "Krafttraining",
-    "Yoga / Mobility",
-  ];
-  const personalBests = [
-    { discipline: "Schwimmen", distance: "400 m Kraul", best: "6:42", date: "2025-09-12" },
-    { discipline: "Laufen", distance: "5 km", best: "22:18", date: "2025-10-04" },
-    { discipline: "Rad", distance: "FTP", best: "218 W", date: "2026-01-22" },
-  ];
-
-  function toggleDiscipline(label: string) {
-    setDisciplines((current) => {
-      const next = new Set(current);
-      if (next.has(label)) {
-        next.delete(label);
-      } else {
-        next.add(label);
-      }
-      return next;
-    });
-  }
-
+function DisciplinesSection({
+  selectedDisciplines,
+  onToggle,
+}: {
+  selectedDisciplines: Set<string>;
+  onToggle: (discipline: string) => void;
+}) {
   return (
-    <>
-      <ProfileSection title="Disziplinen" eyebrow="03 · Was du machst" description="Aktiviere alle Disziplinen, die du regelmäßig trainierst. Bestimmt, welche Analysen wir dir vorschlagen.">
-        <div className="flex flex-wrap gap-2">
-          {disciplineOptions.map((label) => (
+    <ProfileSection title="Disziplinen" eyebrow="03 · Was du machst" description="Aktiviere alle Disziplinen, die du regelmäßig trainierst. Bestimmt, welche Analysen wir dir vorschlagen.">
+      <div className="flex flex-wrap gap-2">
+        {DISCIPLINE_OPTIONS.map((label) => {
+          const active = selectedDisciplines.has(label);
+          return (
             <button
               key={label}
               type="button"
               className={
-                disciplines.has(label)
-                  ? "rounded-full border border-[var(--accent)] bg-[color-mix(in_oklab,var(--accent)_14%,var(--panel))] px-4 py-2 text-sm text-[var(--foreground)]"
-                  : "rounded-full border border-[var(--line)] bg-[var(--soft-bg)] px-4 py-2 text-sm text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--foreground)]"
+                active
+                  ? "inline-flex items-center gap-2 rounded-full border border-[var(--accent)] bg-[color-mix(in_oklab,var(--accent)_14%,var(--panel))] px-4 py-2 text-sm text-[var(--foreground)]"
+                  : "inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--soft-bg)] px-4 py-2 text-sm text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--foreground)]"
               }
-              onClick={() => toggleDiscipline(label)}
+              onClick={() => onToggle(label)}
             >
+              {active ? <Check size={12} className="text-[var(--accent)]" /> : null}
               {label}
             </button>
-          ))}
-        </div>
-      </ProfileSection>
-
-      <ProfileSection title="Aktuelle Bestzeiten" eyebrow="04 · PRs (optional)" description="Ein Anker für die Modellierung. Du kannst später jederzeit aktualisieren oder leer lassen.">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-[var(--line)] text-left mono text-[10px] uppercase tracking-[0.14em] text-[var(--subtle)]">
-                <th className="py-3 pr-4 font-normal">Disziplin</th>
-                <th className="px-4 py-3 font-normal">Distanz</th>
-                <th className="px-4 py-3 font-normal">Bestzeit</th>
-                <th className="py-3 pl-4 font-normal">Datum</th>
-              </tr>
-            </thead>
-            <tbody>
-              {personalBests.map((best) => (
-                <tr key={`${best.discipline}-${best.distance}`} className="border-b border-[var(--line)] last:border-b-0">
-                  <td className="py-3 pr-4 font-medium">{best.discipline}</td>
-                  <td className="px-4 py-3 text-[var(--muted)]">{best.distance}</td>
-                  <td className="px-4 py-3">
-                    <input defaultValue={best.best} className="w-32 border-0 bg-transparent p-0 font-serif text-xl text-[var(--accent)]" />
-                  </td>
-                  <td className="py-3 pl-4">
-                    <input type="date" defaultValue={best.date} className="w-40 border-0 bg-transparent p-0 mono text-xs text-[var(--muted)]" />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </ProfileSection>
-    </>
+          );
+        })}
+      </div>
+    </ProfileSection>
   );
 }
 
 /**
  * Renders privacy controls from the standalone profile template without destructive account actions.
  */
-function PrivacyPanel() {
-  const [privacy, setPrivacy] = useState("Privat");
-  const [notifications, setNotifications] = useState({
-    retest: true,
-    weekly: true,
-    overload: true,
-    marketing: false,
-  });
+function PrivacyPanel({
+  selectedVisibility,
+  onSelect,
+}: {
+  selectedVisibility: ProfileVisibility;
+  onSelect: (visibility: ProfileVisibility) => void;
+}) {
   const privacyOptions = [
-    { title: "Privat", text: "Nur du siehst deine Daten. Kein Teilen, keine Aggregation." },
-    { title: "Coach-Zugriff", text: "Dein verknüpfter Coach kann deine Reports einsehen." },
-    { title: "Anonyme Aggregation", text: "Anonyme Daten können in Benchmarks einfließen." },
-    { title: "Öffentliches Profil", text: "PRs und Saisonziel sind öffentlich sichtbar." },
+    { value: "private", title: "Privat", text: "Nur du siehst deine Daten. Kein Teilen, keine Aggregation." },
+    { value: "public", title: "Öffentliches Profil", text: "PRs und Saisonziel sind öffentlich sichtbar." },
   ];
-  const notificationOptions = [
-    { id: "retest", title: "ReTest-Erinnerung", text: "Nach 6-8 Wochen Trainingsplan automatisch zum ReTest auffordern." },
-    { id: "weekly", title: "Wöchentlicher Report", text: "Zusammenfassung deiner Trends per E-Mail." },
-    { id: "overload", title: "Übertrainings-Warnung", text: "Bei abfallender HRV und erhöhtem Ruhepuls." },
-    { id: "marketing", title: "Marketing & Updates", text: "Neue Features, Disziplinen und Events." },
-  ] as const;
 
   return (
-    <>
-      <ProfileSection title="Sichtbarkeit deiner Daten" eyebrow="13 · Privat" description="Du entscheidest, was wir tun dürfen. Standard ist nur für dich.">
-        <div className="grid gap-3 md:grid-cols-2">
-          {privacyOptions.map((option) => (
+    <ProfileSection title="Sichtbarkeit deiner Daten" eyebrow="13 · Privat" description="Du entscheidest, was wir tun dürfen. Standard ist nur für dich.">
+      <div className="grid gap-3 md:grid-cols-2">
+        {privacyOptions.map((option) => {
+          const active = selectedVisibility === option.value;
+          return (
             <button
               key={option.title}
               type="button"
               className={
-                privacy === option.title
+                active
                   ? "rounded-lg border border-[var(--accent)] bg-[color-mix(in_oklab,var(--accent)_12%,var(--panel))] p-4 text-left"
                   : "rounded-lg border border-[var(--line)] bg-[var(--soft-bg)] p-4 text-left hover:border-[var(--accent)]"
               }
-              onClick={() => setPrivacy(option.title)}
+              onClick={() => onSelect(option.value as ProfileVisibility)}
             >
               <span className="flex items-center justify-between gap-3">
                 <span className="font-medium">{option.title}</span>
                 <span className="flex size-6 items-center justify-center rounded-full border border-[var(--line)] text-xs text-[var(--accent)]">
-                  {privacy === option.title ? "✓" : ""}
+                  {active ? "✓" : ""}
                 </span>
               </span>
               <span className="mt-3 block text-sm leading-6 text-[var(--muted)]">{option.text}</span>
             </button>
-          ))}
-        </div>
-      </ProfileSection>
-
-      <ProfileSection title="Benachrichtigungen" eyebrow="14" description="Wann sollen wir uns melden?">
-        <div className="divide-y divide-[var(--line)] rounded-lg border border-[var(--line)] bg-[var(--soft-bg)]">
-          {notificationOptions.map((option) => {
-            const active = notifications[option.id];
-            return (
-              <div key={option.id} className="flex items-center justify-between gap-5 p-4">
-                <div>
-                  <p className="font-medium">{option.title}</p>
-                  <p className="mt-1 text-sm leading-6 text-[var(--muted)]">{option.text}</p>
-                </div>
-                <button
-                  type="button"
-                  aria-label={`${option.title} ${active ? "deaktivieren" : "aktivieren"}`}
-                  className={
-                    active
-                      ? "relative h-7 w-12 rounded-full bg-[var(--accent)]"
-                      : "relative h-7 w-12 rounded-full bg-[var(--line)]"
-                  }
-                  aria-pressed={active}
-                  onClick={() => setNotifications((current) => ({ ...current, [option.id]: !active }))}
-                >
-                  <span
-                    className={
-                      active
-                        ? "absolute right-1 top-1 size-5 rounded-full bg-[var(--accent-foreground)] transition"
-                        : "absolute left-1 top-1 size-5 rounded-full bg-[var(--foreground)] transition"
-                    }
-                  />
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      </ProfileSection>
-    </>
+          );
+        })}
+      </div>
+    </ProfileSection>
   );
 }
 

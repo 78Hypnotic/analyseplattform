@@ -6,6 +6,17 @@ import { z } from "zod";
 import { assertRateLimit } from "@/lib/rate-limit/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
+const ALLOWED_DISCIPLINES = [
+  "Schwimmen",
+  "Laufen",
+  "Radfahren",
+  "Triathlon",
+  "Open Water",
+  "Crosstraining",
+  "Krafttraining",
+  "Yoga / Mobility",
+] as const;
+
 const profileSchema = z.object({
   fullName: z.string().trim().min(2, "Name ist zu kurz.").max(80, "Name ist zu lang."),
   city: optionalTrimmedStringSchema(120),
@@ -22,6 +33,8 @@ const profileSchema = z.object({
   vlamax: optionalNumberSchema(0, 2),
   ftpRad: optionalIntegerSchema(50, 700),
   muscleMassKg: optionalNumberSchema(10, 120),
+  disciplines: z.array(z.enum(ALLOWED_DISCIPLINES)).max(8),
+  profileVisibility: z.enum(["private", "public"]),
 });
 
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
@@ -61,6 +74,8 @@ export async function updateProfile(
     vlamax: formData.get("vlamax"),
     ftpRad: formData.get("ftpRad"),
     muscleMassKg: formData.get("muscleMassKg"),
+    disciplines: formData.getAll("disciplines"),
+    profileVisibility: formData.get("profileVisibility"),
   });
 
   if (!parsed.success) {
@@ -95,6 +110,8 @@ export async function updateProfile(
     vlamax: parsed.data.vlamax,
     ftp_rad: parsed.data.ftpRad,
     muscle_mass_kg: parsed.data.muscleMassKg,
+    disciplines: parsed.data.disciplines,
+    profile_visibility: parsed.data.profileVisibility,
   });
 
   if (profileError && !profileError.message.includes("full_name")) {

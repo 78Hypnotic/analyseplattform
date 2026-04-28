@@ -19,6 +19,8 @@ type ProfileData = {
   vlamax?: number | string | null;
   ftp_rad?: number | null;
   muscle_mass_kg?: number | string | null;
+  disciplines?: string[] | null;
+  profile_visibility?: "private" | "public" | null;
 };
 
 export const dynamic = "force-dynamic";
@@ -91,7 +93,7 @@ export default async function ProfilePage() {
         <section className="surface relative overflow-hidden p-6 sm:p-7">
           <div
             aria-hidden
-            className="pointer-events-none absolute right-0 top-0 h-28 w-80 bg-[radial-gradient(circle_at_100%_0%,color-mix(in_oklab,var(--accent)_18%,transparent)_0%,transparent_68%)]"
+            className="pointer-events-none absolute right-0 top-0 h-full w-[30rem] bg-[radial-gradient(ellipse_at_top_right,color-mix(in_oklab,var(--accent)_16%,transparent)_0%,color-mix(in_oklab,var(--accent)_8%,transparent)_28%,transparent_72%)]"
           />
           <div className="relative flex flex-col justify-between gap-8 md:flex-row md:items-center">
             <div className="flex items-center gap-5">
@@ -140,6 +142,8 @@ export default async function ProfilePage() {
           vlamax={toNullableNumber(profile?.vlamax)}
           ftpRad={profile?.ftp_rad ?? null}
           muscleMassKg={toNullableNumber(profile?.muscle_mass_kg)}
+          disciplines={profile?.disciplines ?? []}
+          profileVisibility={profile?.profile_visibility ?? "private"}
         />
       </main>
     </>
