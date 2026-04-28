@@ -15,7 +15,7 @@ import { createAnalysis } from "../actions";
 
 type AnalysisDraft = Omit<
   AnalysisInput,
-  "age" | "gender" | "height" | "weight" | "bodyFatPercentage" | "poolLength" | "s200" | "s400" | "goal" | "level"
+  "age" | "gender" | "height" | "weight" | "bodyFatPercentage" | "fitnessLevel" | "poolLength" | "s200" | "s400" | "goal" | "level"
   | "targetDistance" | "swimSessionsPerWeek"
 > & {
   age: number | "";
@@ -23,6 +23,7 @@ type AnalysisDraft = Omit<
   height: number | "";
   weight: number | "";
   bodyFatPercentage: number | "";
+  fitnessLevel: number | "";
   poolLength: AnalysisInput["poolLength"] | "";
   s200: number | "";
   s400: number | "";
@@ -39,6 +40,7 @@ const EMPTY_ANALYSIS_INPUT: AnalysisDraft = {
   height: "",
   weight: "",
   bodyFatPercentage: "",
+  fitnessLevel: "",
   poolLength: "",
   t200: "",
   s200: "",
@@ -54,7 +56,7 @@ const EMPTY_ANALYSIS_INPUT: AnalysisDraft = {
 };
 
 export type InitialAnalysisInput = Partial<
-  Pick<AnalysisDraft, "name" | "age" | "gender" | "height" | "weight" | "bodyFatPercentage">
+  Pick<AnalysisDraft, "name" | "age" | "gender" | "height" | "weight" | "bodyFatPercentage" | "fitnessLevel">
 >;
 
 const PENDING_ANALYSIS_STORAGE_KEY = "pending-analysis-input";
@@ -391,6 +393,7 @@ function DataStep({
           <Field label="Größe (cm)" type="number" value={input.height} placeholder="z. B. 172" onChange={(value) => update({ height: optionalNumber(value) })} />
           <Field label="Gewicht (kg)" type="number" value={input.weight} placeholder="z. B. 63" onChange={(value) => update({ weight: optionalNumber(value) })} />
           <Field label="KFA (%)" type="number" value={input.bodyFatPercentage} placeholder="z. B. 21.5" onChange={(value) => update({ bodyFatPercentage: optionalNumber(value) })} />
+          <FitnessLevelSlider value={input.fitnessLevel} onChange={(value) => update({ fitnessLevel: value })} />
           <label className="grid gap-2 text-sm">
             Becken
             <select value={input.poolLength} onChange={(event) => update({ poolLength: optionalNumber(event.target.value) as AnalysisDraft["poolLength"] })}>
@@ -436,6 +439,40 @@ function DataStep({
         </Button>
       </div>
     </section>
+  );
+}
+
+function FitnessLevelSlider({
+  value,
+  onChange,
+}: {
+  value: number | "";
+  onChange: (value: number | "") => void;
+}) {
+  return (
+    <div className="grid gap-3 text-sm">
+      <div className="flex items-center justify-between gap-3">
+        <span>Fitnesslevel</span>
+        <span className="mono text-xs text-[var(--muted)]">
+          {value === "" ? "nicht erfasst" : `${value}/10`}
+        </span>
+      </div>
+      <input
+        type="range"
+        min={1}
+        max={10}
+        step={1}
+        value={value === "" ? 5 : value}
+        onChange={(event) => onChange(Number(event.target.value))}
+      />
+      <button
+        type="button"
+        className="justify-self-start text-sm text-[var(--muted)] underline underline-offset-4 hover:text-[var(--foreground)]"
+        onClick={() => onChange("")}
+      >
+        Fitnesslevel zurücksetzen
+      </button>
+    </div>
   );
 }
 

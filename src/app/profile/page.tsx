@@ -12,6 +12,7 @@ type ProfileData = {
   height_cm?: number | null;
   weight_kg?: number | null;
   body_fat_percentage?: number | string | null;
+  fitness_level?: number | null;
 };
 
 export const dynamic = "force-dynamic";
@@ -63,6 +64,7 @@ export default async function ProfilePage() {
           heightCm={profile?.height_cm ?? null}
           weightKg={profile?.weight_kg ?? null}
           bodyFatPercentage={toNullableNumber(profile?.body_fat_percentage)}
+          fitnessLevel={profile?.fitness_level ?? null}
         />
       </main>
     </>

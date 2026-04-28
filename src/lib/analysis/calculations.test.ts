@@ -64,11 +64,22 @@ describe("swim analysis calculations", () => {
   });
 
   it("validates race context and rejects impossible values", () => {
+    const inputWithoutFitnessLevel: Partial<AnalysisInput> = { ...DEFAULT_ANALYSIS_INPUT };
+    delete inputWithoutFitnessLevel.fitnessLevel;
+
     expect(analysisInputSchema.safeParse(DEFAULT_ANALYSIS_INPUT).success).toBe(true);
+    expect(analysisInputSchema.safeParse(inputWithoutFitnessLevel).success).toBe(true);
     expect(
       analysisInputSchema.safeParse({
         ...DEFAULT_ANALYSIS_INPUT,
         bodyFatPercentage: "",
+        fitnessLevel: "",
+      }).success,
+    ).toBe(true);
+    expect(
+      analysisInputSchema.safeParse({
+        ...DEFAULT_ANALYSIS_INPUT,
+        fitnessLevel: 10,
       }).success,
     ).toBe(true);
     expect(
@@ -93,6 +104,12 @@ describe("swim analysis calculations", () => {
       analysisInputSchema.safeParse({
         ...DEFAULT_ANALYSIS_INPUT,
         bodyFatPercentage: 99,
+      }).success,
+    ).toBe(false);
+    expect(
+      analysisInputSchema.safeParse({
+        ...DEFAULT_ANALYSIS_INPUT,
+        fitnessLevel: 11,
       }).success,
     ).toBe(false);
   });
