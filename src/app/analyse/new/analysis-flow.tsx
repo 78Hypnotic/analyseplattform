@@ -561,14 +561,7 @@ function DataStep({
           <Field label="Gewicht (kg)" type="number" value={input.weight} placeholder="z. B. 63" onChange={(value) => update({ weight: optionalNumber(value) })} />
           <Field label="KFA (%)" type="number" value={input.bodyFatPercentage} placeholder="z. B. 21.5" onChange={(value) => update({ bodyFatPercentage: optionalNumber(value) })} />
           <FitnessLevelSlider value={input.fitnessLevel} onChange={(value) => update({ fitnessLevel: value })} />
-          <label className="grid gap-2 text-sm">
-            Becken
-            <select value={input.poolLength} onChange={(event) => update({ poolLength: optionalNumber(event.target.value) as AnalysisDraft["poolLength"] })}>
-              <option value="" disabled>Auswählen</option>
-              <option value={25}>25 m</option>
-              <option value={50}>50 m</option>
-            </select>
-          </label>
+          <PoolLengthSegment value={input.poolLength} onChange={(value) => update({ poolLength: value })} />
         </div>
       </div>
 
@@ -606,6 +599,42 @@ function DataStep({
         </Button>
       </div>
     </section>
+  );
+}
+
+function PoolLengthSegment({
+  value,
+  onChange,
+}: {
+  value: AnalysisDraft["poolLength"];
+  onChange: (value: Exclude<AnalysisDraft["poolLength"], "">) => void;
+}) {
+  const options = [25, 50] as const;
+
+  return (
+    <div className="grid gap-2 text-sm">
+      <span>Becken</span>
+      <div className="grid grid-cols-2 gap-1 rounded-lg border border-[var(--line)] bg-[var(--soft-bg)] p-1">
+        {options.map((option) => {
+          const active = value === option;
+          return (
+            <button
+              key={option}
+              type="button"
+              aria-pressed={active}
+              className={
+                active
+                  ? "rounded-md bg-[var(--brand-bg)] px-3 py-2.5 text-sm text-[var(--brand-fg)]"
+                  : "rounded-md px-3 py-2.5 text-sm text-[var(--muted)] transition hover:text-[var(--foreground)]"
+              }
+              onClick={() => onChange(option)}
+            >
+              {option} m
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
