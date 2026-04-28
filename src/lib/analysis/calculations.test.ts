@@ -1,7 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_ANALYSIS_INPUT } from "./constants";
 import { analysisInputSchema } from "./schema";
-import { computeCSS, computeTest, derivePlanLength, parseTime, runAnalysis } from "./calculations";
+import {
+  classifyTechniqueClass,
+  computeCSS,
+  computeCssPace,
+  computeTest,
+  derivePlanLength,
+  getReferenceAgeBucket,
+  parseTime,
+  runAnalysis,
+} from "./calculations";
 import { getAnalysisValidationMessages } from "./validation";
 import type { AnalysisInput } from "./types";
 
@@ -33,10 +42,62 @@ describe("swim analysis calculations", () => {
   it("returns a stable report for valid data", () => {
     const result = runAnalysis(DEFAULT_ANALYSIS_INPUT);
     expect(result).not.toBeNull();
+    expect(result?.mode).toBe("standard");
+    if (result?.mode !== "standard") throw new Error("Expected standard analysis result");
+    expect(result?.techniqueGate.status).toBe("gelb");
     expect(result?.plan.name).toBe("Wasserlage & Balance");
     expect(result?.plan.slug).toBe("wasserlage-balance");
     expect(result?.plan.weeks).toBe(6);
+    expect(result?.vla.profile).toBe("Allrounder");
+    expect(result?.vo2.level).toBe("niedrig");
+    expect(result?.techniqueGate.techniqueClass).toBe("Solider Hobbyschwimmer");
     expect(result?.strengths.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("uses the document CSS pace formula", () => {
+    expect(computeCssPace(218, 468)).toBe(125);
+  });
+
+  it("classifies 400m technique bands from the diagnostics thresholds", () => {
+    expect(classifyTechniqueClass(false, null)).toBe("Technik-Einsteiger");
+    expect(classifyTechniqueClass(true, 131)).toBe("Technik-Einsteiger");
+    expect(classifyTechniqueClass(true, 121)).toBe("Technik in Aufbau");
+    expect(classifyTechniqueClass(true, 111)).toBe("Solider Hobbyschwimmer");
+    expect(classifyTechniqueClass(true, 101)).toBe("Ambitionierter Hobbyschwimmer");
+    expect(classifyTechniqueClass(true, 91)).toBe("Starker Agegrouper");
+    expect(classifyTechniqueClass(true, 90)).toBe("Leistungsschwimmer");
+    expect(classifyTechniqueClass(true, Number.NaN)).toBeNull();
+  });
+
+  it("creates a technique-only report when 400m is not possible", () => {
+    const result = runAnalysis({
+      ...DEFAULT_ANALYSIS_INPUT,
+      canSwim400m: false,
+      t400: "",
+      s400: undefined,
+    });
+
+    expect(result?.mode).toBe("technique_only");
+    expect(result?.techniqueGate.reason).toBe("cannot_swim_400m");
+    expect(result?.techniqueGate.techniqueClass).toBe("Technik-Einsteiger");
+    expect(result?.plan.slug).toBe("wasserlage-balance");
+  });
+
+  it("blocks standard diagnostics when equipment is used", () => {
+    const result = runAnalysis({
+      ...DEFAULT_ANALYSIS_INPUT,
+      equipment: "pullbuoy",
+    });
+
+    expect(result?.mode).toBe("technique_only");
+    expect(result?.techniqueGate.reason).toBe("equipment_used");
+    expect(result?.plan.slug).toBe("wasserlage-balance");
+  });
+
+  it("maps reference ages to 5-year buckets", () => {
+    expect(getReferenceAgeBucket(18)).toBe(20);
+    expect(getReferenceAgeBucket(34)).toBe(35);
+    expect(getReferenceAgeBucket(73)).toBe(70);
   });
 
   it("derives plan length from sessions and race date", () => {
@@ -80,6 +141,20 @@ describe("swim analysis calculations", () => {
       analysisInputSchema.safeParse({
         ...DEFAULT_ANALYSIS_INPUT,
         fitnessLevel: 5,
+      }).success,
+    ).toBe(true);
+    expect(
+      analysisInputSchema.safeParse({
+        ...DEFAULT_ANALYSIS_INPUT,
+        t50: "",
+      }).success,
+    ).toBe(false);
+    expect(
+      analysisInputSchema.safeParse({
+        ...DEFAULT_ANALYSIS_INPUT,
+        canSwim400m: false,
+        t400: "",
+        s400: "",
       }).success,
     ).toBe(true);
     expect(

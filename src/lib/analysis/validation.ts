@@ -1,5 +1,5 @@
 import { analysisInputSchema } from "./schema";
-import { computeCSS, parseTime } from "./calculations";
+import { computeCSS, computePace, parseTime } from "./calculations";
 import type { AnalysisInput } from "./types";
 
 const FIELD_LABELS: Record<string, string> = {
@@ -11,11 +11,14 @@ const FIELD_LABELS: Record<string, string> = {
   bodyFatPercentage: "KFA",
   fitnessLevel: "Fitnesslevel",
   poolLength: "Becken",
+  canSwim400m: "400 m am Stück",
+  testType: "Testart",
+  equipment: "Hilfsmittel",
+  t50: "50 m Zeit",
   t200: "200 m Zeit",
   s200: "200 m Züge pro Bahn",
   t400: "400 m Zeit",
   s400: "400 m Züge pro Bahn",
-  t50: "50 m Sprintzeit",
   goal: "Ziel",
   level: "Niveau",
   targetDistance: "Zielwettkampf",
@@ -33,11 +36,14 @@ const FIELD_MESSAGES: Record<string, string> = {
   bodyFatPercentage: "muss zwischen 3 und 60 % liegen.",
   fitnessLevel: "muss zwischen 1 und 5 liegen.",
   poolLength: "bitte 25 m oder 50 m auswählen.",
+  canSwim400m: "bitte auswählen.",
+  testType: "bitte auswählen.",
+  equipment: "bitte auswählen.",
+  t50: "bitte als Sekunden oder mm:ss eingeben.",
   t200: "bitte als Sekunden oder mm:ss eingeben.",
   s200: "muss größer als 0 und maximal 80 sein.",
   t400: "bitte als Sekunden oder mm:ss eingeben.",
   s400: "muss größer als 0 und maximal 80 sein.",
-  t50: "bitte als Sekunden oder mm:ss eingeben.",
   goal: "bitte auswählen.",
   level: "bitte auswählen.",
   targetDistance: "bitte auswählen.",
@@ -62,17 +68,30 @@ export function getAnalysisValidationMessages(input: unknown): string[] {
 
 function getCalculationValidationMessages(input: AnalysisInput): string[] {
   const messages: string[] = [];
+  const t50 = parseTime(input.t50);
   const t200 = parseTime(input.t200);
   const t400 = parseTime(input.t400);
 
+  if (!Number.isFinite(t50) || t50 <= 0) {
+    messages.push("50 m Zeit: muss größer als 0 sein.");
+  }
   if (!Number.isFinite(t200) || t200 <= 0) {
     messages.push("200 m Zeit: muss größer als 0 sein.");
   }
-  if (!Number.isFinite(t400) || t400 <= 0) {
-    messages.push("400 m Zeit: muss größer als 0 sein.");
-  }
-  if (Number.isFinite(t200) && Number.isFinite(t400) && Number.isNaN(computeCSS(t200, t400))) {
-    messages.push("400 m Zeit: muss langsamer sein als die 200 m Zeit.");
+  if (input.canSwim400m) {
+    if (!Number.isFinite(t400) || t400 <= 0) {
+      messages.push("400 m Zeit: muss größer als 0 sein.");
+    }
+    if (Number.isFinite(t200) && Number.isFinite(t400) && Number.isNaN(computeCSS(t200, t400))) {
+      messages.push("400 m Zeit: muss langsamer sein als die 200 m Zeit.");
+    }
+    if (
+      Number.isFinite(t200) &&
+      Number.isFinite(t400) &&
+      computePace(400, t400) <= computePace(200, t200)
+    ) {
+      messages.push("400 m Pace: muss langsamer sein als die 200 m Pace.");
+    }
   }
 
   return messages;

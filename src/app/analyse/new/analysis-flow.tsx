@@ -3,10 +3,10 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, Check, Loader2, Lock, UserRound } from "lucide-react";
+import { AlertTriangle, ArrowRight, Check, Loader2, Lock, UserRound } from "lucide-react";
 import { Button } from "@/components/button";
 import { ReportView } from "@/components/report-view";
-import { CHALLENGE_GROUPS, GOALS, LEVELS, TARGET_DISTANCES } from "@/lib/analysis/constants";
+import { CHALLENGE_GROUPS, GOALS, TARGET_DISTANCES, TEST_TYPES } from "@/lib/analysis/constants";
 import { runAnalysis } from "@/lib/analysis/calculations";
 import { analysisInputSchema } from "@/lib/analysis/schema";
 import type { AnalysisInput } from "@/lib/analysis/types";
@@ -15,7 +15,7 @@ import { createAnalysis } from "../actions";
 
 type AnalysisDraft = Omit<
   AnalysisInput,
-  "age" | "gender" | "height" | "weight" | "bodyFatPercentage" | "fitnessLevel" | "poolLength" | "s200" | "s400" | "goal" | "level"
+  "age" | "gender" | "height" | "weight" | "bodyFatPercentage" | "fitnessLevel" | "poolLength" | "canSwim400m" | "testType" | "equipment" | "s200" | "s400" | "goal" | "level"
   | "targetDistance" | "swimSessionsPerWeek"
 > & {
   age: number | "";
@@ -25,6 +25,9 @@ type AnalysisDraft = Omit<
   bodyFatPercentage: number | "";
   fitnessLevel: number | "";
   poolLength: AnalysisInput["poolLength"] | "";
+  canSwim400m: boolean;
+  testType: AnalysisInput["testType"] | "";
+  equipment: AnalysisInput["equipment"] | "";
   s200: number | "";
   s400: number | "";
   goal: AnalysisInput["goal"] | "";
@@ -42,18 +45,28 @@ const EMPTY_ANALYSIS_INPUT: AnalysisDraft = {
   bodyFatPercentage: "",
   fitnessLevel: "",
   poolLength: "",
+  canSwim400m: true,
+  testType: "wall_push",
+  equipment: "ohne",
+  t50: "",
   t200: "",
   s200: "",
   t400: "",
   s400: "",
-  t50: "",
   goal: "",
-  level: "",
+  level: "Fortgeschritten",
   targetDistance: "",
   raceDate: "",
   swimSessionsPerWeek: "",
   challenges: [],
 };
+
+const TARGET_DISTANCES_BY_GOAL = {
+  "Kraulen lernen": ["Becken"],
+  Beckenschwimmen: ["Sprint", "Becken"],
+  Freiwasserschwimmen: ["Freiwasser"],
+  Triathlon: ["Sprint", "OD", "MD", "LD"],
+} satisfies Record<AnalysisInput["goal"], NonNullable<AnalysisInput["targetDistance"]>[]>;
 
 const FITNESS_LEVEL_OPTIONS = [
   {
@@ -170,7 +183,7 @@ export function AnalysisFlow({
             Neue Analyse
           </p>
           <h1 className="mt-2 text-3xl font-semibold">
-            {["Kontext", "Testdaten"][step]}
+            {["Testdaten", "Kontext"][step]}
           </h1>
         </div>
       </div>
@@ -183,10 +196,15 @@ export function AnalysisFlow({
       />
 
       {step === 0 ? (
-        <ContextStep input={input} update={update} next={() => setStep(1)} />
+        <DataStep
+          input={input}
+          update={update}
+          next={() => setStep(1)}
+          isPending={isPending}
+        />
       ) : null}
       {step === 1 ? (
-        <DataStep
+        <ContextStep
           input={input}
           update={update}
           back={() => setStep(0)}
@@ -247,8 +265,8 @@ function AnalysisProgress({
   onSelectStep: (step: number) => void;
 }) {
   const steps = [
-    { label: "Kontext", action: () => onSelectStep(0) },
-    { label: "Daten", action: () => onSelectStep(1) },
+    { label: "Daten", action: () => onSelectStep(0) },
+    { label: "Kontext", action: () => onSelectStep(1) },
     { label: "Report" },
   ];
   const activeStep = isSaving && isAuthenticated ? 2 : currentStep;
@@ -266,7 +284,7 @@ function AnalysisProgress({
             onClick={item.action}
           />
         )).flatMap((item, index) => {
-          if (index === 0) return [item, <StepConnector key="connector-context-data" isActive={activeStep > 0} />];
+          if (index === 0) return [item, <StepConnector key="connector-data-context" isActive={activeStep > 0} />];
           if (index === 1) {
             return [
               item,
@@ -383,11 +401,15 @@ function AccountGate({
 function ContextStep({
   input,
   update,
-  next,
+  back,
+  save,
+  isPending,
 }: {
   input: AnalysisDraft;
   update: (patch: Partial<AnalysisDraft>) => void;
-  next: () => void;
+  back: () => void;
+  save: () => void;
+  isPending: boolean;
 }) {
   function toggleChallenge(item: string) {
     const active = input.challenges.includes(item);
@@ -397,6 +419,18 @@ function ContextStep({
         : [...input.challenges, item],
     });
   }
+
+  function updateGoal(goal: AnalysisInput["goal"]) {
+    const targetDistances = getTargetDistancesForGoal(goal);
+    const fallbackTargetDistance = targetDistances[0]?.id ?? "";
+    const nextTargetDistance = targetDistances.some((distance) => distance.id === input.targetDistance)
+      ? input.targetDistance
+      : fallbackTargetDistance;
+
+    update({ goal, targetDistance: nextTargetDistance });
+  }
+
+  const targetDistances = getTargetDistancesForGoal(input.goal);
 
   return (
     <section className="space-y-6">
@@ -408,7 +442,7 @@ function ContextStep({
           {GOALS.map((goal) => (
             <button
               key={goal.id}
-              onClick={() => update({ goal: goal.id })}
+              onClick={() => updateGoal(goal.id)}
               className={
                 input.goal === goal.id
                   ? "rounded-lg border border-[var(--accent)] bg-[var(--panel-2)] p-4 text-left"
@@ -424,32 +458,10 @@ function ContextStep({
 
       <div className="surface p-5">
         <p className="mono mb-4 text-xs uppercase tracking-[0.18em] text-[var(--subtle)]">
-          Niveau
-        </p>
-        <div className="grid gap-3 md:grid-cols-4">
-          {LEVELS.map((level) => (
-            <button
-              key={level.id}
-              onClick={() => update({ level: level.id })}
-              className={
-                input.level === level.id
-                  ? "rounded-lg border border-[var(--accent)] bg-[var(--panel-2)] p-4 text-left"
-                  : "rounded-lg border border-[var(--line)] bg-[var(--soft-bg)] p-4 text-left"
-              }
-            >
-              <span className="block font-medium">{level.label}</span>
-              <span className="muted mt-2 block text-sm">{level.description}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="surface p-5">
-        <p className="mono mb-4 text-xs uppercase tracking-[0.18em] text-[var(--subtle)]">
           Zielwettkampf
         </p>
         <div className="grid gap-3 md:grid-cols-6">
-          {TARGET_DISTANCES.map((distance) => (
+          {targetDistances.map((distance) => (
             <button
               key={distance.id}
               onClick={() => update({ targetDistance: distance.id })}
@@ -512,78 +524,6 @@ function ContextStep({
         </div>
       </div>
 
-      <div className="flex justify-end">
-        <Button variant="primary" onClick={next}>
-          Weiter <ArrowRight size={16} />
-        </Button>
-      </div>
-    </section>
-  );
-}
-
-function DataStep({
-  input,
-  update,
-  back,
-  save,
-  isPending,
-}: {
-  input: AnalysisDraft;
-  update: (patch: Partial<AnalysisDraft>) => void;
-  back: () => void;
-  save: () => void;
-  isPending: boolean;
-}) {
-  return (
-    <section className="space-y-6">
-      <div className="surface p-5">
-        <p className="mono mb-4 text-xs uppercase tracking-[0.18em] text-[var(--subtle)]">
-          Athlet
-        </p>
-        <div className="grid gap-4 md:grid-cols-3">
-          <Field label="Name" value={input.name} placeholder="z. B. Lena Bergmann" onChange={(value) => update({ name: value })} />
-          <Field label="Alter" type="number" value={input.age} placeholder="z. B. 34" onChange={(value) => update({ age: optionalNumber(value) })} />
-          <label className="grid gap-2 text-sm">
-            Geschlecht
-            <select value={input.gender} onChange={(event) => update({ gender: event.target.value as AnalysisDraft["gender"] })}>
-              <option value="" disabled>Auswählen</option>
-              <option value="weiblich">weiblich</option>
-              <option value="maennlich">männlich</option>
-              <option value="divers">divers</option>
-            </select>
-          </label>
-          <Field label="Größe (cm)" type="number" value={input.height} placeholder="z. B. 172" onChange={(value) => update({ height: optionalNumber(value) })} />
-          <Field label="Gewicht (kg)" type="number" value={input.weight} placeholder="z. B. 63" onChange={(value) => update({ weight: optionalNumber(value) })} />
-          <Field label="KFA (%)" type="number" value={input.bodyFatPercentage} placeholder="z. B. 21.5" onChange={(value) => update({ bodyFatPercentage: optionalNumber(value) })} />
-          <FitnessLevelSlider value={input.fitnessLevel} onChange={(value) => update({ fitnessLevel: value })} />
-          <PoolLengthSegment value={input.poolLength} onChange={(value) => update({ poolLength: value })} />
-        </div>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <TestCard
-          title="200 m Test"
-          time={input.t200}
-          strokes={input.s200}
-          onTime={(value) => update({ t200: value })}
-          onStrokes={(value) => update({ s200: optionalNumber(value) })}
-        />
-        <TestCard
-          title="400 m Test"
-          time={input.t400}
-          strokes={input.s400}
-          onTime={(value) => update({ t400: value })}
-          onStrokes={(value) => update({ s400: optionalNumber(value) })}
-        />
-      </div>
-
-      <div className="surface p-5">
-        <p className="mono mb-4 text-xs uppercase tracking-[0.18em] text-[var(--subtle)]">
-          Optional
-        </p>
-        <Field label="50 m Sprintzeit" value={input.t50 ?? ""} placeholder="z. B. 38.2" onChange={(value) => update({ t50: value })} />
-      </div>
-
       <div className="flex justify-between">
         <Button variant="ghost" onClick={back}>
           Zurück
@@ -594,6 +534,204 @@ function DataStep({
         </Button>
       </div>
     </section>
+  );
+}
+
+function DataStep({
+  input,
+  update,
+  next,
+  isPending,
+}: {
+  input: AnalysisDraft;
+  update: (patch: Partial<AnalysisDraft>) => void;
+  next: () => void;
+  isPending: boolean;
+}) {
+  return (
+    <section className="space-y-6">
+      <div className="surface p-5">
+        <p className="mono mb-4 text-xs uppercase tracking-[0.18em] text-[var(--subtle)]">
+          Test-Setup
+        </p>
+        <div className="grid gap-5">
+          <div className="grid gap-2 text-sm">
+            <span>400 m am Stück möglich?</span>
+            <div className="grid grid-cols-2 gap-1 rounded-lg border border-[var(--line)] bg-[var(--panel-2)] p-1">
+              <SegmentButton
+                label="Ja"
+                active={input.canSwim400m}
+                onClick={() => update({ canSwim400m: true })}
+              />
+              <SegmentButton
+                label="Nein"
+                active={!input.canSwim400m}
+                onClick={() => update({ canSwim400m: false, t400: "", s400: "" })}
+              />
+            </div>
+          </div>
+
+          <OptionGrid
+            label="Testart"
+            options={TEST_TYPES}
+            value={input.testType}
+            onSelect={(value) => update({ testType: value as AnalysisDraft["testType"] })}
+          />
+          <div className="rounded-lg border border-[var(--warn)] bg-[color-mix(in_oklab,var(--warn)_10%,var(--panel))] p-3">
+            <div className="flex items-start gap-3">
+              <AlertTriangle size={18} className="mt-0.5 shrink-0 text-[var(--warn)]" />
+              <p className="text-sm font-medium">
+                Ohne Hilfsmittel testen: kein Pullbuoy, kein Neo, keine Paddles.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="surface p-5">
+        <p className="mono mb-4 text-xs uppercase tracking-[0.18em] text-[var(--subtle)]">
+          Athlet
+        </p>
+        <div className="grid gap-4 md:grid-cols-3">
+          <Field label="Name" value={input.name} placeholder="z. B. Lena Bergmann" onChange={(value) => update({ name: value })} />
+          <Field label="Alter" type="number" value={input.age} placeholder="z. B. 34" onChange={(value) => update({ age: optionalNumber(value) })} />
+          <GenderSegment value={input.gender} onChange={(value) => update({ gender: value })} />
+          <Field label="Größe (cm)" type="number" value={input.height} placeholder="z. B. 172" onChange={(value) => update({ height: optionalNumber(value) })} />
+          <Field label="Gewicht (kg)" type="number" value={input.weight} placeholder="z. B. 63" onChange={(value) => update({ weight: optionalNumber(value) })} />
+          <Field label="KFA (%)" type="number" value={input.bodyFatPercentage} placeholder="z. B. 21.5" onChange={(value) => update({ bodyFatPercentage: optionalNumber(value) })} />
+          <FitnessLevelSlider value={input.fitnessLevel} onChange={(value) => update({ fitnessLevel: value })} />
+          <PoolLengthSegment value={input.poolLength} onChange={(value) => update({ poolLength: value })} />
+        </div>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="surface min-w-0 overflow-hidden p-5">
+          <h2 className="mb-4 text-xl font-semibold">50 m Test</h2>
+          <Field label="Zeit" value={input.t50} placeholder="z. B. 38.2" onChange={(value) => update({ t50: value })} />
+        </div>
+        <TestCard
+          title="200 m Test"
+          time={input.t200}
+          strokes={input.s200}
+          onTime={(value) => update({ t200: value })}
+          onStrokes={(value) => update({ s200: optionalNumber(value) })}
+        />
+        {input.canSwim400m ? (
+          <TestCard
+            title="400 m Test"
+            time={input.t400 ?? ""}
+            strokes={input.s400 ?? ""}
+            onTime={(value) => update({ t400: value })}
+            onStrokes={(value) => update({ s400: optionalNumber(value) })}
+          />
+        ) : null}
+      </div>
+
+      <div className="flex justify-end">
+        <Button variant="primary" onClick={next} disabled={isPending}>
+          Weiter <ArrowRight size={16} />
+        </Button>
+      </div>
+    </section>
+  );
+}
+
+function OptionGrid({
+  label,
+  options,
+  value,
+  onSelect,
+}: {
+  label: string;
+  options: ReadonlyArray<{ id: string; label: string; description: string }>;
+  value: string;
+  onSelect: (value: string) => void;
+}) {
+  return (
+    <div className="grid gap-2 text-sm">
+      <span>{label}</span>
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        {options.map((option) => {
+          const active = value === option.id;
+          return (
+            <button
+              key={option.id}
+              type="button"
+              aria-pressed={active}
+              onClick={() => onSelect(option.id)}
+              className={
+                active
+                  ? "rounded-lg border border-[var(--accent)] bg-[var(--panel-2)] px-3 py-2.5 text-left"
+                  : "rounded-lg border border-[var(--line)] bg-[var(--soft-bg)] px-3 py-2.5 text-left text-[var(--muted)]"
+              }
+            >
+              <span className="block font-medium text-[var(--foreground)]">{option.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function getTargetDistancesForGoal(goal: AnalysisDraft["goal"]) {
+  if (!goal) return TARGET_DISTANCES;
+  const allowedDistances = new Set(TARGET_DISTANCES_BY_GOAL[goal]);
+  return TARGET_DISTANCES.filter((distance) => allowedDistances.has(distance.id));
+}
+
+function SegmentButton({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      className={
+        active
+          ? "rounded-md bg-[var(--brand-bg)] px-3 py-2.5 text-sm text-[var(--brand-fg)]"
+          : "rounded-md px-3 py-2.5 text-sm text-[var(--muted)] transition hover:bg-[var(--soft-bg)] hover:text-[var(--foreground)]"
+      }
+      onClick={onClick}
+    >
+      {label}
+    </button>
+  );
+}
+
+function GenderSegment({
+  value,
+  onChange,
+}: {
+  value: AnalysisDraft["gender"];
+  onChange: (value: Exclude<AnalysisDraft["gender"], "">) => void;
+}) {
+  const options = [
+    { value: "weiblich", label: "Weiblich" },
+    { value: "maennlich", label: "Männlich" },
+    { value: "divers", label: "Divers" },
+  ] as const;
+
+  return (
+    <div className="grid gap-2 text-sm">
+      <span>Geschlecht</span>
+      <div className="grid grid-cols-3 gap-1 rounded-lg border border-[var(--line)] bg-[var(--panel-2)] p-1">
+        {options.map((option) => (
+          <SegmentButton
+            key={option.value}
+            label={option.label}
+            active={value === option.value}
+            onClick={() => onChange(option.value)}
+          />
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -709,9 +847,9 @@ function TestCard({
   onStrokes: (value: string) => void;
 }) {
   return (
-    <div className="surface p-5">
+    <div className="surface min-w-0 overflow-hidden p-5">
       <h2 className="mb-4 text-xl font-semibold">{title}</h2>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid min-w-0 gap-4 sm:grid-cols-2">
         <Field label="Zeit" value={time} placeholder={title.startsWith("200") ? "z. B. 3:38" : "z. B. 7:48"} onChange={onTime} />
         <Field label="Züge pro Bahn" type="number" value={strokes} placeholder={title.startsWith("200") ? "z. B. 21" : "z. B. 22.5"} onChange={onStrokes} />
       </div>
@@ -733,9 +871,15 @@ function Field({
   type?: string;
 }) {
   return (
-    <label className="grid gap-2 text-sm">
+    <label className="grid min-w-0 gap-2 text-sm">
       {label}
-      <input type={type} value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} />
+      <input
+        type={type}
+        value={value}
+        placeholder={placeholder}
+        className="w-full min-w-0"
+        onChange={(event) => onChange(event.target.value)}
+      />
     </label>
   );
 }

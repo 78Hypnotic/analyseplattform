@@ -1,4 +1,17 @@
-import type { AnalysisInput, AnalysisResult, TargetDistance, TestMetrics } from "./types";
+import { SWIM_REFERENCE_AGES, SWIM_REFERENCES } from "./constants";
+import type {
+  AnalysisInput,
+  AnalysisResult,
+  Gender,
+  ReferenceComparison,
+  ReferenceIndex,
+  StandardAnalysisResult,
+  TargetDistance,
+  TechniqueClass,
+  TechniqueGateResult,
+  TechniqueOnlyAnalysisResult,
+  TestMetrics,
+} from "./types";
 
 const DEFAULT_TARGET_DISTANCE: TargetDistance = "Becken";
 const DEFAULT_SWIM_SESSIONS_PER_WEEK = 3;
@@ -20,11 +33,17 @@ export function parseTime(input: string | number | undefined | null): number {
   return Number.parseFloat(value);
 }
 
-export function formatPace(seconds: number): string {
+export function formatPace(seconds: number | null | undefined): string {
   if (!Number.isFinite(seconds)) return "-";
-  const minutes = Math.floor(seconds / 60);
-  const rest = Math.round(seconds - minutes * 60);
+  const safeSeconds = seconds as number;
+  const minutes = Math.floor(safeSeconds / 60);
+  const rest = Math.round(safeSeconds - minutes * 60);
   return `${minutes}:${String(rest).padStart(2, "0")}`;
+}
+
+export function computePace(distance: 50 | 200 | 400, timeSec: number): number {
+  if (!Number.isFinite(timeSec) || timeSec <= 0) return Number.NaN;
+  return (timeSec / distance) * 100;
 }
 
 export function computeTest(
@@ -42,7 +61,7 @@ export function computeTest(
     return null;
   }
 
-  const pace = (timeSec / distance) * 100;
+  const pace = computePace(distance, timeSec);
   const dps = poolLength / strokesPerLength;
   const lengths = distance / poolLength;
   const timePerLength = timeSec / lengths;
@@ -64,18 +83,57 @@ export function cssPace(cssMs: number): number {
   return 100 / cssMs;
 }
 
+export function computeCssPace(t200: number, t400: number): number {
+  if (!Number.isFinite(t200) || !Number.isFinite(t400) || t400 <= t200) {
+    return Number.NaN;
+  }
+
+  return (t400 - t200) / 2;
+}
+
+export function isTechniqueOnlyResult(result: AnalysisResult): result is TechniqueOnlyAnalysisResult {
+  return result.mode === "technique_only";
+}
+
 /**
  * Converts the athlete context and swim test values into a compact coaching report.
  * The function stays deterministic so stored reports, previews and unit tests remain comparable.
  */
 export function runAnalysis(input: AnalysisInput): AnalysisResult | null {
+  const t50 = parseTime(input.t50);
   const t200 = parseTime(input.t200);
   const t400 = parseTime(input.t400);
-  const t50 = parseTime(input.t50);
+  const test50 = Number.isFinite(t50) && t50 > 0 ? { distance: 50 as const, time: t50, pace: computePace(50, t50) } : null;
   const test200 = computeTest(200, t200, input.s200, input.poolLength);
-  const test400 = computeTest(400, t400, input.s400, input.poolLength);
+  const test400 =
+    input.canSwim400m && input.s400 !== undefined
+      ? computeTest(400, t400, input.s400, input.poolLength)
+      : null;
 
-  if (!test200 || !test400) return null;
+  if (!test50 || !test200) return null;
+  if (input.canSwim400m && !test400) return null;
+
+  const techniqueGate = evaluateTechniqueGate(input, test400);
+  const targetDistance = input.targetDistance ?? inferTargetDistance(input.goal);
+  const swimSessionsPerWeek = input.swimSessionsPerWeek ?? DEFAULT_SWIM_SESSIONS_PER_WEEK;
+  const style = pickStyle(input, test200);
+  const styleProfile = explainStyle(style);
+
+  if (techniqueGate.status === "rot") {
+    return buildTechniqueOnlyResult({
+      input,
+      test50,
+      test200,
+      test400: test400 ?? undefined,
+      techniqueGate,
+      targetDistance,
+      swimSessionsPerWeek,
+      style,
+      styleProfile,
+    });
+  }
+
+  if (!test400 || test400.pace <= test200.pace) return null;
 
   const comparison = {
     paceDiff: test400.pace - test200.pace,
@@ -83,17 +141,269 @@ export function runAnalysis(input: AnalysisInput): AnalysisResult | null {
     srDiff: test400.sr - test200.sr,
   };
   const cssMs = computeCSS(t200, t400);
-  const thresholdPace = cssPace(cssMs);
+  const thresholdPace = computeCssPace(t200, t400);
   if (!Number.isFinite(cssMs) || !Number.isFinite(thresholdPace)) return null;
 
+  const reference = buildReferenceComparison(input, t50, t200, t400, thresholdPace);
   const vla = vlaProxy(test200.pace, test400.pace);
   const sprintReserveValue = sprintReserve(t50, cssMs);
-  const vo2 = vo2Proxy(test200.pace, thresholdPace);
+  const vo2 = vo2Proxy(t200, reference.t200);
   const challenges = input.challenges ?? [];
   const legSink = challenges.includes("Meine Beine sinken ab");
   const weakCatch = challenges.includes("Ich habe Probleme mit dem frühen Wasserfassen");
+  const strengths = buildStandardStrengths(comparison, test200, test400, sprintReserveValue);
+  const issues = buildStandardIssues(comparison, legSink, weakCatch);
+  const basePlan = pickPlan(input, techniqueGate, vla, vo2, legSink);
+  const derivedWeeks = derivePlanLength(basePlan.weeks, swimSessionsPerWeek, input.raceDate);
 
-  const strengths: AnalysisResult["strengths"] = [];
+  return {
+    mode: "standard",
+    techniqueGate,
+    test50,
+    test200,
+    test400,
+    comparison,
+    cssMs,
+    cssPace: thresholdPace,
+    vla,
+    vo2,
+    sprintReserve: Number.isFinite(sprintReserveValue) ? sprintReserveValue : null,
+    reference,
+    strengths: strengths.slice(0, 3),
+    issues: issues.slice(0, 2),
+    potential: {
+      paceGain: Math.abs(comparison.paceDiff) > 5 ? "4-8 sek/100m über 400 m" : "2-5 sek/100m über 400 m",
+      description:
+        "Mehr Effizienz bei gleichem Aufwand, geringere Ermüdung im zweiten Streckenteil und stabilere Technik unter Stress.",
+    },
+    style,
+    styleProfile,
+    plan: {
+      ...basePlan,
+      baseWeeks: basePlan.weeks,
+      weeks: derivedWeeks,
+      timeframeLabel: buildTimeframeLabel(input.raceDate, derivedWeeks),
+      retestHint: buildRetestHint(input.raceDate, derivedWeeks),
+      targetDistance,
+      swimSessionsPerWeek,
+    },
+  };
+}
+
+export function derivePlanLength(
+  baseWeeks: number,
+  swimSessionsPerWeek = DEFAULT_SWIM_SESSIONS_PER_WEEK,
+  raceDate?: string,
+  now = new Date(),
+): number {
+  const safeBaseWeeks = clamp(Math.round(baseWeeks), 1, 16);
+  const safeSessions = clamp(Math.round(swimSessionsPerWeek), 1, 7);
+  let adjustedWeeks = safeBaseWeeks;
+
+  if (safeSessions <= 2) {
+    adjustedWeeks = Math.min(8, safeBaseWeeks + 2);
+  } else if (safeSessions >= 4) {
+    adjustedWeeks = Math.max(4, safeBaseWeeks - 1);
+  }
+
+  const raceWeeks = getWeeksUntilRace(raceDate, now);
+  if (raceWeeks !== null) {
+    adjustedWeeks = Math.min(adjustedWeeks, raceWeeks);
+  }
+
+  return clamp(Math.round(adjustedWeeks), 2, 8);
+}
+
+export function getReferenceAgeBucket(age: number): number {
+  const rounded = Math.round(age / 5) * 5;
+  return clamp(rounded, SWIM_REFERENCE_AGES[0], SWIM_REFERENCE_AGES[SWIM_REFERENCE_AGES.length - 1]);
+}
+
+export function classifyReferenceIndex(index: number | null): ReferenceIndex["label"] {
+  if (index === null || !Number.isFinite(index)) return "Keine Referenz verfügbar";
+  if (index <= 0) return "Alters-Elite oder besser";
+  if (index <= 0.08) return "Sehr nah an der Alters-Elite";
+  if (index <= 0.2) return "Gutes Altersniveau";
+  if (index <= 0.4) return "Solides Hobbyniveau";
+  return "Großes Entwicklungspotenzial";
+}
+
+export function classifyTechniqueClass(
+  canSwim400m: boolean,
+  pace400: number | null | undefined,
+): TechniqueClass | null {
+  if (!canSwim400m) return "Technik-Einsteiger";
+  const pace = typeof pace400 === "number" ? pace400 : Number.NaN;
+  if (!Number.isFinite(pace)) return null;
+  if (pace > 130) return "Technik-Einsteiger";
+  if (pace > 120) return "Technik in Aufbau";
+  if (pace > 110) return "Solider Hobbyschwimmer";
+  if (pace > 100) return "Ambitionierter Hobbyschwimmer";
+  if (pace > 90) return "Starker Agegrouper";
+  return "Leistungsschwimmer";
+}
+
+function evaluateTechniqueGate(input: AnalysisInput, test400: TestMetrics | null): TechniqueGateResult {
+  const techniqueClass = classifyTechniqueClass(input.canSwim400m, test400?.pace ?? null);
+
+  if (!input.canSwim400m) {
+    return {
+      status: "rot",
+      reason: "cannot_swim_400m",
+      techniqueClass,
+      title: "Technik-Gate Rot",
+      message:
+        "Technik limitiert die Schwimmleistung aktuell so stark, dass eine physiologische Auswertung nicht belastbar ist.",
+    };
+  }
+
+  if (input.equipment !== "ohne") {
+    return {
+      status: "rot",
+      reason: "equipment_used",
+      techniqueClass,
+      title: "Test nicht vergleichbar",
+      message: "Hilfsmittel verfälschen den Test. Für die Standarddiagnostik bitte ohne Pullbuoy, Neo oder Paddles testen.",
+    };
+  }
+
+  if (!test400 || test400.pace > 120) {
+    return {
+      status: "rot",
+      reason: "pace_over_2_00",
+      techniqueClass: techniqueClass ?? "Technik-Einsteiger",
+      title: "Technik-Gate Rot",
+      message:
+        "Technik limitiert die Schwimmleistung aktuell so stark, dass eine physiologische Auswertung nicht belastbar ist.",
+    };
+  }
+
+  if (test400.pace > 110) {
+    return {
+      status: "gelb",
+      reason: "pace_between_1_50_and_2_00",
+      techniqueClass,
+      title: "Technik-Gate Gelb",
+      message: "Technik beeinflusst das Ergebnis. Die physiologische Auswertung ist nur eingeschränkt zu interpretieren.",
+    };
+  }
+
+  return {
+    status: "gruen",
+    reason: "technique_stable",
+    techniqueClass,
+    title: "Technik-Gate Grün",
+    message: "Technik ausreichend stabil. Die physiologische Auswertung ist möglich.",
+  };
+}
+
+function buildTechniqueOnlyResult({
+  input,
+  test50,
+  test200,
+  test400,
+  techniqueGate,
+  targetDistance,
+  swimSessionsPerWeek,
+  style,
+  styleProfile,
+}: {
+  input: AnalysisInput;
+  test50: { distance: 50; time: number; pace: number };
+  test200: TestMetrics;
+  test400?: TestMetrics;
+  techniqueGate: TechniqueGateResult;
+  targetDistance: TargetDistance;
+  swimSessionsPerWeek: number;
+  style: string;
+  styleProfile: NonNullable<AnalysisResult["styleProfile"]>;
+}): TechniqueOnlyAnalysisResult {
+  const basePlan = pickBeginnerTechniquePlan();
+  const derivedWeeks = derivePlanLength(basePlan.weeks, swimSessionsPerWeek, input.raceDate);
+
+  return {
+    mode: "technique_only",
+    techniqueGate,
+    test50,
+    test200,
+    test400,
+    sprintReserve: null,
+    strengths: [
+      {
+        title: "Testbasis angelegt",
+        description: `50 m und 200 m sind erfasst. Damit kann der Technikblock sauber gesteuert werden.`,
+      },
+      {
+        title: "Klarer nächster Schritt",
+        description:
+          techniqueGate.reason === "cannot_swim_400m"
+            ? "Das erste Ziel ist 400 m am Stück mit ruhiger Wasserlage."
+            : "Der nächste Test sollte ohne Hilfsmittel und mit stabiler 400-m-Pace erfolgen.",
+      },
+    ],
+    issues: [
+      buildTechniqueOnlyIssue(techniqueGate),
+    ],
+    potential: {
+      paceGain: techniqueGate.reason === "cannot_swim_400m" ? "400 m am Stück erreichen" : "Standardtest belastbar machen",
+      description:
+        "Der größte Hebel liegt zuerst in Wasserlage, Atmung und kontrollierbaren Wiederholungen. Danach werden CSS, VO2-Proxy und VLa-Proxy belastbarer.",
+    },
+    style,
+    styleProfile,
+    plan: {
+      ...basePlan,
+      baseWeeks: basePlan.weeks,
+      weeks: derivedWeeks,
+      timeframeLabel: buildTimeframeLabel(input.raceDate, derivedWeeks),
+      retestHint: buildRetestHint(input.raceDate, derivedWeeks),
+      targetDistance,
+      swimSessionsPerWeek,
+    },
+  };
+}
+
+function buildTechniqueOnlyIssue(techniqueGate: TechniqueGateResult): AnalysisResult["issues"][number] {
+  if (techniqueGate.reason === "cannot_swim_400m") {
+    return {
+      tag: "Technik-Gate",
+      title: "400 m am Stück sind noch nicht stabil",
+      cause: "Ohne stabile 400 m ist eine metabolische Ableitung aus 200/400 m nicht belastbar.",
+      cue: "Ruhig ausatmen, Kopf tief halten, Länge vor Tempo.",
+      drill: "6 x 50 m locker mit 20 s Pause, danach 4 x 25 m Technikfokus.",
+      note: "Der empfohlene Anfängerplan baut zuerst die durchgängige 400-m-Fähigkeit auf.",
+    };
+  }
+
+  if (techniqueGate.reason === "equipment_used") {
+    return {
+      tag: "Testprotokoll",
+      title: "Hilfsmittel verfälschen den Standardtest",
+      cause: "Pullbuoy, Neo oder Paddles verändern Wasserlage und Vortrieb. Die Werte sind nicht mit Referenzen vergleichbar.",
+      cue: "Test ohne Hilfsmittel wiederholen.",
+      drill: "4 x 100 m locker ohne Hilfsmittel, Fokus auf gleiche Zugzahl pro Bahn.",
+      note: "Der Plan bleibt technikorientiert, bis ein Standardtest vorliegt.",
+    };
+  }
+
+  return {
+    tag: "Technik-Gate",
+    title: "400 m Pace liegt über 2:00 min/100 m",
+    cause: "Die technische Limitierung überlagert aktuell VO2-, VLa- und CSS-Ableitungen.",
+    cue: "Tempo reduzieren, Wasserlage stabilisieren, nicht gegen den Widerstand arbeiten.",
+    drill: "8 x 50 m Technik mit vollständiger Kontrolle, jede Wiederholung gleichmäßig schwimmen.",
+    note: "Nach einem Technikblock sollte der 400-m-Test wiederholt werden.",
+  };
+}
+
+function buildStandardStrengths(
+  comparison: StandardAnalysisResult["comparison"],
+  test200: TestMetrics,
+  test400: TestMetrics,
+  sprintReserveValue: number,
+): StandardAnalysisResult["strengths"] {
+  const strengths: StandardAnalysisResult["strengths"] = [];
+
   if (comparison.dpsDiff > -0.05 && comparison.dpsDiff < 0.05) {
     strengths.push({
       title: "Stabile Zuglänge unter Belastung",
@@ -125,7 +435,16 @@ export function runAnalysis(input: AnalysisInput): AnalysisResult | null {
     });
   }
 
-  const issues: AnalysisResult["issues"] = [];
+  return strengths;
+}
+
+function buildStandardIssues(
+  comparison: StandardAnalysisResult["comparison"],
+  legSink: boolean,
+  weakCatch: boolean,
+): StandardAnalysisResult["issues"] {
+  const issues: StandardAnalysisResult["issues"] = [];
+
   if (legSink || weakCatch) {
     issues.push({
       tag: "Hauptproblem",
@@ -161,85 +480,84 @@ export function runAnalysis(input: AnalysisInput): AnalysisResult | null {
     });
   }
 
-  const targetDistance = input.targetDistance ?? inferTargetDistance(input.goal);
-  const swimSessionsPerWeek = input.swimSessionsPerWeek ?? DEFAULT_SWIM_SESSIONS_PER_WEEK;
-  const style = pickStyle(input, test200);
-  const styleProfile = explainStyle(style);
-  const basePlan = pickPlan(input, vla.level, vo2.level, legSink);
-  const derivedWeeks = derivePlanLength(basePlan.weeks, swimSessionsPerWeek, input.raceDate);
-  const plan = {
-    ...basePlan,
-    baseWeeks: basePlan.weeks,
-    weeks: derivedWeeks,
-    timeframeLabel: buildTimeframeLabel(input.raceDate, derivedWeeks),
-    retestHint: buildRetestHint(input.raceDate, derivedWeeks),
-    targetDistance,
-    swimSessionsPerWeek,
-  };
+  return issues;
+}
+
+function vlaProxy(pace200: number, pace400: number): StandardAnalysisResult["vla"] {
+  const drop = (pace400 - pace200) / pace200;
+  if (drop < 0.05) return { level: "niedrig", profile: "Diesel", score: 0.25, drop };
+  if (drop <= 0.1) return { level: "mittel", profile: "Allrounder", score: 0.55, drop };
+  return { level: "hoch", profile: "Sprinter", score: 0.85, drop };
+}
+
+function sprintReserve(t50: number, cssMs: number): number {
+  if (!Number.isFinite(t50) || !Number.isFinite(cssMs)) return Number.NaN;
+  return 50 / t50 / cssMs - 1;
+}
+
+function vo2Proxy(time200: number, reference200: ReferenceIndex | null): StandardAnalysisResult["vo2"] {
+  if (!reference200) return { level: "nicht_ermittelbar", score: 0, deviation: null };
+
+  const deviation = (time200 - reference200.reference) / reference200.reference;
+  if (deviation <= 0.08) return { level: "hoch", score: 0.8, deviation };
+  if (deviation <= 0.2) return { level: "mittel", score: 0.55, deviation };
+  return { level: "niedrig", score: 0.35, deviation };
+}
+
+function buildReferenceComparison(
+  input: AnalysisInput,
+  time50: number,
+  time200: number,
+  time400: number,
+  ownCssPace: number,
+): ReferenceComparison {
+  const sex = referenceSex(input.gender);
+  if (!sex) {
+    return {
+      ageBucket: null,
+      sex: null,
+      t50: null,
+      t200: null,
+      t400: null,
+      css: null,
+    };
+  }
+
+  const ageBucket = getReferenceAgeBucket(input.age);
+  const ref50 = getReferenceTime(sex, 50, ageBucket);
+  const ref200 = getReferenceTime(sex, 200, ageBucket);
+  const ref400 = getReferenceTime(sex, 400, ageBucket);
+  const refCss = ref200 !== null && ref400 !== null ? (ref400 - ref200) / 2 : null;
 
   return {
-    test200,
-    test400,
-    comparison,
-    cssMs,
-    cssPace: thresholdPace,
-    vla,
-    vo2,
-    sprintReserve: Number.isFinite(sprintReserveValue) ? sprintReserveValue : null,
-    strengths: strengths.slice(0, 3),
-    issues: issues.slice(0, 2),
-    potential: {
-      paceGain: Math.abs(comparison.paceDiff) > 5 ? "4-8 sek/100m über 400 m" : "2-5 sek/100m über 400 m",
-      description:
-        "Mehr Effizienz bei gleichem Aufwand, geringere Ermüdung im zweiten Streckenteil und stabilere Technik unter Stress.",
-    },
-    style,
-    styleProfile,
-    plan,
+    ageBucket,
+    sex,
+    t50: buildReferenceIndex(time50, ref50),
+    t200: buildReferenceIndex(time200, ref200),
+    t400: buildReferenceIndex(time400, ref400),
+    css: buildReferenceIndex(ownCssPace, refCss),
   };
 }
 
-export function derivePlanLength(
-  baseWeeks: number,
-  swimSessionsPerWeek = DEFAULT_SWIM_SESSIONS_PER_WEEK,
-  raceDate?: string,
-  now = new Date(),
-): number {
-  const safeBaseWeeks = clamp(Math.round(baseWeeks), 1, 16);
-  const safeSessions = clamp(Math.round(swimSessionsPerWeek), 1, 7);
-  let adjustedWeeks = safeBaseWeeks;
-
-  if (safeSessions <= 2) {
-    adjustedWeeks = Math.min(8, safeBaseWeeks + 2);
-  } else if (safeSessions >= 4) {
-    adjustedWeeks = Math.max(4, safeBaseWeeks - 1);
-  }
-
-  const raceWeeks = getWeeksUntilRace(raceDate, now);
-  if (raceWeeks !== null) {
-    adjustedWeeks = Math.min(adjustedWeeks, raceWeeks);
-  }
-
-  return clamp(Math.round(adjustedWeeks), 2, 8);
+function buildReferenceIndex(value: number, reference: number | null): ReferenceIndex | null {
+  if (reference === null) return null;
+  const index = (value - reference) / reference;
+  return {
+    reference,
+    value,
+    index,
+    label: classifyReferenceIndex(index),
+  };
 }
 
-function vlaProxy(p200: number, p400: number): AnalysisResult["vla"] {
-  const drop = (p400 - p200) / p200;
-  if (drop < 0.03) return { level: "niedrig", score: 0.25, drop };
-  if (drop < 0.06) return { level: "mittel", score: 0.55, drop };
-  return { level: "hoch", score: 0.85, drop };
+function getReferenceTime(sex: Exclude<Gender, "divers">, distance: 50 | 200 | 400, ageBucket: number) {
+  const ageIndex = SWIM_REFERENCE_AGES.indexOf(ageBucket as (typeof SWIM_REFERENCE_AGES)[number]);
+  if (ageIndex < 0) return null;
+  return SWIM_REFERENCES[sex][distance][ageIndex] ?? null;
 }
 
-function sprintReserve(p50: number, cssMs: number): number {
-  if (!Number.isFinite(p50) || !Number.isFinite(cssMs)) return Number.NaN;
-  return 50 / p50 / cssMs - 1;
-}
-
-function vo2Proxy(p200: number, thresholdPace: number): AnalysisResult["vo2"] {
-  const ratio = p200 / thresholdPace;
-  if (ratio > 1.04) return { level: "hoch", score: 0.8 };
-  if (ratio > 1) return { level: "mittel", score: 0.55 };
-  return { level: "niedrig", score: 0.35 };
+function referenceSex(gender: Gender): Exclude<Gender, "divers"> | null {
+  return gender === "divers" ? null : gender;
 }
 
 function pickStyle(input: AnalysisInput, test200: TestMetrics): string {
@@ -283,16 +601,21 @@ export function explainStyle(style: string): NonNullable<AnalysisResult["stylePr
 
 function pickPlan(
   input: AnalysisInput,
-  vlaLevel: AnalysisResult["vla"]["level"],
-  vo2Level: AnalysisResult["vo2"]["level"],
+  techniqueGate: TechniqueGateResult,
+  vla: StandardAnalysisResult["vla"],
+  vo2: StandardAnalysisResult["vo2"],
   legSink: boolean,
-): AnalysisResult["plan"] {
-  if (legSink || input.level === "Einsteiger") {
-    return { slug: "wasserlage-balance", name: "Wasserlage & Balance", phase: "Technik-Fundament", weeks: 6 };
+): StandardAnalysisResult["plan"] {
+  if (techniqueGate.status === "rot" || legSink || input.level === "Einsteiger") {
+    return pickBeginnerTechniquePlan();
   }
-  if (vo2Level === "niedrig") return { slug: "vo2max-builder", name: "VO2max-Builder", phase: "Basephase", weeks: 8 };
-  if (vlaLevel === "hoch") return { slug: "vlamax-senker", name: "VLamax Senker", phase: "Buildphase", weeks: 6 };
+  if (vo2.level === "niedrig") return { slug: "vo2max-builder", name: "VO2max-Builder", phase: "Basephase", weeks: 8 };
+  if (vla.profile === "Sprinter" || vla.level === "hoch") return { slug: "vlamax-senker", name: "VLamax Senker", phase: "Buildphase", weeks: 6 };
   return { slug: "tempohaerte", name: "Tempohärte", phase: "Peakphase", weeks: 6 };
+}
+
+function pickBeginnerTechniquePlan(): StandardAnalysisResult["plan"] {
+  return { slug: "wasserlage-balance", name: "Wasserlage & Balance", phase: "Technik-Fundament", weeks: 6 };
 }
 
 function inferTargetDistance(goal: AnalysisInput["goal"]): TargetDistance {
@@ -324,6 +647,6 @@ function getWeeksUntilRace(raceDate: string | undefined, now: Date): number | nu
   return Math.max(1, Math.ceil(diffMs / weekMs));
 }
 
-function clamp(value: number, min: number, max: number): number {
+function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
