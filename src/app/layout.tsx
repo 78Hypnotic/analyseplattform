@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Instrument_Serif, Inter_Tight, JetBrains_Mono } from "next/font/google";
 import Script from "next/script";
+import { AppFooter } from "@/components/app-footer";
 import "./globals.css";
 
 const themeInitScript = `
@@ -56,6 +57,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: themeInitScript }}
         />
         {children}
+        <AppFooter />
       </body>
     </html>
   );
