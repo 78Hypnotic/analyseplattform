@@ -8,16 +8,24 @@ import { ProfileForm } from "./profile-form";
 type ProfileData = {
   full_name?: string | null;
   avatar_url?: string | null;
+  city?: string | null;
   age?: number | null;
   gender?: "weiblich" | "maennlich" | "divers" | null;
   height_cm?: number | null;
   weight_kg?: number | null;
   body_fat_percentage?: number | string | null;
   fitness_level?: number | null;
+  vo2max?: number | string | null;
+  vlamax?: number | string | null;
+  ftp_rad?: number | null;
+  muscle_mass_kg?: number | string | null;
 };
 
 export const dynamic = "force-dynamic";
 
+/**
+ * Loads the authenticated profile and renders the editable athlete data surface.
+ */
 export default async function ProfilePage() {
   const supabase = await createSupabaseServerClient();
   const {
@@ -42,23 +50,33 @@ export default async function ProfilePage() {
   const exportHref = buildProfileExportHref({
     email: user.email ?? "",
     fullName,
+    city: profile?.city ?? null,
     age: profile?.age ?? null,
     gender: profile?.gender ?? null,
     heightCm: profile?.height_cm ?? null,
     weightKg: profile?.weight_kg ?? null,
     bodyFatPercentage: toNullableNumber(profile?.body_fat_percentage),
     fitnessLevel: profile?.fitness_level ?? null,
+    vo2max: toNullableNumber(profile?.vo2max),
+    vlamax: toNullableNumber(profile?.vlamax),
+    ftpRad: profile?.ftp_rad ?? null,
+    muscleMassKg: toNullableNumber(profile?.muscle_mass_kg),
   });
   const completion = calculateProfileCompletion({
     email: user.email,
     fullName,
     avatarUrl: profile?.avatar_url,
+    city: profile?.city,
     age: profile?.age,
     gender: profile?.gender,
     heightCm: profile?.height_cm,
     weightKg: profile?.weight_kg,
     bodyFatPercentage: profile?.body_fat_percentage,
     fitnessLevel: profile?.fitness_level,
+    vo2max: profile?.vo2max,
+    vlamax: profile?.vlamax,
+    ftpRad: profile?.ftp_rad,
+    muscleMassKg: profile?.muscle_mass_kg,
   });
 
   return (
@@ -92,8 +110,12 @@ export default async function ProfilePage() {
           </div>
         </section>
 
-        <section className="surface overflow-hidden bg-[linear-gradient(110deg,var(--panel)_0%,var(--panel)_55%,color-mix(in_oklab,var(--accent)_10%,var(--panel))_100%)] p-6 sm:p-7">
-          <div className="flex flex-col justify-between gap-8 md:flex-row md:items-center">
+        <section className="surface relative overflow-hidden bg-[linear-gradient(110deg,var(--panel)_0%,var(--panel)_58%,color-mix(in_oklab,var(--accent)_14%,var(--panel))_100%)] p-6 sm:p-7">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-y-0 right-0 w-1/2 bg-[radial-gradient(circle_at_100%_0%,color-mix(in_oklab,var(--accent)_28%,transparent)_0%,transparent_64%)]"
+          />
+          <div className="relative flex flex-col justify-between gap-8 md:flex-row md:items-center">
             <div className="flex items-center gap-5">
               <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[color-mix(in_oklab,var(--accent)_35%,var(--line))] bg-[color-mix(in_oklab,var(--accent)_12%,var(--panel))] text-2xl font-semibold sm:size-24">
                 {profile?.avatar_url ? (
@@ -139,12 +161,17 @@ export default async function ProfilePage() {
         <ProfileForm
           email={user.email ?? ""}
           fullName={fullName}
+          city={profile?.city ?? null}
           age={profile?.age ?? null}
           gender={profile?.gender ?? null}
           heightCm={profile?.height_cm ?? null}
           weightKg={profile?.weight_kg ?? null}
           bodyFatPercentage={toNullableNumber(profile?.body_fat_percentage)}
           fitnessLevel={profile?.fitness_level ?? null}
+          vo2max={toNullableNumber(profile?.vo2max)}
+          vlamax={toNullableNumber(profile?.vlamax)}
+          ftpRad={profile?.ftp_rad ?? null}
+          muscleMassKg={toNullableNumber(profile?.muscle_mass_kg)}
         />
         <AvatarUploader
           fullName={fullName || user.email || "Profil"}
@@ -165,23 +192,33 @@ function calculateProfileCompletion(profile: {
   email?: string | null;
   fullName?: string | null;
   avatarUrl?: string | null;
+  city?: string | null;
   age?: number | null;
   gender?: string | null;
   heightCm?: number | null;
   weightKg?: number | null;
   bodyFatPercentage?: number | string | null;
   fitnessLevel?: number | null;
+  vo2max?: number | string | null;
+  vlamax?: number | string | null;
+  ftpRad?: number | null;
+  muscleMassKg?: number | string | null;
 }) {
   const values = [
     profile.email,
     profile.fullName,
     profile.avatarUrl,
+    profile.city,
     profile.age,
     profile.gender,
     profile.heightCm,
     profile.weightKg,
     profile.bodyFatPercentage,
     profile.fitnessLevel,
+    profile.vo2max,
+    profile.vlamax,
+    profile.ftpRad,
+    profile.muscleMassKg,
   ];
   const filled = values.filter((value) => value !== null && value !== undefined && value !== "").length;
   return Math.round((filled / values.length) * 100);
@@ -189,10 +226,11 @@ function calculateProfileCompletion(profile: {
 
 function buildProfileSummary(profile: ProfileData | null) {
   const items = [
+    profile?.city ?? null,
     profile?.age ? `${profile.age} Jahre` : null,
     profile?.height_cm ? `${profile.height_cm / 100} m` : null,
     profile?.weight_kg ? `${profile.weight_kg} kg` : null,
-    profile?.fitness_level ? `Fitness ${profile.fitness_level}/10` : null,
+    profile?.fitness_level ? `Fitness ${normalizeFitnessLevel(profile.fitness_level)}/5` : null,
   ];
   return items.filter((item): item is string => Boolean(item));
 }
@@ -207,16 +245,26 @@ function buildInitials(label: string) {
 function buildProfileExportHref(profile: {
   email: string;
   fullName: string;
+  city: string | null;
   age: number | null;
   gender: string | null;
   heightCm: number | null;
   weightKg: number | null;
   bodyFatPercentage: number | null;
   fitnessLevel: number | null;
+  vo2max: number | null;
+  vlamax: number | null;
+  ftpRad: number | null;
+  muscleMassKg: number | null;
 }) {
   const payload = {
     exportedAt: new Date().toISOString(),
     profile,
   };
   return `data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(payload, null, 2))}`;
+}
+
+function normalizeFitnessLevel(value: number) {
+  if (value <= 5) return value;
+  return Math.min(5, Math.max(1, Math.round(value / 2)));
 }

@@ -79,7 +79,7 @@ describe("swim analysis calculations", () => {
     expect(
       analysisInputSchema.safeParse({
         ...DEFAULT_ANALYSIS_INPUT,
-        fitnessLevel: 10,
+        fitnessLevel: 5,
       }).success,
     ).toBe(true);
     expect(
@@ -109,7 +109,7 @@ describe("swim analysis calculations", () => {
     expect(
       analysisInputSchema.safeParse({
         ...DEFAULT_ANALYSIS_INPUT,
-        fitnessLevel: 11,
+        fitnessLevel: 6,
       }).success,
     ).toBe(false);
   });

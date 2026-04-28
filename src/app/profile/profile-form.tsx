@@ -7,33 +7,68 @@ import { Button } from "@/components/button";
 import { updateProfile, type ProfileActionState } from "./actions";
 
 type Gender = "weiblich" | "maennlich" | "divers";
+type BodyFatSex = "female" | "male";
 
 type ProfileFormProps = {
   email: string;
   fullName: string;
+  city: string | null;
   age: number | null;
   gender: Gender | null;
   heightCm: number | null;
   weightKg: number | null;
   bodyFatPercentage: number | null;
   fitnessLevel: number | null;
+  vo2max: number | null;
+  vlamax: number | null;
+  ftpRad: number | null;
+  muscleMassKg: number | null;
 };
 
-const FITNESS_LABELS = [
-  { value: 1, label: "Anfänger" },
-  { value: 4, label: "Fortgeschritten" },
-  { value: 6, label: "Mittelstufe" },
-  { value: 8, label: "Ambitioniert" },
-  { value: 10, label: "Master" },
+const FITNESS_LEVELS = [
+  {
+    value: 1,
+    label: "Anfänger",
+    description: "Erste strukturierte Schritte. Wir starten mit klaren Basis-Tests und sanften Bereichen.",
+  },
+  {
+    value: 2,
+    label: "Fortgeschritten",
+    description: "Regelmäßiges Training, erste Wettkämpfe. Wir bauen auf solide aerobe Basis.",
+  },
+  {
+    value: 3,
+    label: "Mittelstufe",
+    description: "Konstantes strukturiertes Training, regelmäßige Wettkämpfe in der Altersklasse.",
+  },
+  {
+    value: 4,
+    label: "Ambitioniert",
+    description: "Mehrere Saisons strukturiertes Training, AK-Podiumsplätze, hohe Trainingsumfänge.",
+  },
+  {
+    value: 5,
+    label: "Master",
+    description: "Elite-Niveau oder langjährige hochstrukturierte Trainingshistorie. Marginale Gains zählen.",
+  },
 ] as const;
 
-const BODY_FAT_RANGES = [
-  { label: "Athletisch", range: "10-16%" },
-  { label: "Fit", range: "17-22%" },
-  { label: "Normal", range: "23-28%" },
-  { label: "Erhöht", range: "29-34%" },
-  { label: "Hoch", range: "35%+" },
-] as const;
+const BODY_FAT_PRESETS = {
+  female: [
+    { value: 14, label: "Athletisch", range: "10-16%" },
+    { value: 20, label: "Fit", range: "17-22%" },
+    { value: 26, label: "Normal", range: "23-28%" },
+    { value: 32, label: "Erhöht", range: "29-34%" },
+    { value: 38, label: "Hoch", range: "35%+" },
+  ],
+  male: [
+    { value: 8, label: "Athletisch", range: "6-10%" },
+    { value: 14, label: "Fit", range: "11-17%" },
+    { value: 20, label: "Normal", range: "18-24%" },
+    { value: 26, label: "Erhöht", range: "25-29%" },
+    { value: 32, label: "Hoch", range: "30%+" },
+  ],
+} as const;
 
 /**
  * Renders the editable athlete profile form with sectioned inputs and sticky save controls.
@@ -41,36 +76,55 @@ const BODY_FAT_RANGES = [
 export function ProfileForm({
   email,
   fullName,
+  city,
   age,
   gender,
   heightCm,
   weightKg,
   bodyFatPercentage,
   fitnessLevel,
+  vo2max,
+  vlamax,
+  ftpRad,
+  muscleMassKg,
 }: ProfileFormProps) {
   const initialName = splitName(fullName);
+  const initialFitnessLevel = normalizeFitnessLevel(fitnessLevel);
+  const initialVisualSex: BodyFatSex = gender === "maennlich" ? "male" : "female";
   const [firstName, setFirstName] = useState(initialName.firstName);
   const [lastName, setLastName] = useState(initialName.lastName);
   const [selectedGender, setSelectedGender] = useState<Gender | null>(gender);
-  const [selectedFitnessLevel, setSelectedFitnessLevel] = useState<number | null>(fitnessLevel);
+  const [selectedFitnessLevel, setSelectedFitnessLevel] = useState<number | null>(initialFitnessLevel);
+  const [bodyFatValue, setBodyFatValue] = useState<number | null>(bodyFatPercentage);
+  const [visualSex, setVisualSex] = useState<BodyFatSex>(initialVisualSex);
   const [hasChanges, setHasChanges] = useState(false);
   const [state, formAction, isPending] = useActionState<ProfileActionState, FormData>(submitProfile, {});
-  const resolvedFitnessLevel = selectedFitnessLevel ?? 5;
-  const fitnessLabel = getFitnessLabel(selectedFitnessLevel);
-  const bodyFatStatus = getBodyFatStatus(bodyFatPercentage);
-  const bodyFatSliderValue = Math.min(40, Math.max(10, bodyFatPercentage ?? 22));
   const fullNameValue = `${firstName} ${lastName}`.trim();
+  const resolvedFitnessLevel = selectedFitnessLevel ?? 3;
+  const fitnessMeta = getFitnessMeta(selectedFitnessLevel);
+  const bodyFatSliderValue = clamp(bodyFatValue ?? 22, 8, 42);
+  const bodyFatStatus = getBodyFatStatus(visualSex, bodyFatValue);
+  const bodyFatPresets = BODY_FAT_PRESETS[visualSex];
 
   function resetControlledFields() {
     setFirstName(initialName.firstName);
     setLastName(initialName.lastName);
     setSelectedGender(gender);
-    setSelectedFitnessLevel(fitnessLevel);
+    setSelectedFitnessLevel(initialFitnessLevel);
+    setBodyFatValue(bodyFatPercentage);
+    setVisualSex(initialVisualSex);
     setHasChanges(false);
   }
 
   function setSelectedGenderValue(nextGender: Gender | null) {
     setSelectedGender(nextGender);
+    if (nextGender === "weiblich") setVisualSex("female");
+    if (nextGender === "maennlich") setVisualSex("male");
+    setHasChanges(true);
+  }
+
+  function setBodyFat(nextValue: number | null) {
+    setBodyFatValue(nextValue);
     setHasChanges(true);
   }
 
@@ -115,57 +169,55 @@ export function ProfileForm({
             <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--subtle)]">E-Mail</span>
             <input value={email} disabled className="w-full" />
           </label>
+          <TextInput label="Stadt" name="city" defaultValue={city} placeholder="z. B. Hamburg" />
           <NumberField label="Alter" name="age" min={8} max={100} defaultValue={age} placeholder="z. B. 34" />
-          <div className="grid gap-2 text-sm md:col-span-2">
+          <div className="grid gap-2 text-sm">
             <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--subtle)]">
               Biologisches Geschlecht
             </span>
             <input type="hidden" name="gender" value={selectedGender ?? ""} />
-            <div className="grid overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--soft-bg)] sm:grid-cols-4">
+            <div className="grid grid-cols-4 gap-1 rounded-lg border border-[var(--line)] bg-[var(--soft-bg)] p-1">
               <SegmentButton label="Weiblich" active={selectedGender === "weiblich"} onClick={() => setSelectedGenderValue("weiblich")} />
               <SegmentButton label="Männlich" active={selectedGender === "maennlich"} onClick={() => setSelectedGenderValue("maennlich")} />
               <SegmentButton label="Divers" active={selectedGender === "divers"} onClick={() => setSelectedGenderValue("divers")} />
               <SegmentButton label="Keine Angabe" active={selectedGender === null} onClick={() => setSelectedGenderValue(null)} />
             </div>
-            <span className="text-xs text-[var(--subtle)]">Beeinflusst Normwerte für Test- und Pace-Bereiche.</span>
+            <span className="text-xs text-[var(--subtle)]">Beeinflusst Normwerte für VO₂max, FTP und Pace-Bereiche.</span>
           </div>
           <NumberField label="Körpergröße" name="heightCm" min={100} max={230} defaultValue={heightCm} suffix="cm" placeholder="z. B. 172" />
           <NumberField label="Körpergewicht" name="weightKg" min={25} max={180} defaultValue={weightKg} suffix="kg" placeholder="z. B. 64" />
         </div>
       </ProfileSection>
 
-      <ProfileSection title="Fitnessniveau" eyebrow="02 · Selbsteinschätzung" description="Schiebe den Regler dorthin, wo du dich aktuell am ehesten siehst.">
+      <ProfileSection title="Fitnessniveau" eyebrow="02 · Selbsteinschätzung" description="Wir gewichten Testergebnisse anhand deines Niveaus. Schiebe den Regler dorthin, wo du dich am ehesten siehst.">
         <input type="hidden" name="fitnessLevel" value={selectedFitnessLevel ?? ""} />
         <div className="grid gap-8">
           <div className="flex items-end justify-between gap-6">
             <div>
               <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--subtle)]">Aktuelles Niveau</p>
-              <h3 className="display-serif mt-2 text-4xl text-[var(--foreground)]">{fitnessLabel}</h3>
-              <p className="mt-2 max-w-md text-sm leading-6 text-[var(--muted)]">
-                {getFitnessDescription(selectedFitnessLevel)}
-              </p>
+              <h3 className="display-serif mt-2 text-4xl text-[var(--foreground)]">{fitnessMeta.label}</h3>
+              <p className="mt-2 max-w-md text-sm leading-6 text-[var(--muted)]">{fitnessMeta.description}</p>
             </div>
             <div className="text-right">
               <p className="display-serif text-5xl text-[var(--accent)]">{selectedFitnessLevel ?? "-"}</p>
-              <p className="mono text-xs text-[var(--muted)]">/ 10</p>
+              <p className="mono text-xs text-[var(--muted)]">/ 5</p>
             </div>
           </div>
-          <div className="grid gap-3">
-            <input
-              type="range"
+          <div className="grid gap-4">
+            <VisualSlider
+              ariaLabel="Fitnessniveau"
               min={1}
-              max={10}
+              max={5}
               step={1}
               value={resolvedFitnessLevel}
-              className="w-full accent-[var(--accent)]"
-              onChange={(event) => {
-                setSelectedFitnessLevel(Number(event.target.value));
+              onChange={(value) => {
+                setSelectedFitnessLevel(value);
                 setHasChanges(true);
               }}
             />
             <div className="grid grid-cols-5 gap-2 text-[10px] uppercase tracking-[0.16em] text-[var(--subtle)]">
-              {FITNESS_LABELS.map((item) => (
-                <span key={item.value} className={item.value === 10 ? "text-right" : item.value > 4 ? "text-center" : ""}>
+              {FITNESS_LEVELS.map((item, index) => (
+                <span key={item.value} className={index === 0 ? "text-left" : index === FITNESS_LEVELS.length - 1 ? "text-right" : "text-center"}>
                   {item.label}
                 </span>
               ))}
@@ -184,67 +236,152 @@ export function ProfileForm({
         </div>
       </ProfileSection>
 
-      <ProfileSection title="Körperzusammensetzung" eyebrow="03 · Körper" description="Hilft beim Schätzen der relativen Leistung. Wenn du keinen gemessenen KFA hast, schätze visuell.">
-        <div className="grid gap-4 md:grid-cols-2">
+      <ProfileSection title="Leistungsmetriken" eyebrow="00 · Performance" description="Deine zentralen physiologischen Schwellenwerte. Wenn nicht gemessen, leer lassen - wir schätzen aus Tests.">
+        <div className="grid gap-4 md:grid-cols-3">
           <NumberField
-            label="Körperfett"
+            label="VO₂max"
+            name="vo2max"
+            min={10}
+            max={100}
+            step="0.1"
+            defaultValue={vo2max}
+            suffix="ml/kg/min"
+            placeholder="-"
+            helper="Maximale aerobe Kapazität."
+          />
+          <NumberField
+            label="VLamax"
+            name="vlamax"
+            min={0}
+            max={2}
+            step="0.01"
+            defaultValue={vlamax}
+            suffix="mmol/l/s"
+            placeholder="-"
+            helper="Maximale Laktatbildungsrate."
+          />
+          <NumberField
+            label="FTP (Rad)"
+            name="ftpRad"
+            min={50}
+            max={700}
+            defaultValue={ftpRad}
+            suffix="W"
+            placeholder="-"
+            helper="Funktionelle Schwellenleistung."
+          />
+        </div>
+      </ProfileSection>
+
+      <ProfileSection title="Körperzusammensetzung" eyebrow="02 · Körper" description="Hilft beim Schätzen der laktischen Kapazität und der relativen Leistung. Wenn du keinen gemessenen KFA hast, schätze visuell.">
+        <div className="grid gap-4 md:grid-cols-2">
+          <ControlledNumberField
+            label="Körperfett - gemessen"
             name="bodyFatPercentage"
             min={3}
             max={60}
             step="0.1"
-            defaultValue={bodyFatPercentage}
+            value={bodyFatValue}
+            onChange={setBodyFat}
             suffix="%"
             placeholder="-"
+            helper="Aus DXA, Caliper oder Bioimpedanz."
           />
-          <div className="rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-4">
-            <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--subtle)]">Visuelle Einschätzung</p>
-            <p className="display-serif mt-3 text-3xl text-[var(--foreground)]">
-              {bodyFatPercentage ? `${bodyFatPercentage.toFixed(1)}%` : "Kein Messwert"}
-            </p>
-            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-              {bodyFatPercentage
-                ? `Aktuell eingeordnet als ${bodyFatStatus.toLowerCase()}.`
-                : "Trage einen KFA-Wert ein, wenn du einen Messwert oder eine solide Schätzung hast."}
-            </p>
-          </div>
-        </div>
-        <div className="mt-6 grid gap-3 sm:grid-cols-5">
-          {BODY_FAT_RANGES.map((item) => (
-            <div
-              key={item.label}
-              className={
-                item.label === bodyFatStatus
-                  ? "rounded-lg border border-[var(--accent)] bg-[color-mix(in_oklab,var(--accent)_12%,var(--panel))] p-4 text-center"
-                  : "rounded-lg border border-[var(--line)] bg-[var(--soft-bg)] p-4 text-center"
-              }
-            >
-              <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--subtle)]">{item.label}</p>
-              <p className="display-serif mt-3 text-xl">{item.range}</p>
-            </div>
-          ))}
-        </div>
-        <div className="mt-6 grid gap-2">
-          <input
-            type="range"
+          <NumberField
+            label="Muskelmasse"
+            name="muscleMassKg"
             min={10}
-            max={40}
-            value={bodyFatSliderValue}
-            readOnly
-            className="w-full accent-[var(--accent)]"
+            max={120}
+            step="0.1"
+            defaultValue={muscleMassKg}
+            suffix="kg"
+            placeholder="-"
           />
-          <div className="grid grid-cols-5 gap-2 text-[10px] uppercase tracking-[0.16em] text-[var(--subtle)]">
-            {BODY_FAT_RANGES.map((item) => (
-              <span key={item.label} className="text-center">{item.label}</span>
+        </div>
+
+        <div className="mt-6 rounded-xl border border-[var(--line)] bg-[var(--soft-bg)] p-5">
+          <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+            <div>
+              <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--subtle)]">Visuelle Schätzung</p>
+              <h3 className="display-serif mt-3 text-3xl text-[var(--foreground)]">
+                {bodyFatValue === null ? "Kein Messwert? Schätze visuell." : "KFA visuell feinjustieren."}
+              </h3>
+              <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--muted)]">
+                Wähle das Geschlecht und ziehe den Regler, bis die Figur deinem Körper am nächsten kommt.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-1 rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-1 text-sm">
+              <button type="button" className="rounded-md px-4 py-2 text-[var(--muted)]">Gemessen</button>
+              <button type="button" className="rounded-md bg-[var(--brand-bg)] px-4 py-2 text-[var(--brand-fg)]">Visuell schätzen</button>
+            </div>
+          </div>
+
+          <div className="mb-5 inline-grid grid-cols-2 gap-1 rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-1 text-sm">
+            <button
+              type="button"
+              className={visualSex === "female" ? "rounded-md bg-[var(--brand-bg)] px-8 py-2 text-[var(--brand-fg)]" : "rounded-md px-8 py-2 text-[var(--muted)]"}
+              onClick={() => {
+                setVisualSex("female");
+                setHasChanges(true);
+              }}
+            >
+              Weiblich
+            </button>
+            <button
+              type="button"
+              className={visualSex === "male" ? "rounded-md bg-[var(--brand-bg)] px-8 py-2 text-[var(--brand-fg)]" : "rounded-md px-8 py-2 text-[var(--muted)]"}
+              onClick={() => {
+                setVisualSex("male");
+                setHasChanges(true);
+              }}
+            >
+              Männlich
+            </button>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-5">
+            {bodyFatPresets.map((preset) => (
+              <BodyFatCard
+                key={preset.label}
+                label={preset.label}
+                range={preset.range}
+                value={preset.value}
+                sex={visualSex}
+                active={preset.label === bodyFatStatus}
+                onClick={() => setBodyFat(preset.value)}
+              />
             ))}
           </div>
-        </div>
-      </ProfileSection>
 
-      <ProfileSection title="Leistungsmetriken" eyebrow="00 · Performance" description="Deine zentralen Schwellenwerte entstehen aus deinen gespeicherten Analysen. Manuelle Laborwerte lassen wir hier bewusst leer.">
-        <div className="grid gap-4 md:grid-cols-3">
-          <ReadOnlyMetric label="VO2max" value="-" unit="ml/kg/min" text="Maximale aerobe Kapazität." />
-          <ReadOnlyMetric label="VLamax" value="-" unit="mmol/l/s" text="Maximale Laktatbildungsrate." />
-          <ReadOnlyMetric label="CSS" value="aus Analyse" unit="/100 m" text="Schwellenpace aus deinem Test." />
+          <div className="mt-7 grid gap-5 lg:grid-cols-[1fr_auto] lg:items-center">
+            <div>
+              <VisualSlider
+                ariaLabel="Körperfett visuell schätzen"
+                min={8}
+                max={42}
+                step={0.5}
+                value={bodyFatSliderValue}
+                onChange={setBodyFat}
+              />
+              <div className="mt-3 grid grid-cols-5 gap-2 text-[10px] uppercase tracking-[0.16em] text-[var(--subtle)]">
+                {BODY_FAT_PRESETS.female.map((item, index) => (
+                  <span key={item.label} className={index === 0 ? "text-left" : index === BODY_FAT_PRESETS.female.length - 1 ? "text-right" : "text-center"}>
+                    {item.label}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div className="text-right lg:min-w-32">
+              <p className="display-serif text-5xl leading-none text-[var(--foreground)]">
+                {formatBodyFatValue(bodyFatValue)}
+                <span className="text-xl text-[var(--subtle)]">%</span>
+              </p>
+              <p className="mono mt-2 text-[10px] uppercase tracking-[0.18em] text-[var(--accent)]">{bodyFatStatus}</p>
+            </div>
+          </div>
+          <p className="mt-4 text-xs text-[var(--subtle)]">
+            Visuelle Schätzungen sind ungenauer als Messungen - wir kennzeichnen den Wert intern als geschätzt.
+          </p>
         </div>
       </ProfileSection>
 
@@ -320,6 +457,25 @@ function TextField({
   );
 }
 
+function TextInput({
+  label,
+  name,
+  defaultValue,
+  placeholder,
+}: {
+  label: string;
+  name: string;
+  defaultValue: string | null;
+  placeholder?: string;
+}) {
+  return (
+    <label className="grid gap-2 text-sm">
+      <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--subtle)]">{label}</span>
+      <input name={name} defaultValue={defaultValue ?? ""} placeholder={placeholder} className="w-full" />
+    </label>
+  );
+}
+
 function NumberField({
   label,
   name,
@@ -329,6 +485,7 @@ function NumberField({
   suffix,
   placeholder,
   step,
+  helper,
 }: {
   label: string;
   name: string;
@@ -338,6 +495,7 @@ function NumberField({
   suffix?: string;
   placeholder?: string;
   step?: string;
+  helper?: string;
 }) {
   return (
     <label className="grid gap-2 text-sm">
@@ -351,7 +509,7 @@ function NumberField({
           step={step}
           defaultValue={defaultValue ?? ""}
           placeholder={placeholder}
-          className={suffix ? "w-full pr-12" : "w-full"}
+          className={suffix ? "w-full pr-24" : "w-full"}
         />
         {suffix ? (
           <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-xs text-[var(--subtle)]">
@@ -359,6 +517,56 @@ function NumberField({
           </span>
         ) : null}
       </span>
+      {helper ? <span className="text-xs text-[var(--subtle)]">{helper}</span> : null}
+    </label>
+  );
+}
+
+function ControlledNumberField({
+  label,
+  name,
+  min,
+  max,
+  value,
+  onChange,
+  suffix,
+  placeholder,
+  step,
+  helper,
+}: {
+  label: string;
+  name: string;
+  min: number;
+  max: number;
+  value: number | null;
+  onChange: (value: number | null) => void;
+  suffix?: string;
+  placeholder?: string;
+  step?: string;
+  helper?: string;
+}) {
+  return (
+    <label className="grid gap-2 text-sm">
+      <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--subtle)]">{label}</span>
+      <span className="relative block">
+        <input
+          name={name}
+          type="number"
+          min={min}
+          max={max}
+          step={step}
+          value={value ?? ""}
+          placeholder={placeholder}
+          className={suffix ? "w-full pr-12" : "w-full"}
+          onChange={(event) => onChange(parseOptionalNumber(event.target.value))}
+        />
+        {suffix ? (
+          <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-xs text-[var(--subtle)]">
+            {suffix}
+          </span>
+        ) : null}
+      </span>
+      {helper ? <span className="text-xs text-[var(--subtle)]">{helper}</span> : null}
     </label>
   );
 }
@@ -377,8 +585,8 @@ function SegmentButton({
       type="button"
       className={
         active
-          ? "bg-[var(--brand-bg)] px-3 py-3 text-sm text-[var(--brand-fg)]"
-          : "px-3 py-3 text-sm text-[var(--muted)] hover:text-[var(--foreground)]"
+          ? "rounded-md bg-[var(--brand-bg)] px-3 py-2.5 text-sm text-[var(--brand-fg)]"
+          : "rounded-md px-3 py-2.5 text-sm text-[var(--muted)] hover:text-[var(--foreground)]"
       }
       onClick={onClick}
     >
@@ -387,26 +595,129 @@ function SegmentButton({
   );
 }
 
-function ReadOnlyMetric({
-  label,
+function VisualSlider({
+  ariaLabel,
+  min,
+  max,
+  step,
   value,
-  unit,
-  text,
+  onChange,
+}: {
+  ariaLabel: string;
+  min: number;
+  max: number;
+  step: number;
+  value: number;
+  onChange: (value: number) => void;
+}) {
+  const progress = ((value - min) / (max - min)) * 100;
+
+  return (
+    <div className="relative h-8">
+      <div className="absolute left-0 right-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-[var(--accent)]" />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute top-1/2 size-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[var(--brand-bg)] bg-[var(--panel-2)] shadow-lg shadow-[var(--shadow-color)]"
+        style={{ left: `${progress}%` }}
+      />
+      <input
+        aria-label={ariaLabel}
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+        onChange={(event) => onChange(Number(event.target.value))}
+      />
+    </div>
+  );
+}
+
+function BodyFatCard({
+  label,
+  range,
+  value,
+  sex,
+  active,
+  onClick,
 }: {
   label: string;
-  value: string;
-  unit: string;
-  text: string;
+  range: string;
+  value: number;
+  sex: BodyFatSex;
+  active: boolean;
+  onClick: () => void;
 }) {
   return (
-    <div>
-      <p className="mono mb-2 text-[10px] uppercase tracking-[0.18em] text-[var(--subtle)]">{label}</p>
-      <div className="flex h-11 items-center justify-between rounded-lg border border-[var(--line)] bg-[var(--soft-bg)] px-4">
-        <span>{value}</span>
-        <span className="mono text-[10px] text-[var(--subtle)]">{unit}</span>
-      </div>
-      <p className="mt-2 text-xs text-[var(--subtle)]">{text}</p>
-    </div>
+    <button
+      type="button"
+      onClick={onClick}
+      className={
+        active
+          ? "flex min-h-44 flex-col items-center justify-end rounded-lg border border-[var(--accent)] bg-[color-mix(in_oklab,var(--accent)_12%,var(--panel))] p-4 text-center text-[var(--foreground)]"
+          : "flex min-h-44 flex-col items-center justify-end rounded-lg border border-[var(--line)] bg-[var(--panel)] p-4 text-center text-[var(--subtle)] hover:border-[var(--accent)] hover:text-[var(--foreground)]"
+      }
+    >
+      <BodyFatSilhouette sex={sex} value={value} />
+      <span className="mono mt-3 text-[10px] uppercase tracking-[0.16em] text-[var(--subtle)]">{label}</span>
+      <span className="display-serif mt-2 text-lg text-[var(--foreground)]">{range}</span>
+    </button>
+  );
+}
+
+/**
+ * Draws the body-fat estimate figure by morphing body proportions across the slider scale.
+ */
+function BodyFatSilhouette({ sex, value }: { sex: BodyFatSex; value: number }) {
+  const t = clamp((value - 8) / 32, 0, 1);
+  const width = 70;
+  const height = 130;
+  const cx = width / 2;
+  const headRadius = sex === "female" ? 6 : 6.5;
+  const shoulder = sex === "female" ? 12 + t * 5 : 16 + t * 4;
+  const waist = sex === "female" ? 8 + t * 9 : 10 + t * 9;
+  const hip = sex === "female" ? 13 + t * 7 : 11 + t * 7;
+  const thigh = 7 + t * 4;
+  const calf = 5 + t * 2.5;
+  const yHead = 12;
+  const yNeck = 19;
+  const yShoulder = 26;
+  const yWaist = sex === "female" ? 56 : 58;
+  const yHip = 72;
+  const yKnee = 100;
+  const yAnkle = 124;
+  const leftShoulderCurve = sex === "female" ? shoulder : shoulder - 1;
+  const rightShoulderCurve = sex === "female" ? shoulder + 1 : shoulder - 1;
+  const path = `
+    M ${cx - shoulder} ${yShoulder}
+    C ${cx - leftShoulderCurve} ${yShoulder + 5}, ${cx - waist - 1} ${yWaist - 6}, ${cx - waist} ${yWaist}
+    C ${cx - waist} ${yWaist + 4}, ${cx - hip - 1} ${yHip - 6}, ${cx - hip} ${yHip}
+    L ${cx - thigh - 1} ${yKnee}
+    L ${cx - calf} ${yAnkle}
+    L ${cx - calf + 2} ${yAnkle + 2}
+    L ${cx - 1} ${yAnkle + 2}
+    L ${cx - 1} ${yHip + 2}
+    L ${cx + 1} ${yHip + 2}
+    L ${cx + 1} ${yAnkle + 2}
+    L ${cx + calf - 2} ${yAnkle + 2}
+    L ${cx + calf} ${yAnkle}
+    L ${cx + thigh + 1} ${yKnee}
+    L ${cx + hip} ${yHip}
+    C ${cx + hip + 1} ${yHip - 6}, ${cx + waist + 1} ${yWaist + 4}, ${cx + waist} ${yWaist}
+    C ${cx + waist + 1} ${yWaist - 6}, ${cx + rightShoulderCurve} ${yShoulder + 5}, ${cx + shoulder} ${yShoulder}
+    L ${cx + 5} ${yNeck}
+    L ${cx + 5} ${yNeck - 2}
+    L ${cx - 5} ${yNeck - 2}
+    L ${cx - 5} ${yNeck}
+    Z
+  `;
+
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} width="62" height="116" aria-hidden="true">
+      <circle cx={cx} cy={yHead} r={headRadius} fill="currentColor" />
+      <path d={path} fill="currentColor" />
+    </svg>
   );
 }
 
@@ -421,29 +732,46 @@ function splitName(fullName: string) {
   };
 }
 
-function getFitnessLabel(value: number | null) {
-  if (!value) return "Nicht eingeordnet";
-  if (value <= 2) return "Anfänger";
-  if (value <= 4) return "Fortgeschritten";
-  if (value <= 6) return "Mittelstufe";
-  if (value <= 8) return "Ambitioniert";
-  return "Master";
+function normalizeFitnessLevel(value: number | null) {
+  if (!value) return null;
+  if (value <= 5) return value;
+  return Math.min(5, Math.max(1, Math.round(value / 2)));
 }
 
-function getFitnessDescription(value: number | null) {
-  if (!value) return "Optional: Lege eine Selbsteinschätzung fest, wenn du dein aktuelles Trainingsgefühl einordnen möchtest.";
-  if (value <= 2) return "Erste strukturierte Schritte. Wir starten mit klaren Basis-Tests und sanften Bereichen.";
-  if (value <= 4) return "Regelmäßiges Training, solide Grundlagen und erste gezielte Belastungssteuerung.";
-  if (value <= 6) return "Stabiler Trainingsrhythmus mit kontrollierten Intensitäten und klaren Zielen.";
-  if (value <= 8) return "Ambitioniertes Training mit höherer Belastbarkeit und stärkerer Wettkampforientierung.";
-  return "Sehr hohe Trainingsroutine mit präziser Steuerung und starker Leistungsorientierung.";
+function getFitnessMeta(value: number | null) {
+  if (!value) {
+    return {
+      label: "Nicht eingeordnet",
+      description: "Optional: Lege eine Selbsteinschätzung fest, wenn du dein aktuelles Trainingsgefühl einordnen möchtest.",
+    };
+  }
+  return FITNESS_LEVELS.find((level) => level.value === value) ?? FITNESS_LEVELS[2];
 }
 
-function getBodyFatStatus(value: number | null) {
-  if (!value) return "Fit";
+function getBodyFatStatus(sex: BodyFatSex, value: number | null) {
+  if (value === null) return "Normal";
+  if (sex === "male") {
+    if (value <= 10) return "Athletisch";
+    if (value <= 17) return "Fit";
+    if (value <= 24) return "Normal";
+    if (value <= 29) return "Erhöht";
+    return "Hoch";
+  }
   if (value <= 16) return "Athletisch";
   if (value <= 22) return "Fit";
   if (value <= 28) return "Normal";
   if (value <= 34) return "Erhöht";
   return "Hoch";
+}
+
+function parseOptionalNumber(value: string) {
+  return value === "" ? null : Number(value);
+}
+
+function formatBodyFatValue(value: number | null) {
+  return value === null ? "--" : value.toFixed(1);
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
 }

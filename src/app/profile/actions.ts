@@ -8,6 +8,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const profileSchema = z.object({
   fullName: z.string().trim().min(2, "Name ist zu kurz.").max(80, "Name ist zu lang."),
+  city: optionalTrimmedStringSchema(120),
   age: optionalIntegerSchema(8, 100),
   gender: z.preprocess(
     (value) => (value === "" || value === null ? null : value),
@@ -16,7 +17,11 @@ const profileSchema = z.object({
   heightCm: optionalIntegerSchema(100, 230),
   weightKg: optionalIntegerSchema(25, 180),
   bodyFatPercentage: optionalNumberSchema(3, 60),
-  fitnessLevel: optionalIntegerSchema(1, 10),
+  fitnessLevel: optionalIntegerSchema(1, 5),
+  vo2max: optionalNumberSchema(10, 100),
+  vlamax: optionalNumberSchema(0, 2),
+  ftpRad: optionalIntegerSchema(50, 700),
+  muscleMassKg: optionalNumberSchema(10, 120),
 });
 
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
@@ -45,12 +50,17 @@ export async function updateProfile(
   await assertRateLimit("profile-update", 20, 60_000);
   const parsed = profileSchema.safeParse({
     fullName: formData.get("fullName"),
+    city: formData.get("city"),
     age: formData.get("age"),
     gender: formData.get("gender"),
     heightCm: formData.get("heightCm"),
     weightKg: formData.get("weightKg"),
     bodyFatPercentage: formData.get("bodyFatPercentage"),
     fitnessLevel: formData.get("fitnessLevel"),
+    vo2max: formData.get("vo2max"),
+    vlamax: formData.get("vlamax"),
+    ftpRad: formData.get("ftpRad"),
+    muscleMassKg: formData.get("muscleMassKg"),
   });
 
   if (!parsed.success) {
@@ -74,12 +84,17 @@ export async function updateProfile(
     id: user.id,
     email: user.email,
     full_name: parsed.data.fullName,
+    city: parsed.data.city,
     age: parsed.data.age,
     gender: parsed.data.gender,
     height_cm: parsed.data.heightCm,
     weight_kg: parsed.data.weightKg,
     body_fat_percentage: parsed.data.bodyFatPercentage,
     fitness_level: parsed.data.fitnessLevel,
+    vo2max: parsed.data.vo2max,
+    vlamax: parsed.data.vlamax,
+    ftp_rad: parsed.data.ftpRad,
+    muscle_mass_kg: parsed.data.muscleMassKg,
   });
 
   if (profileError && !profileError.message.includes("full_name")) {
@@ -229,6 +244,17 @@ function optionalNumberSchema(min: number, max: number) {
   return z.preprocess(
     normalizeOptionalNumberInput,
     z.coerce.number().min(min).max(max).nullable(),
+  );
+}
+
+function optionalTrimmedStringSchema(max: number) {
+  return z.preprocess(
+    (value) => {
+      if (typeof value !== "string") return value;
+      const trimmedValue = value.trim();
+      return trimmedValue === "" ? null : trimmedValue;
+    },
+    z.string().max(max).nullable(),
   );
 }
 

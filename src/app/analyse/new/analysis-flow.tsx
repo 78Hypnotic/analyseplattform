@@ -454,15 +454,15 @@ function FitnessLevelSlider({
       <div className="flex items-center justify-between gap-3">
         <span>Fitnesslevel</span>
         <span className="mono text-xs text-[var(--muted)]">
-          {value === "" ? "nicht erfasst" : `${value}/10`}
+          {value === "" ? "nicht erfasst" : `${value}/5`}
         </span>
       </div>
       <input
         type="range"
         min={1}
-        max={10}
+        max={5}
         step={1}
-        value={value === "" ? 5 : value}
+        value={value === "" ? 3 : value}
         onChange={(event) => onChange(Number(event.target.value))}
       />
       <button
