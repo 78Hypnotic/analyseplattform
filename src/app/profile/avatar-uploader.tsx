@@ -1,9 +1,8 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { ImagePlus, Loader2, Trash2, Upload } from "lucide-react";
-import { Button } from "@/components/button";
-import { removeAvatar, uploadAvatar } from "./actions";
+import { Loader2, Pencil } from "lucide-react";
+import { uploadAvatar } from "./actions";
 
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 const ALLOWED_TYPES = new Map([
@@ -49,61 +48,37 @@ export function AvatarUploader({
     });
   }
 
-  function handleRemove() {
-    setMessage(null);
-    startTransition(async () => {
-      const state = await removeAvatar();
-      setMessage(state.message);
-      if (state.ok) setCurrentAvatarUrl(null);
-    });
-  }
-
   return (
-    <section className="surface mt-8 max-w-2xl p-6">
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-        <div className="flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[var(--line)] bg-[var(--panel-2)] text-3xl font-semibold">
-          {currentAvatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={currentAvatarUrl} alt="Profilbild" className="size-full object-cover" />
-          ) : (
-            <span>{initials}</span>
-          )}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <ImagePlus size={18} className="text-[var(--accent)]" />
-            Profilbild
-          </div>
-          <p className="muted mt-2 text-sm leading-6">
-            JPG, PNG oder WebP bis 2 MB. Das Bild wird oben im Profil angezeigt.
-          </p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg bg-[var(--accent)] px-4 text-sm font-medium text-[var(--accent-foreground)] transition hover:bg-[var(--accent-hover)]">
-              {isPending ? <Loader2 className="animate-spin" size={16} /> : <Upload size={16} />}
-              Hochladen
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                className="sr-only"
-                disabled={isPending}
-                onChange={(event) => handleFile(event.target.files?.[0] ?? null)}
-              />
-            </label>
-            {currentAvatarUrl ? (
-              <Button type="button" variant="ghost" disabled={isPending} onClick={handleRemove}>
-                <Trash2 size={16} />
-                Entfernen
-              </Button>
-            ) : null}
-          </div>
-        </div>
+    <div className="relative size-20 shrink-0 sm:size-24">
+      <div className="flex size-full items-center justify-center overflow-hidden rounded-full border border-[color-mix(in_oklab,var(--accent)_35%,var(--line))] bg-[color-mix(in_oklab,var(--accent)_12%,var(--panel))] text-2xl font-semibold sm:text-3xl">
+        {currentAvatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={currentAvatarUrl} alt="Profilbild" className="size-full object-cover" />
+        ) : (
+          <span>{initials}</span>
+        )}
       </div>
-      {message ? (
-        <p className="mt-4 rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-3 text-sm text-[var(--muted)]">
-          {message}
-        </p>
-      ) : null}
-    </section>
+      <label
+        className="absolute bottom-0 right-0 inline-flex size-7 cursor-pointer items-center justify-center rounded-full border border-[var(--line)] bg-[var(--brand-bg)] text-[var(--brand-fg)] shadow-lg shadow-[var(--shadow-color)] transition hover:scale-105"
+        aria-label="Profilbild bearbeiten"
+        title={message ?? "Profilbild bearbeiten"}
+      >
+        {isPending ? <Loader2 className="animate-spin" size={14} /> : <Pencil size={14} />}
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="sr-only"
+          disabled={isPending}
+          onChange={(event) => {
+            handleFile(event.target.files?.[0] ?? null);
+            event.currentTarget.value = "";
+          }}
+        />
+      </label>
+      <span className="sr-only" aria-live="polite">
+        {message}
+      </span>
+    </div>
   );
 }
 

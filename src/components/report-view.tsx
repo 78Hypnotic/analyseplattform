@@ -373,6 +373,8 @@ function Triangle({ result }: { result: AnalysisResult }) {
 }
 
 function RawDataDetails({ input, result }: { input: AnalysisInput; result: AnalysisResult }) {
+  const fitnessLevel = input.fitnessLevel ? normalizeFitnessLevel(input.fitnessLevel) : null;
+
   return (
     <details className="surface p-5">
       <summary className="cursor-pointer text-sm font-medium">Rohdaten anzeigen</summary>
@@ -383,7 +385,7 @@ function RawDataDetails({ input, result }: { input: AnalysisInput; result: Analy
         <RawData label="Züge 200 m" value={String(input.s200)} />
         <RawData label="Züge 400 m" value={String(input.s400)} />
         <RawData label="KFA" value={input.bodyFatPercentage ? `${input.bodyFatPercentage} %` : "nicht erfasst"} />
-        <RawData label="Fitnesslevel" value={input.fitnessLevel ? `${input.fitnessLevel}/10` : "nicht erfasst"} />
+        <RawData label="Fitnesslevel" value={fitnessLevel ? `${fitnessLevel}/5` : "nicht erfasst"} />
         <RawData label="Becken" value={`${input.poolLength} m`} />
         <RawData label="Pace-Differenz" value={`${result.comparison.paceDiff.toFixed(1)} s/100 m`} />
         <RawData label="DPS-Differenz" value={`${result.comparison.dpsDiff.toFixed(2)} m`} />
@@ -391,6 +393,11 @@ function RawDataDetails({ input, result }: { input: AnalysisInput; result: Analy
       </div>
     </details>
   );
+}
+
+function normalizeFitnessLevel(value: number) {
+  if (value <= 5) return value;
+  return Math.min(5, Math.max(1, Math.round(value / 2)));
 }
 
 function MiniFact({ label, value }: { label: string; value: string }) {

@@ -58,7 +58,7 @@ async function getInitialAnalysisInput(): Promise<InitialAnalysisInput | undefin
     height: toOptionalInteger(profile.height_cm),
     weight: toOptionalInteger(profile.weight_kg),
     bodyFatPercentage: toOptionalNumber(profile.body_fat_percentage),
-    fitnessLevel: toOptionalInteger(profile.fitness_level),
+    fitnessLevel: toOptionalFitnessLevel(profile.fitness_level),
   };
 }
 
@@ -70,4 +70,10 @@ function toOptionalNumber(value: number | string | null | undefined): number | "
   if (value === null || value === undefined) return "";
   const numberValue = typeof value === "number" ? value : Number(value);
   return Number.isFinite(numberValue) ? numberValue : "";
+}
+
+function toOptionalFitnessLevel(value: number | null | undefined): number | "" {
+  if (typeof value !== "number") return "";
+  if (value <= 5) return value;
+  return Math.min(5, Math.max(1, Math.round(value / 2)));
 }

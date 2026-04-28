@@ -23,7 +23,7 @@ export const analysisInputSchema = z.object({
   ),
   fitnessLevel: z.preprocess(
     (value) => (value === "" || value === null ? undefined : value),
-    z.coerce.number().int().min(1).max(10).optional(),
+    z.coerce.number().int().min(1).max(5).optional(),
   ),
   poolLength: z.coerce.number().pipe(z.union([z.literal(25), z.literal(50)])),
   t200: timeSchema,

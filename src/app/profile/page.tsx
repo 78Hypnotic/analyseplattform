@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { AppHeader } from "@/components/app-header";
+import { Button } from "@/components/button";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { AvatarUploader } from "./avatar-uploader";
 import { ProfileForm } from "./profile-form";
@@ -7,16 +8,26 @@ import { ProfileForm } from "./profile-form";
 type ProfileData = {
   full_name?: string | null;
   avatar_url?: string | null;
+  city?: string | null;
   age?: number | null;
   gender?: "weiblich" | "maennlich" | "divers" | null;
   height_cm?: number | null;
   weight_kg?: number | null;
   body_fat_percentage?: number | string | null;
   fitness_level?: number | null;
+  vo2max?: number | string | null;
+  vlamax?: number | string | null;
+  ftp_rad?: number | null;
+  muscle_mass_kg?: number | string | null;
+  disciplines?: string[] | null;
+  profile_visibility?: "private" | "public" | null;
 };
 
 export const dynamic = "force-dynamic";
 
+/**
+ * Loads the authenticated profile and renders the editable athlete data surface.
+ */
 export default async function ProfilePage() {
   const supabase = await createSupabaseServerClient();
   const {
@@ -37,34 +48,102 @@ export default async function ProfilePage() {
       ? user.user_metadata.full_name
       : "";
   const fullName = profile?.full_name ?? metadataName;
+  const profileSummary = buildProfileSummary(profile);
+  const completion = calculateProfileCompletion({
+    email: user.email,
+    fullName,
+    avatarUrl: profile?.avatar_url,
+    city: profile?.city,
+    age: profile?.age,
+    gender: profile?.gender,
+    heightCm: profile?.height_cm,
+    weightKg: profile?.weight_kg,
+    bodyFatPercentage: profile?.body_fat_percentage,
+    fitnessLevel: profile?.fitness_level,
+    vo2max: profile?.vo2max,
+    vlamax: profile?.vlamax,
+    ftpRad: profile?.ftp_rad,
+    muscleMassKg: profile?.muscle_mass_kg,
+  });
 
   return (
     <>
       <AppHeader />
-      <main className="mx-auto w-full max-w-6xl px-5 py-10">
-        <p className="mono inline-flex rounded-full border border-[var(--line)] px-3 py-2 text-xs uppercase tracking-[0.18em] text-[var(--subtle)]">
-          Profil
-        </p>
-        <h1 className="display-serif mt-4 text-5xl leading-tight text-[var(--foreground)]">
-          Deine Daten.
-        </h1>
-        <p className="muted mt-4 max-w-2xl leading-7">
-          Speichere hier die Basisdaten, die oben im Profil und später in deinen
-          Reports verwendet werden.
-        </p>
-        <AvatarUploader
-          fullName={fullName || user.email || "Profil"}
-          avatarUrl={profile?.avatar_url}
-        />
+      <main className="mx-auto w-full max-w-6xl space-y-8 px-5 py-10 pb-24">
+        <section className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
+          <div>
+            <p className="mono text-xs uppercase tracking-[0.2em] text-[var(--subtle)]">
+              Athleten-Profil
+            </p>
+            <h1 className="display-serif mt-4 max-w-3xl text-5xl leading-none text-[var(--foreground)] sm:text-7xl">
+              Wer du bist und was wir wissen müssen.
+            </h1>
+            <p className="mt-5 max-w-xl text-sm leading-7 text-[var(--muted)]">
+              Je präziser dein Profil, desto besser ordnen wir Testergebnisse ein.
+              Jeder ausgefüllte Block macht deine Analyse genauer.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Button form="profile-form" variant="primary">
+              Änderungen speichern
+            </Button>
+          </div>
+        </section>
+
+        <section className="surface relative overflow-hidden p-6 sm:p-7">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute right-0 top-0 h-full w-[30rem] bg-[radial-gradient(ellipse_at_top_right,color-mix(in_oklab,var(--accent)_16%,transparent)_0%,color-mix(in_oklab,var(--accent)_8%,transparent)_28%,transparent_72%)]"
+          />
+          <div className="relative flex flex-col justify-between gap-8 md:flex-row md:items-center">
+            <div className="flex items-center gap-5">
+              <AvatarUploader
+                fullName={fullName || user.email || "Profil"}
+                avatarUrl={profile?.avatar_url}
+              />
+              <div>
+                <h2 className="display-serif text-4xl text-[var(--foreground)]">
+                  {fullName || "Dein Profil"}
+                </h2>
+                <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm text-[var(--muted)]">
+                  {profileSummary.length > 0 ? (
+                    profileSummary.map((item) => <span key={item}>{item}</span>)
+                  ) : (
+                    <span>Basisdaten noch nicht vollständig</span>
+                  )}
+                </p>
+              </div>
+            </div>
+            <div className="min-w-44">
+              <p className="mono text-[10px] uppercase tracking-[0.2em] text-[var(--subtle)]">
+                Profil-Vollständigkeit
+              </p>
+              <div className="mt-2 flex items-end justify-between gap-4">
+                <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--raised-bg)]">
+                  <div className="h-full bg-[var(--accent)]" style={{ width: `${completion}%` }} />
+                </div>
+                <span className="display-serif text-3xl text-[var(--accent)]">{completion}%</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <ProfileForm
           email={user.email ?? ""}
           fullName={fullName}
+          city={profile?.city ?? null}
           age={profile?.age ?? null}
           gender={profile?.gender ?? null}
           heightCm={profile?.height_cm ?? null}
           weightKg={profile?.weight_kg ?? null}
           bodyFatPercentage={toNullableNumber(profile?.body_fat_percentage)}
           fitnessLevel={profile?.fitness_level ?? null}
+          vo2max={toNullableNumber(profile?.vo2max)}
+          vlamax={toNullableNumber(profile?.vlamax)}
+          ftpRad={profile?.ftp_rad ?? null}
+          muscleMassKg={toNullableNumber(profile?.muscle_mass_kg)}
+          disciplines={profile?.disciplines ?? []}
+          profileVisibility={profile?.profile_visibility ?? "private"}
         />
       </main>
     </>
@@ -75,4 +154,56 @@ function toNullableNumber(value: number | string | null | undefined) {
   if (value === null || value === undefined) return null;
   const numberValue = typeof value === "number" ? value : Number(value);
   return Number.isFinite(numberValue) ? numberValue : null;
+}
+
+function calculateProfileCompletion(profile: {
+  email?: string | null;
+  fullName?: string | null;
+  avatarUrl?: string | null;
+  city?: string | null;
+  age?: number | null;
+  gender?: string | null;
+  heightCm?: number | null;
+  weightKg?: number | null;
+  bodyFatPercentage?: number | string | null;
+  fitnessLevel?: number | null;
+  vo2max?: number | string | null;
+  vlamax?: number | string | null;
+  ftpRad?: number | null;
+  muscleMassKg?: number | string | null;
+}) {
+  const values = [
+    profile.email,
+    profile.fullName,
+    profile.avatarUrl,
+    profile.city,
+    profile.age,
+    profile.gender,
+    profile.heightCm,
+    profile.weightKg,
+    profile.bodyFatPercentage,
+    profile.fitnessLevel,
+    profile.vo2max,
+    profile.vlamax,
+    profile.ftpRad,
+    profile.muscleMassKg,
+  ];
+  const filled = values.filter((value) => value !== null && value !== undefined && value !== "").length;
+  return Math.round((filled / values.length) * 100);
+}
+
+function buildProfileSummary(profile: ProfileData | null) {
+  const items = [
+    profile?.city ?? null,
+    profile?.age ? `${profile.age} Jahre` : null,
+    profile?.height_cm ? `${profile.height_cm / 100} m` : null,
+    profile?.weight_kg ? `${profile.weight_kg} kg` : null,
+    profile?.fitness_level ? `Fitness ${normalizeFitnessLevel(profile.fitness_level)}/5` : null,
+  ];
+  return items.filter((item): item is string => Boolean(item));
+}
+
+function normalizeFitnessLevel(value: number) {
+  if (value <= 5) return value;
+  return Math.min(5, Math.max(1, Math.round(value / 2)));
 }

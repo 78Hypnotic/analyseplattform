@@ -31,7 +31,7 @@ const FIELD_MESSAGES: Record<string, string> = {
   height: "muss zwischen 100 und 230 cm liegen.",
   weight: "muss zwischen 25 und 180 kg liegen.",
   bodyFatPercentage: "muss zwischen 3 und 60 % liegen.",
-  fitnessLevel: "muss zwischen 1 und 10 liegen.",
+  fitnessLevel: "muss zwischen 1 und 5 liegen.",
   poolLength: "bitte 25 m oder 50 m auswählen.",
   t200: "bitte als Sekunden oder mm:ss eingeben.",
   s200: "muss größer als 0 und maximal 80 sein.",
