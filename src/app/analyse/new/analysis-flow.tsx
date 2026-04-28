@@ -55,6 +55,34 @@ const EMPTY_ANALYSIS_INPUT: AnalysisDraft = {
   challenges: [],
 };
 
+const FITNESS_LEVEL_OPTIONS = [
+  {
+    value: 1,
+    label: "Anfänger",
+    description: "Erste strukturierte Schritte mit klarer Basis und moderatem Umfang.",
+  },
+  {
+    value: 2,
+    label: "Fortgeschritten",
+    description: "Regelmäßiges Training und erste Wettkämpfe mit solider Grundlage.",
+  },
+  {
+    value: 3,
+    label: "Mittelstufe",
+    description: "Konstantes strukturiertes Training und stabile Wettkampferfahrung.",
+  },
+  {
+    value: 4,
+    label: "Ambitioniert",
+    description: "Mehrere Saisons Struktur, hohe Umfänge und klare Leistungsziele.",
+  },
+  {
+    value: 5,
+    label: "Master",
+    description: "Sehr erfahrenes Niveau, bei dem kleine Stellschrauben zählen.",
+  },
+] as const;
+
 export type InitialAnalysisInput = Partial<
   Pick<AnalysisDraft, "name" | "age" | "gender" | "height" | "weight" | "bodyFatPercentage" | "fitnessLevel">
 >;
@@ -581,6 +609,9 @@ function DataStep({
   );
 }
 
+/**
+ * Renders the optional fitness self-assessment as a compact custom slider in the athlete grid.
+ */
 function FitnessLevelSlider({
   value,
   onChange,
@@ -588,29 +619,70 @@ function FitnessLevelSlider({
   value: number | "";
   onChange: (value: number | "") => void;
 }) {
+  const sliderValue = value === "" ? 3 : value;
+  const progress = ((sliderValue - 1) / 4) * 100;
+  const meta = FITNESS_LEVEL_OPTIONS.find((item) => item.value === sliderValue) ?? FITNESS_LEVEL_OPTIONS[2];
+
   return (
-    <div className="grid gap-3 text-sm">
-      <div className="flex items-center justify-between gap-3">
-        <span>Fitnesslevel</span>
-        <span className="mono text-xs text-[var(--muted)]">
+    <div className="grid gap-3 rounded-lg border border-[var(--line)] bg-[var(--soft-bg)] p-4 text-sm md:col-span-2">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--subtle)]">
+            Fitnesslevel
+          </span>
+          <p className="display-serif mt-1 text-2xl leading-none text-[var(--foreground)]">
+            {value === "" ? "Nicht erfasst" : meta.label}
+          </p>
+        </div>
+        <span className="mono shrink-0 text-xs text-[var(--muted)]">
           {value === "" ? "nicht erfasst" : `${value}/5`}
         </span>
       </div>
-      <input
-        type="range"
-        min={1}
-        max={5}
-        step={1}
-        value={value === "" ? 3 : value}
-        onChange={(event) => onChange(Number(event.target.value))}
-      />
-      <button
-        type="button"
-        className="justify-self-start text-sm text-[var(--muted)] underline underline-offset-4 hover:text-[var(--foreground)]"
-        onClick={() => onChange("")}
-      >
-        Fitnesslevel zurücksetzen
-      </button>
+      <p className="text-xs leading-5 text-[var(--muted)]">
+        {value === "" ? "Optional. Ziehe den Regler, wenn du dein aktuelles Trainingsniveau einschätzen möchtest." : meta.description}
+      </p>
+      <div className="grid gap-2">
+        <div className="relative h-8">
+          <div className="absolute left-0 right-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-[var(--accent)]" />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute top-1/2 size-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[var(--brand-bg)] bg-[var(--panel-2)] shadow-lg shadow-[var(--shadow-color)]"
+            style={{ left: `${progress}%` }}
+          />
+          <input
+            aria-label="Fitnesslevel"
+            type="range"
+            min={1}
+            max={5}
+            step={1}
+            value={sliderValue}
+            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+            onChange={(event) => onChange(Number(event.target.value))}
+          />
+        </div>
+        <div className="grid grid-cols-5 gap-2 text-[10px] uppercase tracking-[0.16em] text-[var(--subtle)]">
+          {FITNESS_LEVEL_OPTIONS.map((item, index) => (
+            <span
+              key={item.value}
+              className={
+                "min-w-0 break-words leading-3 " +
+                (index === 0 ? "text-left" : index === FITNESS_LEVEL_OPTIONS.length - 1 ? "text-right" : "text-center")
+              }
+            >
+              {item.label}
+            </span>
+          ))}
+        </div>
+      </div>
+      {value !== "" ? (
+        <button
+          type="button"
+          className="justify-self-start text-xs text-[var(--muted)] underline underline-offset-4 hover:text-[var(--foreground)]"
+          onClick={() => onChange("")}
+        >
+          Fitnesslevel zurücksetzen
+        </button>
+      ) : null}
     </div>
   );
 }
