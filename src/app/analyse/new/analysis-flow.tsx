@@ -17,7 +17,7 @@ import { createAnalysis } from "../actions";
 
 type AnalysisDraft = Omit<
   AnalysisInput,
-  "age" | "gender" | "height" | "weight" | "bodyFatPercentage" | "fitnessLevel" | "poolLength" | "canSwim400m" | "testType" | "equipment" | "s200" | "s400" | "goal" | "level"
+  "age" | "gender" | "height" | "weight" | "bodyFatPercentage" | "fitnessLevel" | "poolLength" | "canSwim400m" | "testType" | "equipment" | "s50" | "s200" | "s400" | "goal" | "level"
   | "targetDistance" | "swimSessionsPerWeek"
 > & {
   age: number | "";
@@ -30,6 +30,7 @@ type AnalysisDraft = Omit<
   canSwim400m: boolean;
   testType: AnalysisInput["testType"] | "";
   equipment: AnalysisInput["equipment"] | "";
+  s50: number | "";
   s200: number | "";
   s400: number | "";
   goal: AnalysisInput["goal"] | "";
@@ -53,6 +54,7 @@ const EMPTY_ANALYSIS_INPUT: AnalysisDraft = {
   testType: "wall_push",
   equipment: "ohne",
   t50: "",
+  s50: "",
   t200: "",
   s200: "",
   t400: "",
@@ -655,7 +657,10 @@ function DataStep({
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="surface min-w-0 overflow-hidden p-5">
           <h2 className="mb-4 text-xl font-semibold">50 m Test</h2>
-          <Field label="Zeit" value={input.t50} placeholder="z. B. 38.2" onChange={(value) => update({ t50: value })} />
+          <div className="grid min-w-0 gap-4 sm:grid-cols-2">
+            <Field label="Zeit" value={input.t50} placeholder="z. B. 38.2" onChange={(value) => update({ t50: value })} />
+            <Field label="Züge pro Bahn optional" type="number" value={input.s50} placeholder="z. B. 22" onChange={(value) => update({ s50: optionalNumber(value) })} />
+          </div>
         </div>
         <TestCard
           title="200 m Test"

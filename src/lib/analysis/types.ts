@@ -32,6 +32,23 @@ export type AnalysisMode = "standard" | "technique_only";
 export type VLaProfile = "Diesel" | "Allrounder" | "Sprinter";
 export type ProxyLevel = "niedrig" | "mittel" | "hoch";
 export type Vo2ProxyLevel = ProxyLevel | "nicht_ermittelbar";
+export type SprintReserveCategory = ProxyLevel | "nicht_ermittelbar";
+export type SprintReservePlausibilityStatus =
+  | "plausibel"
+  | "auffaellig"
+  | "interessant_stark"
+  | "tendenziell_sprinterlastig"
+  | "tendenziell_diesellastig"
+  | "neutral";
+export type VLaPerformanceBand = "stark" | "mittel" | "schwaecher";
+export type CssExpectation = "passt" | "unter_erwartung" | "ueber_erwartung" | "nicht_ermittelbar";
+export type SpiderScoreKey =
+  | "css"
+  | "dps"
+  | "sr"
+  | "dpsStability"
+  | "srAdaptation"
+  | "tempoEfficiency";
 export type ReferenceLabel =
   | "Alters-Elite oder besser"
   | "Sehr nah an der Alters-Elite"
@@ -44,6 +61,10 @@ export type SprintMetrics = {
   distance: 50;
   time: number;
   pace: number;
+  strokesPerLength?: number;
+  dps?: number;
+  sr?: number;
+  timePerLength?: number;
 };
 
 export type TestMetrics = {
@@ -69,6 +90,7 @@ export type AnalysisInput = {
   testType: SwimTestType;
   equipment: SwimEquipment;
   t50: string;
+  s50?: number;
   t200: string;
   s200: number;
   t400?: string;
@@ -160,6 +182,11 @@ export type StandardAnalysisResult = AnalysisBaseResult & {
     profile: VLaProfile;
     score: number;
     drop: number;
+    performanceBand?: VLaPerformanceBand;
+    thresholds?: {
+      dieselMax: number;
+      sprinterMin: number;
+    };
   };
   vo2: {
     level: Vo2ProxyLevel;
@@ -167,6 +194,21 @@ export type StandardAnalysisResult = AnalysisBaseResult & {
     deviation: number | null;
   };
   sprintReserve: number | null;
+  sprintReserveCategory?: SprintReserveCategory;
+  sprintReservePlausibility?: {
+    status: SprintReservePlausibilityStatus;
+    label: string;
+    text: string;
+  };
+  metabolicProfile?: {
+    label: string;
+    vo2Potential: string;
+    vlaContext: string;
+    cssInterpretation: string;
+    priority: string;
+  };
+  spiderScores?: Record<SpiderScoreKey, number>;
+  cssExpectation?: CssExpectation;
   reference: ReferenceComparison;
 };
 

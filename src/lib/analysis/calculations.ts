@@ -2,15 +2,21 @@ import { SWIM_REFERENCE_AGES, SWIM_REFERENCES } from "./constants";
 import type {
   AnalysisInput,
   AnalysisResult,
+  CssExpectation,
   Gender,
   ReferenceComparison,
   ReferenceIndex,
+  SprintMetrics,
+  SprintReserveCategory,
   StandardAnalysisResult,
   TargetDistance,
   TechniqueClass,
   TechniqueGateResult,
   TechniqueOnlyAnalysisResult,
   TestMetrics,
+  VLaPerformanceBand,
+  VLaProfile,
+  Vo2ProxyLevel,
 } from "./types";
 
 const DEFAULT_TARGET_DISTANCE: TargetDistance = "Becken";
@@ -70,6 +76,26 @@ export function computeTest(
   return { distance, time: timeSec, strokesPerLength, pace, dps, sr, timePerLength };
 }
 
+export function computeSprintTest(
+  timeSec: number,
+  strokesPerLength: number | undefined,
+  poolLength: 25 | 50,
+): SprintMetrics | null {
+  if (!Number.isFinite(timeSec) || timeSec <= 0) return null;
+
+  const base = { distance: 50 as const, time: timeSec, pace: computePace(50, timeSec) };
+  if (!Number.isFinite(strokesPerLength) || strokesPerLength === undefined || strokesPerLength <= 0) {
+    return base;
+  }
+
+  const lengths = 50 / poolLength;
+  const timePerLength = timeSec / lengths;
+  const dps = poolLength / strokesPerLength;
+  const sr = (strokesPerLength / timePerLength) * 60;
+
+  return { ...base, strokesPerLength, dps, sr, timePerLength };
+}
+
 export function computeCSS(t200: number, t400: number): number {
   if (!Number.isFinite(t200) || !Number.isFinite(t400) || t400 <= t200) {
     return Number.NaN;
@@ -103,7 +129,7 @@ export function runAnalysis(input: AnalysisInput): AnalysisResult | null {
   const t50 = parseTime(input.t50);
   const t200 = parseTime(input.t200);
   const t400 = parseTime(input.t400);
-  const test50 = Number.isFinite(t50) && t50 > 0 ? { distance: 50 as const, time: t50, pace: computePace(50, t50) } : null;
+  const test50 = computeSprintTest(t50, input.s50, input.poolLength);
   const test200 = computeTest(200, t200, input.s200, input.poolLength);
   const test400 =
     input.canSwim400m && input.s400 !== undefined
@@ -145,9 +171,14 @@ export function runAnalysis(input: AnalysisInput): AnalysisResult | null {
   if (!Number.isFinite(cssMs) || !Number.isFinite(thresholdPace)) return null;
 
   const reference = buildReferenceComparison(input, t50, t200, t400, thresholdPace);
-  const vla = vlaProxy(test200.pace, test400.pace);
+  const vla = vlaProxy(test200.pace, test400.pace, reference.t400, test400.pace);
   const sprintReserveValue = sprintReserve(t50, cssMs);
+  const sprintReserveCategory = classifySprintReserve(sprintReserveValue);
+  const sprintReservePlausibility = buildSprintReservePlausibility(vla.profile, sprintReserveCategory);
   const vo2 = vo2Proxy(t200, reference.t200);
+  const cssExpectation = classifyCssExpectation(reference.css);
+  const metabolicProfile = buildMetabolicProfile(input, vo2.level, vla, cssExpectation);
+  const spiderScores = buildSpiderScores(resultReferenceCss(reference.css), test200, test400);
   const challenges = input.challenges ?? [];
   const legSink = challenges.includes("Meine Beine sinken ab");
   const weakCatch = challenges.includes("Ich habe Probleme mit dem frühen Wasserfassen");
@@ -168,6 +199,11 @@ export function runAnalysis(input: AnalysisInput): AnalysisResult | null {
     vla,
     vo2,
     sprintReserve: Number.isFinite(sprintReserveValue) ? sprintReserveValue : null,
+    sprintReserveCategory,
+    sprintReservePlausibility,
+    metabolicProfile,
+    spiderScores,
+    cssExpectation,
     reference,
     strengths: strengths.slice(0, 3),
     issues: issues.slice(0, 2),
@@ -309,7 +345,7 @@ function buildTechniqueOnlyResult({
   styleProfile,
 }: {
   input: AnalysisInput;
-  test50: { distance: 50; time: number; pace: number };
+  test50: SprintMetrics;
   test200: TestMetrics;
   test400?: TestMetrics;
   techniqueGate: TechniqueGateResult;
@@ -483,16 +519,258 @@ function buildStandardIssues(
   return issues;
 }
 
-function vlaProxy(pace200: number, pace400: number): StandardAnalysisResult["vla"] {
+export function classifySprintReserve(value: number): SprintReserveCategory {
+  if (!Number.isFinite(value)) return "nicht_ermittelbar";
+  if (value < 0.1) return "niedrig";
+  if (value <= 0.2) return "mittel";
+  return "hoch";
+}
+
+export function buildSprintReservePlausibility(
+  vlaProfile: VLaProfile,
+  sprintCategory: SprintReserveCategory,
+): NonNullable<StandardAnalysisResult["sprintReservePlausibility"]> {
+  if (sprintCategory === "nicht_ermittelbar") {
+    return {
+      status: "neutral",
+      label: "Reserve nicht ermittelbar",
+      text: "Ohne belastbare Sprintreserve bleibt der Cross-Check zum VLa-Profil offen.",
+    };
+  }
+
+  if (vlaProfile === "Sprinter" && sprintCategory === "hoch") {
+    return {
+      status: "plausibel",
+      label: "Sprinterprofil plausibel",
+      text: "Die hohe Sprintreserve stützt den VLa-Proxy.",
+    };
+  }
+  if (vlaProfile === "Diesel" && sprintCategory === "niedrig") {
+    return {
+      status: "plausibel",
+      label: "Dieselprofil plausibel",
+      text: "Die geringe Sprintreserve passt zum stabilen Diesel-Muster.",
+    };
+  }
+  if (vlaProfile === "Sprinter" && sprintCategory === "niedrig") {
+    return {
+      status: "auffaellig",
+      label: "Auffälliger Cross-Check",
+      text: "Der 200-zu-400-Abfall wird nicht durch Top-End-Speed bestätigt. Technik, Pacing oder aerobe Stabilität prüfen.",
+    };
+  }
+  if (vlaProfile === "Diesel" && sprintCategory === "hoch") {
+    return {
+      status: "interessant_stark",
+      label: "Starkes Allround-Muster",
+      text: "Hohe Speed-Reserve bei stabiler 400-m-Leistung. Das kann auf gute Ökonomie oder starke Gesamtleistung hinweisen.",
+    };
+  }
+  if (vlaProfile === "Allrounder" && sprintCategory === "hoch") {
+    return {
+      status: "tendenziell_sprinterlastig",
+      label: "Tendenziell sprinterlastig",
+      text: "Die Sprintreserve ist höher als der Drop allein vermuten lässt.",
+    };
+  }
+  if (vlaProfile === "Allrounder" && sprintCategory === "niedrig") {
+    return {
+      status: "tendenziell_diesellastig",
+      label: "Tendenziell diesellastig",
+      text: "Die Sprintreserve ist niedriger als der mittlere Drop erwarten lässt.",
+    };
+  }
+
+  return {
+    status: "plausibel",
+    label: "Ausgeglichenes Profil",
+    text: "VLa-Proxy und Sprintreserve ergeben zusammen ein unauffälliges Muster.",
+  };
+}
+
+function vlaProxy(
+  pace200: number,
+  pace400: number,
+  reference400: ReferenceIndex | null,
+  pace400ForBand: number,
+): StandardAnalysisResult["vla"] {
   const drop = (pace400 - pace200) / pace200;
-  if (drop < 0.05) return { level: "niedrig", profile: "Diesel", score: 0.25, drop };
-  if (drop <= 0.1) return { level: "mittel", profile: "Allrounder", score: 0.55, drop };
-  return { level: "hoch", profile: "Sprinter", score: 0.85, drop };
+  const performanceBand = classifyVlaPerformanceBand(reference400, pace400ForBand);
+  const thresholds = getVlaThresholds(performanceBand);
+
+  if (drop < thresholds.dieselMax) {
+    return { level: "niedrig", profile: "Diesel", score: 0.25, drop, performanceBand, thresholds };
+  }
+  if (drop <= thresholds.sprinterMin) {
+    return { level: "mittel", profile: "Allrounder", score: 0.55, drop, performanceBand, thresholds };
+  }
+  return { level: "hoch", profile: "Sprinter", score: 0.85, drop, performanceBand, thresholds };
 }
 
 function sprintReserve(t50: number, cssMs: number): number {
   if (!Number.isFinite(t50) || !Number.isFinite(cssMs)) return Number.NaN;
-  return 50 / t50 / cssMs - 1;
+  const pace50 = computePace(50, t50);
+  const thresholdPace = cssPace(cssMs);
+  if (!Number.isFinite(pace50) || !Number.isFinite(thresholdPace) || thresholdPace <= 0) return Number.NaN;
+  return (thresholdPace - pace50) / thresholdPace;
+}
+
+function classifyVlaPerformanceBand(reference400: ReferenceIndex | null, pace400: number): VLaPerformanceBand {
+  if (reference400) {
+    if (reference400.index <= 0.1) return "stark";
+    if (reference400.index <= 0.3) return "mittel";
+    return "schwaecher";
+  }
+  if (pace400 <= 100) return "stark";
+  if (pace400 <= 115) return "mittel";
+  return "schwaecher";
+}
+
+function getVlaThresholds(performanceBand: VLaPerformanceBand) {
+  if (performanceBand === "stark") return { dieselMax: 0.04, sprinterMin: 0.08 };
+  if (performanceBand === "mittel") return { dieselMax: 0.05, sprinterMin: 0.1 };
+  return { dieselMax: 0.06, sprinterMin: 0.12 };
+}
+
+function classifyCssExpectation(referenceCss: ReferenceIndex | null): CssExpectation {
+  if (!referenceCss) return "nicht_ermittelbar";
+  if (referenceCss.index > 0.2) return "unter_erwartung";
+  if (referenceCss.index < -0.03) return "ueber_erwartung";
+  return "passt";
+}
+
+function buildMetabolicProfile(
+  input: AnalysisInput,
+  vo2Level: Vo2ProxyLevel,
+  vla: StandardAnalysisResult["vla"],
+  cssExpectation: CssExpectation,
+): NonNullable<StandardAnalysisResult["metabolicProfile"]> {
+  const enduranceGoal = isEnduranceTarget(input.targetDistance ?? inferTargetDistance(input.goal));
+  const vo2Potential =
+    vo2Level === "niedrig"
+      ? "VO2 niedrig: großer Hebel für aerobe Kapazität."
+      : vo2Level === "mittel"
+        ? "VO2 mittel: relevanter Hebel, abhängig von Ziel und Zeitraum."
+        : vo2Level === "hoch"
+          ? "VO2 hoch: kleinerer Hebel, Fokus eher auf Effizienz, VLa oder spezifisches Tempo."
+          : "VO2 nicht ermittelbar: Referenzdaten fehlen für diese Eingabe.";
+  const vlaContext = enduranceGoal
+    ? vla.level === "hoch"
+      ? "Ausdauerziel: hohe VLa kann die Dauerleistung begrenzen. Dummy-Text bis zur finalen Textlogik."
+      : "Ausdauerziel: niedrige bis mittlere VLa passt eher zu stabiler Leistung. Dummy-Text bis zur finalen Textlogik."
+    : vla.level === "hoch"
+      ? "Sprint-/Beckenziel: hohe VLa kann für Beschleunigung hilfreich sein. Dummy-Text bis zur finalen Textlogik."
+      : "Sprint-/Beckenziel: niedrige VLa kann Top-End-Speed limitieren. Dummy-Text bis zur finalen Textlogik.";
+  const cssInterpretation =
+    cssExpectation === "unter_erwartung"
+      ? "CSS liegt unter der metabolischen Erwartung: Technik, Effizienz oder Umsetzung prüfen."
+      : cssExpectation === "ueber_erwartung"
+        ? "CSS liegt über der Erwartung: spricht für gute Technik oder starke Umsetzung."
+        : cssExpectation === "passt"
+          ? "CSS passt zum metabolischen Profil: spezifisches Training und Feinschliff priorisieren."
+          : "CSS-Erwartung nicht ermittelbar, weil AK-/Sex-Referenz fehlt.";
+  const priority =
+    vo2Level === "niedrig"
+      ? "Hebel A: VO2 erhöhen."
+      : enduranceGoal && vla.level === "hoch"
+        ? "Hebel B: VLa senken."
+        : cssExpectation === "unter_erwartung"
+          ? "Hebel C: Technik und Umsetzung verbessern."
+          : "Hebel C: CSS spezifisch trainieren.";
+
+  return {
+    label: `VO2 ${levelLabelForProfile(vo2Level)} · VLa ${vla.profile} · CSS ${cssExpectationLabel(cssExpectation)}`,
+    vo2Potential,
+    vlaContext,
+    cssInterpretation,
+    priority,
+  };
+}
+
+function buildSpiderScores(
+  cssReferenceIndex: number | null,
+  test200: TestMetrics,
+  test400: TestMetrics,
+): NonNullable<StandardAnalysisResult["spiderScores"]> {
+  const dpsDrop = (test200.dps - test400.dps) / test200.dps;
+  const srChange = (test200.sr - test400.sr) / test400.sr;
+  const paceGain = (test400.pace - test200.pace) / test400.pace;
+
+  return {
+    css: scoreCssReference(cssReferenceIndex),
+    dps: scoreLinear(test200.dps, 1.2, 2, 0, 100, 50, 1.5),
+    sr: scoreLinear(test200.sr, 45, 85, 0, 100, 50, 60),
+    dpsStability: scoreDpsStability(dpsDrop),
+    srAdaptation: scoreSrAdaptation(srChange),
+    tempoEfficiency: scoreTempoEfficiency(paceGain, dpsDrop, srChange),
+  };
+}
+
+function resultReferenceCss(referenceCss: ReferenceIndex | null) {
+  return referenceCss?.index ?? null;
+}
+
+function scoreCssReference(index: number | null) {
+  if (index === null || !Number.isFinite(index)) return 50;
+  if (index <= 0) return 100;
+  if (index <= 0.1) return interpolate(index, 0, 0.1, 100, 75);
+  if (index <= 0.25) return interpolate(index, 0.1, 0.25, 75, 50);
+  if (index <= 0.5) return interpolate(index, 0.25, 0.5, 50, 25);
+  if (index <= 0.7) return interpolate(index, 0.5, 0.7, 25, 0);
+  return 0;
+}
+
+function scoreDpsStability(drop: number) {
+  if (!Number.isFinite(drop)) return 50;
+  if (drop <= 0.05) return 100;
+  if (drop <= 0.1) return interpolate(drop, 0.05, 0.1, 100, 75);
+  if (drop <= 0.2) return interpolate(drop, 0.1, 0.2, 75, 50);
+  if (drop <= 0.3) return interpolate(drop, 0.2, 0.3, 50, 25);
+  return 0;
+}
+
+function scoreSrAdaptation(change: number) {
+  if (!Number.isFinite(change)) return 50;
+  const absChange = Math.abs(change);
+  if (absChange >= 0.05 && absChange <= 0.15) return 100;
+  if (absChange > 0.15 && absChange <= 0.25) return 75;
+  if (absChange < 0.05 || absChange <= 0.35) return 50;
+  if (absChange <= 0.5) return 25;
+  return 0;
+}
+
+function scoreTempoEfficiency(paceGain: number, dpsDrop: number, srChange: number) {
+  if (![paceGain, dpsDrop, srChange].every(Number.isFinite)) return 50;
+  const raw = 50 + paceGain * 220 - Math.max(0, dpsDrop) * 130 - Math.max(0, Math.abs(srChange) - 0.15) * 90;
+  return clamp(Math.round(raw), 0, 100);
+}
+
+function scoreLinear(value: number, min: number, max: number, minScore: number, maxScore: number, midScore: number, mid: number) {
+  if (!Number.isFinite(value)) return 50;
+  if (value <= min) return minScore;
+  if (value >= max) return maxScore;
+  if (value <= mid) return interpolate(value, min, mid, minScore, midScore);
+  return interpolate(value, mid, max, midScore, maxScore);
+}
+
+function interpolate(value: number, inputMin: number, inputMax: number, outputMin: number, outputMax: number) {
+  const ratio = (value - inputMin) / (inputMax - inputMin);
+  return Math.round(outputMin + ratio * (outputMax - outputMin));
+}
+
+function isEnduranceTarget(targetDistance: TargetDistance) {
+  return targetDistance === "OD" || targetDistance === "MD" || targetDistance === "LD" || targetDistance === "Freiwasser";
+}
+
+function levelLabelForProfile(level: Vo2ProxyLevel) {
+  return level === "nicht_ermittelbar" ? "offen" : level;
+}
+
+function cssExpectationLabel(expectation: CssExpectation) {
+  if (expectation === "unter_erwartung") return "unter Erwartung";
+  if (expectation === "ueber_erwartung") return "über Erwartung";
+  if (expectation === "passt") return "passend";
+  return "offen";
 }
 
 function vo2Proxy(time200: number, reference200: ReferenceIndex | null): StandardAnalysisResult["vo2"] {

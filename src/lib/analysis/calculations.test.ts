@@ -2,9 +2,12 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_ANALYSIS_INPUT } from "./constants";
 import { analysisInputSchema } from "./schema";
 import {
+  buildSprintReservePlausibility,
+  classifySprintReserve,
   classifyTechniqueClass,
   computeCSS,
   computeCssPace,
+  computeSprintTest,
   computeTest,
   derivePlanLength,
   getReferenceAgeBucket,
@@ -35,6 +38,24 @@ describe("swim analysis calculations", () => {
     expect(test?.sr).toBeCloseTo(43.0769);
   });
 
+  it("computes optional sprint stroke metrics for 50m tests", () => {
+    const test = computeSprintTest(38.2, 22, 25);
+
+    expect(test?.pace).toBeCloseTo(76.4);
+    expect(test?.strokesPerLength).toBe(22);
+    expect(test?.dps).toBeCloseTo(1.1364);
+    expect(test?.sr).toBeCloseTo(69.1099);
+  });
+
+  it("keeps sprint stroke metrics optional for legacy inputs", () => {
+    const test = computeSprintTest(38.2, undefined, 25);
+
+    expect(test?.pace).toBeCloseTo(76.4);
+    expect(test?.strokesPerLength).toBeUndefined();
+    expect(test?.dps).toBeUndefined();
+    expect(test?.sr).toBeUndefined();
+  });
+
   it("rejects CSS when 400m is not slower than 200m", () => {
     expect(Number.isNaN(computeCSS(220, 200))).toBe(true);
   });
@@ -49,13 +70,86 @@ describe("swim analysis calculations", () => {
     expect(result?.plan.slug).toBe("wasserlage-balance");
     expect(result?.plan.weeks).toBe(6);
     expect(result?.vla.profile).toBe("Allrounder");
+    expect(result?.vla.performanceBand).toBe("schwaecher");
     expect(result?.vo2.level).toBe("niedrig");
+    expect(result?.sprintReserveCategory).toBe("hoch");
+    expect(result?.sprintReservePlausibility?.status).toBe("tendenziell_sprinterlastig");
+    expect(result?.metabolicProfile?.priority).toBe("Hebel A: VO2 erhöhen.");
+    expect(Object.values(result?.spiderScores ?? {}).every((score) => score >= 0 && score <= 100)).toBe(true);
     expect(result?.techniqueGate.techniqueClass).toBe("Solider Hobbyschwimmer");
     expect(result?.strengths.length).toBeGreaterThanOrEqual(2);
   });
 
   it("uses the document CSS pace formula", () => {
     expect(computeCssPace(218, 468)).toBe(125);
+  });
+
+  it("classifies sprint reserve from the briefing thresholds", () => {
+    expect(classifySprintReserve(0.09)).toBe("niedrig");
+    expect(classifySprintReserve(0.1)).toBe("mittel");
+    expect(classifySprintReserve(0.2)).toBe("mittel");
+    expect(classifySprintReserve(0.21)).toBe("hoch");
+    expect(classifySprintReserve(Number.NaN)).toBe("nicht_ermittelbar");
+  });
+
+  it("cross-checks VLa profiles with sprint reserve neutrally", () => {
+    expect(buildSprintReservePlausibility("Sprinter", "hoch").status).toBe("plausibel");
+    expect(buildSprintReservePlausibility("Diesel", "niedrig").status).toBe("plausibel");
+    expect(buildSprintReservePlausibility("Sprinter", "niedrig").status).toBe("auffaellig");
+    expect(buildSprintReservePlausibility("Diesel", "hoch").status).toBe("interessant_stark");
+    expect(buildSprintReservePlausibility("Allrounder", "mittel").status).toBe("plausibel");
+  });
+
+  it("uses performance-dependent VLa thresholds", () => {
+    const analysisForPaces = (pace200: number, pace400: number) =>
+      runAnalysis({
+        ...DEFAULT_ANALYSIS_INPUT,
+        gender: "divers",
+        t200: String(pace200 * 2),
+        t400: String(pace400 * 4),
+        s200: 21,
+        s400: 22,
+      });
+
+    const strong = analysisForPaces(100 / 1.09, 100);
+    const medium = analysisForPaces(110 / 1.09, 110);
+    const weaker = analysisForPaces(120 / 1.09, 120);
+
+    expect(strong?.mode).toBe("standard");
+    expect(medium?.mode).toBe("standard");
+    expect(weaker?.mode).toBe("standard");
+    if (strong?.mode !== "standard" || medium?.mode !== "standard" || weaker?.mode !== "standard") {
+      throw new Error("Expected standard analysis results");
+    }
+
+    expect(strong.vla.performanceBand).toBe("stark");
+    expect(strong.vla.profile).toBe("Sprinter");
+    expect(medium.vla.performanceBand).toBe("mittel");
+    expect(medium.vla.profile).toBe("Allrounder");
+    expect(weaker.vla.performanceBand).toBe("schwaecher");
+    expect(weaker.vla.profile).toBe("Allrounder");
+  });
+
+  it("creates spider scores for the six briefing axes", () => {
+    const result = runAnalysis(DEFAULT_ANALYSIS_INPUT);
+
+    expect(result?.mode).toBe("standard");
+    if (result?.mode !== "standard") throw new Error("Expected standard analysis result");
+    const scores = result.spiderScores;
+    if (!scores) throw new Error("Expected spider scores");
+    expect(Object.keys(scores).sort()).toEqual([
+      "css",
+      "dps",
+      "dpsStability",
+      "sr",
+      "srAdaptation",
+      "tempoEfficiency",
+    ]);
+    expect(scores.dps).toBeGreaterThanOrEqual(0);
+    expect(scores.sr).toBeGreaterThanOrEqual(0);
+    expect(scores.dpsStability).toBeGreaterThanOrEqual(0);
+    expect(scores.srAdaptation).toBeGreaterThanOrEqual(0);
+    expect(scores.tempoEfficiency).toBeGreaterThanOrEqual(0);
   });
 
   it("classifies 400m technique bands from the diagnostics thresholds", () => {
