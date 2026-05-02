@@ -4,8 +4,10 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { AlertTriangle, ArrowRight, Check, Loader2, Lock, UserRound } from "lucide-react";
+import { BodyFatVisualSelector } from "@/components/body-fat-visual-selector";
 import { Button } from "@/components/button";
 import { ReportView } from "@/components/report-view";
+import { getBodyFatSexFromGender } from "@/lib/body-fat";
 import { CHALLENGE_GROUPS, GOALS, TARGET_DISTANCES, TEST_TYPES } from "@/lib/analysis/constants";
 import { runAnalysis } from "@/lib/analysis/calculations";
 import { analysisInputSchema } from "@/lib/analysis/schema";
@@ -35,6 +37,8 @@ type AnalysisDraft = Omit<
   targetDistance: AnalysisInput["targetDistance"] | "";
   swimSessionsPerWeek: number | "";
 };
+
+type BodyFatInputMode = "manual" | "visual";
 
 const EMPTY_ANALYSIS_INPUT: AnalysisDraft = {
   name: "",
@@ -113,6 +117,7 @@ export function AnalysisFlow({
     ...EMPTY_ANALYSIS_INPUT,
     ...initialInput,
   }));
+  const [bodyFatInputMode, setBodyFatInputMode] = useState<BodyFatInputMode>(initialInput?.bodyFatPercentage ? "manual" : "visual");
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const resumeStarted = useRef(false);
@@ -199,6 +204,8 @@ export function AnalysisFlow({
         <DataStep
           input={input}
           update={update}
+          bodyFatInputMode={bodyFatInputMode}
+          setBodyFatInputMode={setBodyFatInputMode}
           next={() => setStep(1)}
           isPending={isPending}
         />
@@ -540,14 +547,20 @@ function ContextStep({
 function DataStep({
   input,
   update,
+  bodyFatInputMode,
+  setBodyFatInputMode,
   next,
   isPending,
 }: {
   input: AnalysisDraft;
   update: (patch: Partial<AnalysisDraft>) => void;
+  bodyFatInputMode: BodyFatInputMode;
+  setBodyFatInputMode: (mode: BodyFatInputMode) => void;
   next: () => void;
   isPending: boolean;
 }) {
+  const bodyFatSex = getBodyFatSexFromGender(input.gender);
+
   return (
     <section className="space-y-6">
       <div className="surface p-5">
@@ -598,9 +611,44 @@ function DataStep({
           <GenderSegment value={input.gender} onChange={(value) => update({ gender: value })} />
           <Field label="Größe (cm)" type="number" value={input.height} placeholder="z. B. 172" onChange={(value) => update({ height: optionalNumber(value) })} />
           <Field label="Gewicht (kg)" type="number" value={input.weight} placeholder="z. B. 63" onChange={(value) => update({ weight: optionalNumber(value) })} />
-          <Field label="KFA (%)" type="number" value={input.bodyFatPercentage} placeholder="z. B. 21.5" onChange={(value) => update({ bodyFatPercentage: optionalNumber(value) })} />
           <FitnessLevelSlider value={input.fitnessLevel} onChange={(value) => update({ fitnessLevel: value })} />
           <PoolLengthSegment value={input.poolLength} onChange={(value) => update({ poolLength: value })} />
+        </div>
+        <div className="mt-5 rounded-xl border border-[var(--line)] bg-[var(--soft-bg)] p-5">
+          <div className="mb-5 flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+            <div>
+              <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--subtle)]">Körperfettanteil</p>
+              <h2 className="display-serif mt-2 text-3xl text-[var(--foreground)]">KFA erfassen</h2>
+              <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--muted)]">
+                Wenn kein Messwert vorliegt, wähle die visuelle Schätzung.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-1 rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-1 text-sm">
+              <SegmentButton
+                label="Eingeben"
+                active={bodyFatInputMode === "manual"}
+                onClick={() => setBodyFatInputMode("manual")}
+              />
+              <SegmentButton
+                label="Visuell"
+                active={bodyFatInputMode === "visual"}
+                onClick={() => setBodyFatInputMode("visual")}
+              />
+            </div>
+          </div>
+
+          {bodyFatInputMode === "manual" ? (
+            <div className="max-w-sm">
+              <Field label="KFA (%)" type="number" value={input.bodyFatPercentage} placeholder="z. B. 21.5" onChange={(value) => update({ bodyFatPercentage: optionalNumber(value) })} />
+            </div>
+          ) : (
+            <BodyFatVisualSelector
+              sex={bodyFatSex}
+              value={input.bodyFatPercentage}
+              onSexChange={(nextSex) => update({ gender: nextSex === "male" ? "maennlich" : "weiblich" })}
+              onValueChange={(value) => update({ bodyFatPercentage: value })}
+            />
+          )}
         </div>
       </div>
 

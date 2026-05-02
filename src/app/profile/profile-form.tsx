@@ -3,12 +3,12 @@
 import type { ReactNode } from "react";
 import { useActionState, useState } from "react";
 import { Check, Circle, RotateCcw, Save } from "lucide-react";
+import { BodyFatVisualSelector } from "@/components/body-fat-visual-selector";
 import { Button } from "@/components/button";
 import { updateProfile, type ProfileActionState } from "./actions";
 
 type Gender = "weiblich" | "maennlich" | "divers";
 type BodyFatSex = "female" | "male";
-type BodyFatMode = "measured" | "visual";
 type ProfileTab = "profile" | "privacy";
 type ProfileVisibility = "private" | "public";
 
@@ -71,23 +71,6 @@ const FITNESS_LEVELS = [
   },
 ] as const;
 
-const BODY_FAT_PRESETS = {
-  female: [
-    { value: 14, label: "Athletisch", range: "10-16%" },
-    { value: 20, label: "Fit", range: "17-22%" },
-    { value: 26, label: "Normal", range: "23-28%" },
-    { value: 32, label: "Erhöht", range: "29-34%" },
-    { value: 38, label: "Hoch", range: "35%+" },
-  ],
-  male: [
-    { value: 8, label: "Athletisch", range: "6-10%" },
-    { value: 14, label: "Fit", range: "11-17%" },
-    { value: 20, label: "Normal", range: "18-24%" },
-    { value: 26, label: "Erhöht", range: "25-29%" },
-    { value: 32, label: "Hoch", range: "30%+" },
-  ],
-} as const;
-
 /**
  * Renders the editable athlete profile form with sectioned inputs and sticky save controls.
  */
@@ -117,7 +100,6 @@ export function ProfileForm({
   const [selectedGender, setSelectedGender] = useState<Gender | null>(gender);
   const [selectedFitnessLevel, setSelectedFitnessLevel] = useState<number | null>(initialFitnessLevel);
   const [bodyFatValue, setBodyFatValue] = useState<number | null>(bodyFatPercentage);
-  const [bodyFatMode, setBodyFatMode] = useState<BodyFatMode>(bodyFatPercentage === null ? "visual" : "measured");
   const [visualSex, setVisualSex] = useState<BodyFatSex>(initialVisualSex);
   const [selectedDisciplines, setSelectedDisciplines] = useState(() => new Set(initialDisciplines));
   const [selectedVisibility, setSelectedVisibility] = useState<ProfileVisibility>(profileVisibility);
@@ -128,9 +110,6 @@ export function ProfileForm({
   const fullNameValue = `${firstName} ${lastName}`.trim();
   const resolvedFitnessLevel = selectedFitnessLevel ?? 3;
   const fitnessMeta = getFitnessMeta(selectedFitnessLevel);
-  const bodyFatSliderValue = clamp(bodyFatValue ?? 22, 8, 42);
-  const bodyFatStatus = getBodyFatStatus(visualSex, bodyFatValue);
-  const bodyFatPresets = BODY_FAT_PRESETS[visualSex];
 
   function markChanged() {
     setIsSaveBarMounted(true);
@@ -147,7 +126,6 @@ export function ProfileForm({
     setSelectedGender(gender);
     setSelectedFitnessLevel(initialFitnessLevel);
     setBodyFatValue(bodyFatPercentage);
-    setBodyFatMode(bodyFatPercentage === null ? "visual" : "measured");
     setVisualSex(initialVisualSex);
     setSelectedDisciplines(new Set(initialDisciplines));
     setSelectedVisibility(profileVisibility);
@@ -163,13 +141,11 @@ export function ProfileForm({
 
   function setMeasuredBodyFat(nextValue: number | null) {
     setBodyFatValue(nextValue);
-    setBodyFatMode("measured");
     markChanged();
   }
 
   function setVisualBodyFat(nextValue: number | null) {
     setBodyFatValue(nextValue);
-    setBodyFatMode("visual");
     markChanged();
   }
 
@@ -371,7 +347,7 @@ export function ProfileForm({
         </div>
 
         <div className="mt-6 rounded-xl border border-[var(--line)] bg-[var(--soft-bg)] p-5">
-          <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+          <div className="mb-6">
             <div>
               <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--subtle)]">Visuelle Schätzung</p>
               <h3 className="display-serif mt-3 text-3xl text-[var(--foreground)]">
@@ -381,77 +357,17 @@ export function ProfileForm({
                 Wähle das Geschlecht und ziehe den Regler, bis die Figur deinem Körper am nächsten kommt.
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-1 rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-1 text-sm">
-              <SegmentButton
-                label="Gemessen"
-                active={bodyFatMode === "measured"}
-                onClick={() => setBodyFatMode("measured")}
-              />
-              <SegmentButton
-                label="Visuell schätzen"
-                active={bodyFatMode === "visual"}
-                onClick={() => setBodyFatMode("visual")}
-              />
-            </div>
           </div>
 
-          <div className="mb-5 inline-grid grid-cols-2 gap-1 rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-1 text-sm">
-            <button
-              type="button"
-              className={visualSex === "female" ? "rounded-md bg-[var(--brand-bg)] px-8 py-2 text-[var(--brand-fg)]" : "rounded-md px-8 py-2 text-[var(--muted)]"}
-              onClick={() => setVisualSex("female")}
-            >
-              Weiblich
-            </button>
-            <button
-              type="button"
-              className={visualSex === "male" ? "rounded-md bg-[var(--brand-bg)] px-8 py-2 text-[var(--brand-fg)]" : "rounded-md px-8 py-2 text-[var(--muted)]"}
-              onClick={() => setVisualSex("male")}
-            >
-              Männlich
-            </button>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-5">
-            {bodyFatPresets.map((preset) => (
-              <BodyFatCard
-                key={preset.label}
-                label={preset.label}
-                range={preset.range}
-                value={preset.value}
-                sex={visualSex}
-                active={preset.label === bodyFatStatus}
-                onClick={() => setVisualBodyFat(preset.value)}
-              />
-            ))}
-          </div>
-
-          <div className="mt-7 grid gap-5 lg:grid-cols-[1fr_auto] lg:items-center">
-            <div>
-              <VisualSlider
-                ariaLabel="Körperfett visuell schätzen"
-                min={8}
-                max={42}
-                step={0.5}
-                value={bodyFatSliderValue}
-                onChange={setVisualBodyFat}
-              />
-              <div className="mt-3 grid grid-cols-5 gap-2 text-[10px] uppercase tracking-[0.16em] text-[var(--subtle)]">
-                {BODY_FAT_PRESETS.female.map((item, index) => (
-                  <span key={item.label} className={index === 0 ? "text-left" : index === BODY_FAT_PRESETS.female.length - 1 ? "text-right" : "text-center"}>
-                    {item.label}
-                  </span>
-                ))}
-              </div>
-            </div>
-            <div className="text-right lg:min-w-32">
-              <p className="display-serif text-5xl leading-none text-[var(--foreground)]">
-                {formatBodyFatValue(bodyFatValue)}
-                <span className="text-xl text-[var(--subtle)]">%</span>
-              </p>
-              <p className="mono mt-2 text-[10px] uppercase tracking-[0.18em] text-[var(--accent)]">{bodyFatStatus}</p>
-            </div>
-          </div>
+          <BodyFatVisualSelector
+            sex={visualSex}
+            value={bodyFatValue}
+            onSexChange={(nextSex) => {
+              setVisualSex(nextSex);
+              markChanged();
+            }}
+            onValueChange={setVisualBodyFat}
+          />
           <p className="mt-4 text-xs text-[var(--subtle)]">
             Visuelle Schätzungen sind ungenauer als Messungen - wir kennzeichnen den Wert intern als geschätzt.
           </p>
@@ -873,93 +789,6 @@ function VisualSlider({
   );
 }
 
-function BodyFatCard({
-  label,
-  range,
-  value,
-  sex,
-  active,
-  onClick,
-}: {
-  label: string;
-  range: string;
-  value: number;
-  sex: BodyFatSex;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={
-        active
-          ? "flex min-h-44 flex-col items-center justify-end rounded-lg border border-[var(--accent)] bg-[color-mix(in_oklab,var(--accent)_12%,var(--panel))] p-4 text-center text-[var(--foreground)]"
-          : "flex min-h-44 flex-col items-center justify-end rounded-lg border border-[var(--line)] bg-[var(--panel)] p-4 text-center text-[var(--subtle)] hover:border-[var(--accent)] hover:text-[var(--foreground)]"
-      }
-    >
-      <BodyFatSilhouette sex={sex} value={value} />
-      <span className="mono mt-3 text-[10px] uppercase tracking-[0.16em] text-[var(--subtle)]">{label}</span>
-      <span className="display-serif mt-2 text-lg text-[var(--foreground)]">{range}</span>
-    </button>
-  );
-}
-
-/**
- * Draws the body-fat estimate figure by morphing body proportions across the slider scale.
- */
-function BodyFatSilhouette({ sex, value }: { sex: BodyFatSex; value: number }) {
-  const t = clamp((value - 8) / 32, 0, 1);
-  const width = 70;
-  const height = 130;
-  const cx = width / 2;
-  const headRadius = sex === "female" ? 6 : 6.5;
-  const shoulder = sex === "female" ? 12 + t * 5 : 16 + t * 4;
-  const waist = sex === "female" ? 8 + t * 9 : 10 + t * 9;
-  const hip = sex === "female" ? 13 + t * 7 : 11 + t * 7;
-  const thigh = 7 + t * 4;
-  const calf = 5 + t * 2.5;
-  const yHead = 12;
-  const yNeck = 19;
-  const yShoulder = 26;
-  const yWaist = sex === "female" ? 56 : 58;
-  const yHip = 72;
-  const yKnee = 100;
-  const yAnkle = 124;
-  const leftShoulderCurve = sex === "female" ? shoulder : shoulder - 1;
-  const rightShoulderCurve = sex === "female" ? shoulder + 1 : shoulder - 1;
-  const path = `
-    M ${cx - shoulder} ${yShoulder}
-    C ${cx - leftShoulderCurve} ${yShoulder + 5}, ${cx - waist - 1} ${yWaist - 6}, ${cx - waist} ${yWaist}
-    C ${cx - waist} ${yWaist + 4}, ${cx - hip - 1} ${yHip - 6}, ${cx - hip} ${yHip}
-    L ${cx - thigh - 1} ${yKnee}
-    L ${cx - calf} ${yAnkle}
-    L ${cx - calf + 2} ${yAnkle + 2}
-    L ${cx - 1} ${yAnkle + 2}
-    L ${cx - 1} ${yHip + 2}
-    L ${cx + 1} ${yHip + 2}
-    L ${cx + 1} ${yAnkle + 2}
-    L ${cx + calf - 2} ${yAnkle + 2}
-    L ${cx + calf} ${yAnkle}
-    L ${cx + thigh + 1} ${yKnee}
-    L ${cx + hip} ${yHip}
-    C ${cx + hip + 1} ${yHip - 6}, ${cx + waist + 1} ${yWaist + 4}, ${cx + waist} ${yWaist}
-    C ${cx + waist + 1} ${yWaist - 6}, ${cx + rightShoulderCurve} ${yShoulder + 5}, ${cx + shoulder} ${yShoulder}
-    L ${cx + 5} ${yNeck}
-    L ${cx + 5} ${yNeck - 2}
-    L ${cx - 5} ${yNeck - 2}
-    L ${cx - 5} ${yNeck}
-    Z
-  `;
-
-  return (
-    <svg viewBox={`0 0 ${width} ${height}`} width="62" height="116" aria-hidden="true">
-      <circle cx={cx} cy={yHead} r={headRadius} fill="currentColor" />
-      <path d={path} fill="currentColor" />
-    </svg>
-  );
-}
-
 function splitName(fullName: string) {
   const parts = fullName.trim().split(/\s+/).filter(Boolean);
   if (parts.length <= 1) {
@@ -987,30 +816,6 @@ function getFitnessMeta(value: number | null) {
   return FITNESS_LEVELS.find((level) => level.value === value) ?? FITNESS_LEVELS[2];
 }
 
-function getBodyFatStatus(sex: BodyFatSex, value: number | null) {
-  if (value === null) return "Normal";
-  if (sex === "male") {
-    if (value <= 10) return "Athletisch";
-    if (value <= 17) return "Fit";
-    if (value <= 24) return "Normal";
-    if (value <= 29) return "Erhöht";
-    return "Hoch";
-  }
-  if (value <= 16) return "Athletisch";
-  if (value <= 22) return "Fit";
-  if (value <= 28) return "Normal";
-  if (value <= 34) return "Erhöht";
-  return "Hoch";
-}
-
 function parseOptionalNumber(value: string) {
   return value === "" ? null : Number(value);
-}
-
-function formatBodyFatValue(value: number | null) {
-  return value === null ? "--" : value.toFixed(1);
-}
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value));
 }
