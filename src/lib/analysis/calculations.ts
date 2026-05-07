@@ -3,7 +3,9 @@ import type {
   AnalysisInput,
   AnalysisResult,
   CssExpectation,
+  CssPerformanceLevel,
   Gender,
+  ProxyLevel,
   ReferenceComparison,
   ReferenceIndex,
   SprintMetrics,
@@ -176,8 +178,8 @@ export function runAnalysis(input: AnalysisInput): AnalysisResult | null {
   const sprintReserveCategory = classifySprintReserve(sprintReserveValue);
   const sprintReservePlausibility = buildSprintReservePlausibility(vla.profile, sprintReserveCategory);
   const vo2 = vo2Proxy(t200, reference.t200);
-  const cssExpectation = classifyCssExpectation(reference.css);
-  const metabolicProfile = buildMetabolicProfile(input, vo2.level, vla, cssExpectation);
+  const metabolicBasis = classifyMetabolicCssExpectation(vo2.level, vla, reference.css);
+  const metabolicProfile = buildMetabolicProfile(input, vo2.level, vla, metabolicBasis);
   const spiderScores = buildSpiderScores(resultReferenceCss(reference.css), test200, test400);
   const challenges = input.challenges ?? [];
   const legSink = challenges.includes("Meine Beine sinken ab");
@@ -203,7 +205,7 @@ export function runAnalysis(input: AnalysisInput): AnalysisResult | null {
     sprintReservePlausibility,
     metabolicProfile,
     spiderScores,
-    cssExpectation,
+    cssExpectation: metabolicBasis.cssExpectation,
     reference,
     strengths: strengths.slice(0, 3),
     issues: issues.slice(0, 2),
@@ -632,19 +634,102 @@ function getVlaThresholds(performanceBand: VLaPerformanceBand) {
   return { dieselMax: 0.06, sprinterMin: 0.12 };
 }
 
-function classifyCssExpectation(referenceCss: ReferenceIndex | null): CssExpectation {
+type MetabolicCssBasis = {
+  cssExpectation: CssExpectation;
+  matrixProfile: string;
+  expectedCss: CssPerformanceLevel;
+  actualCss: CssPerformanceLevel;
+};
+
+function classifyMetabolicCssExpectation(
+  vo2Level: Vo2ProxyLevel,
+  vla: StandardAnalysisResult["vla"],
+  referenceCss: ReferenceIndex | null,
+): MetabolicCssBasis {
+  const matrix = expectedCssFromMetabolicMatrix(vo2Level, vla.level);
+  const actualCss = classifyActualCssPerformance(referenceCss);
+
+  if (actualCss === "nicht_ermittelbar" || matrix.expectedCss === "nicht_ermittelbar") {
+    return {
+      ...matrix,
+      actualCss,
+      cssExpectation: "nicht_ermittelbar",
+    };
+  }
+
+  const actualRank = cssPerformanceRank(actualCss);
+  const expectedRank = cssPerformanceRank(matrix.expectedCss);
+  const cssExpectation =
+    actualRank < expectedRank ? "unter_erwartung" : actualRank > expectedRank ? "ueber_erwartung" : "passt";
+
+  return {
+    ...matrix,
+    actualCss,
+    cssExpectation,
+  };
+}
+
+function expectedCssFromMetabolicMatrix(
+  vo2Level: Vo2ProxyLevel,
+  vlaLevel: ProxyLevel,
+): Pick<MetabolicCssBasis, "matrixProfile" | "expectedCss"> {
+  if (vo2Level === "nicht_ermittelbar") {
+    return { matrixProfile: "Metabolisches Profil offen", expectedCss: "nicht_ermittelbar" };
+  }
+
+  if (vo2Level === "niedrig" && vlaLevel === "niedrig") {
+    return { matrixProfile: "Diesel mit geringer Leistungsbasis", expectedCss: "niedrig" };
+  }
+  if (vo2Level === "niedrig" && vlaLevel === "mittel") {
+    return { matrixProfile: "Allrounder mit geringer Leistungsbasis", expectedCss: "niedrig" };
+  }
+  if (vo2Level === "niedrig" && vlaLevel === "hoch") {
+    return { matrixProfile: "Sprinter ohne Ausdauerbasis", expectedCss: "minimal" };
+  }
+  if (vo2Level === "mittel" && vlaLevel === "niedrig") {
+    return { matrixProfile: "Diesel mit solider Grundlage", expectedCss: "hoch" };
+  }
+  if (vo2Level === "mittel" && vlaLevel === "mittel") {
+    return { matrixProfile: "Allrounder", expectedCss: "mittel" };
+  }
+  if (vo2Level === "mittel" && vlaLevel === "hoch") {
+    return { matrixProfile: "Sprinter mit solider Grundlage", expectedCss: "niedrig" };
+  }
+  if (vo2Level === "hoch" && vlaLevel === "niedrig") {
+    return { matrixProfile: "Diesel auf hohem Niveau", expectedCss: "sehr_hoch" };
+  }
+  if (vo2Level === "hoch" && vlaLevel === "mittel") {
+    return { matrixProfile: "Allrounder auf hohem Niveau", expectedCss: "hoch" };
+  }
+
+  return { matrixProfile: "Sprinter auf hohem Niveau", expectedCss: "hoch" };
+}
+
+function classifyActualCssPerformance(referenceCss: ReferenceIndex | null): CssPerformanceLevel {
   if (!referenceCss) return "nicht_ermittelbar";
-  if (referenceCss.index > 0.2) return "unter_erwartung";
-  if (referenceCss.index < -0.03) return "ueber_erwartung";
-  return "passt";
+  if (referenceCss.index <= 0) return "sehr_hoch";
+  if (referenceCss.index <= 0.1) return "hoch";
+  if (referenceCss.index <= 0.25) return "mittel";
+  if (referenceCss.index <= 0.5) return "niedrig";
+  return "minimal";
+}
+
+function cssPerformanceRank(level: CssPerformanceLevel) {
+  if (level === "minimal") return 0;
+  if (level === "niedrig") return 1;
+  if (level === "mittel") return 2;
+  if (level === "hoch") return 3;
+  if (level === "sehr_hoch") return 4;
+  return -1;
 }
 
 function buildMetabolicProfile(
   input: AnalysisInput,
   vo2Level: Vo2ProxyLevel,
   vla: StandardAnalysisResult["vla"],
-  cssExpectation: CssExpectation,
+  basis: MetabolicCssBasis,
 ): NonNullable<StandardAnalysisResult["metabolicProfile"]> {
+  const cssExpectation = basis.cssExpectation;
   const enduranceGoal = isEnduranceTarget(input.targetDistance ?? inferTargetDistance(input.goal));
   const vo2Potential =
     vo2Level === "niedrig"
@@ -680,6 +765,9 @@ function buildMetabolicProfile(
 
   return {
     label: `VO2 ${levelLabelForProfile(vo2Level)} · VLa ${vla.profile} · CSS ${cssExpectationLabel(cssExpectation)}`,
+    matrixProfile: basis.matrixProfile,
+    expectedCss: basis.expectedCss,
+    actualCss: basis.actualCss,
     vo2Potential,
     vlaContext,
     cssInterpretation,

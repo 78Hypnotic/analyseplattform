@@ -91,6 +91,8 @@ function StandardReportView({
         <Metric label="VLa-Proxy" value={result.vla.profile} detail={`${Math.round(result.vla.drop * 100)} % Drop`} />
       </section>
 
+      <MetabolicProfileCard result={result} />
+
       <AgeClassComparisonCard result={result} />
 
       <MetricMeaningGrid result={result} />
@@ -505,6 +507,77 @@ function Metric({
   );
 }
 
+function MetabolicProfileCard({ result }: { result: StandardAnalysisResult }) {
+  const profile = result.metabolicProfile;
+  const cssScore = result.spiderScores?.css ?? scoreReferenceForBar(result.reference.css);
+  const bars = [
+    {
+      label: "VO2-Proxy",
+      value: result.vo2.level === "nicht_ermittelbar" ? "offen" : result.vo2.level,
+      score: Math.round(result.vo2.score * 100),
+      hint: profile?.vo2Potential ?? "Aerobe Kapazität als Motor der Dauerleistung.",
+    },
+    {
+      label: "VLa-Proxy",
+      value: result.vla.profile,
+      score: Math.round(result.vla.score * 100),
+      hint: profile?.vlaContext ?? "Anaerobe Kapazität als Speed-Reserve und Ermüdungsfaktor.",
+    },
+    {
+      label: "CSS",
+      value: formatPace(result.cssPace),
+      score: cssScore,
+      hint: profile?.cssInterpretation ?? "CSS ist das Ergebnis aus Motor, Bremse und Umsetzung.",
+    },
+  ];
+
+  return (
+    <section className="surface p-5">
+      <div className="flex flex-col justify-between gap-3 md:flex-row md:items-start">
+        <div>
+          <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--subtle)]">Metabolisches Profil</p>
+          <h2 className="mt-2 text-2xl font-semibold">{profile?.matrixProfile ?? result.vla.profile}</h2>
+          <p className="muted mt-2 max-w-2xl leading-7">
+            VO2 ist der Motor, VLa die Bremse, CSS das Ergebnis. Die Balken zeigen nur Ausprägungen, keine gut/schlecht-Wertung.
+          </p>
+        </div>
+        {profile ? (
+          <div className="rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-3 text-sm">
+            <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--subtle)]">CSS-Matrix</p>
+            <p className="mt-2 text-[var(--muted)]">
+              Erwartet: <span className="font-medium text-[var(--foreground)]">{cssPerformanceLabel(profile.expectedCss)}</span>
+            </p>
+            <p className="mt-1 text-[var(--muted)]">
+              Aktuell: <span className="font-medium text-[var(--foreground)]">{cssPerformanceLabel(profile.actualCss)}</span>
+            </p>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="mt-5 grid gap-3 lg:grid-cols-3">
+        {bars.map((bar) => (
+          <div key={bar.label} className="rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-4">
+            <div className="flex items-center justify-between gap-3">
+              <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--subtle)]">{bar.label}</p>
+              <p className="text-sm font-medium">{bar.value}</p>
+            </div>
+            <div className="mt-4 h-2 rounded-full bg-[var(--line)]">
+              <div className="h-full rounded-full bg-[var(--accent)]" style={{ width: `${Math.max(0, Math.min(100, bar.score))}%` }} />
+            </div>
+            <p className="muted mt-3 text-sm leading-6">{bar.hint}</p>
+          </div>
+        ))}
+      </div>
+
+      {profile ? (
+        <p className="mt-4 rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-3 text-sm text-[var(--muted)]">
+          Priorität: {profile.priority}
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
 function MetricMeaningGrid({ result }: { result: StandardAnalysisResult }) {
   const metabolicProfile = result.metabolicProfile;
   const meanings = [
@@ -706,6 +779,22 @@ function formatReferenceValue(value: number, kind: "time" | "pace") {
 function formatReferenceDelta(index: number) {
   if (index <= 0) return `${Math.abs(Math.round(index * 100))} % schneller`;
   return `${Math.round(index * 100)} % über Referenz`;
+}
+
+function scoreReferenceForBar(reference: ReferenceIndex | null) {
+  if (!reference) return 50;
+  if (reference.index <= 0) return 100;
+  if (reference.index <= 0.1) return Math.round(100 - (reference.index / 0.1) * 25);
+  if (reference.index <= 0.25) return Math.round(75 - ((reference.index - 0.1) / 0.15) * 25);
+  if (reference.index <= 0.5) return Math.round(50 - ((reference.index - 0.25) / 0.25) * 25);
+  if (reference.index <= 0.7) return Math.round(25 - ((reference.index - 0.5) / 0.2) * 25);
+  return 0;
+}
+
+function cssPerformanceLabel(level: NonNullable<StandardAnalysisResult["metabolicProfile"]>["expectedCss"]) {
+  if (level === "sehr_hoch") return "sehr hoch";
+  if (level === "nicht_ermittelbar") return "offen";
+  return level;
 }
 
 function sprintReserveHeadline(value: number) {

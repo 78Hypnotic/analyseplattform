@@ -42,6 +42,7 @@ export type SprintReservePlausibilityStatus =
   | "neutral";
 export type VLaPerformanceBand = "stark" | "mittel" | "schwaecher";
 export type CssExpectation = "passt" | "unter_erwartung" | "ueber_erwartung" | "nicht_ermittelbar";
+export type CssPerformanceLevel = "minimal" | "niedrig" | "mittel" | "hoch" | "sehr_hoch" | "nicht_ermittelbar";
 export type SpiderScoreKey =
   | "css"
   | "dps"
@@ -202,6 +203,9 @@ export type StandardAnalysisResult = AnalysisBaseResult & {
   };
   metabolicProfile?: {
     label: string;
+    matrixProfile: string;
+    expectedCss: CssPerformanceLevel;
+    actualCss: CssPerformanceLevel;
     vo2Potential: string;
     vlaContext: string;
     cssInterpretation: string;
