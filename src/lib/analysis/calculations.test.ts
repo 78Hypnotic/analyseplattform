@@ -72,6 +72,9 @@ describe("swim analysis calculations", () => {
     expect(result?.vla.profile).toBe("Allrounder");
     expect(result?.vla.performanceBand).toBe("schwaecher");
     expect(result?.vo2.level).toBe("niedrig");
+    expect(result?.metabolicProfile?.matrixProfile).toBe("Allrounder mit geringer Leistungsbasis");
+    expect(result?.metabolicProfile?.expectedCss).toBe("niedrig");
+    expect(result?.metabolicProfile?.actualCss).not.toBe("nicht_ermittelbar");
     expect(result?.sprintReserveCategory).toBe("hoch");
     expect(result?.sprintReservePlausibility?.status).toBe("tendenziell_sprinterlastig");
     expect(result?.metabolicProfile?.priority).toBe("Hebel A: VO2 erhöhen.");
