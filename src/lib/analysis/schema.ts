@@ -40,6 +40,7 @@ export const analysisInputSchema = z.object({
   testType: z.enum(["water_start", "dive_start", "wall_push"]).default("wall_push"),
   equipment: z.enum(["ohne", "pullbuoy", "neo", "paddles"]).default("ohne"),
   t50: timeSchema,
+  s50: optionalPositiveStrokeSchema,
   t200: timeSchema,
   s200: z.coerce.number().positive().max(80),
   t400: optionalTimeSchema,

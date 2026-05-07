@@ -9,7 +9,7 @@ import {
   ShoppingCart,
   Target,
 } from "lucide-react";
-import { explainStyle, formatPace, isTechniqueOnlyResult } from "@/lib/analysis/calculations";
+import { classifySprintReserve, explainStyle, formatPace, isTechniqueOnlyResult } from "@/lib/analysis/calculations";
 import type { AnalysisInput, AnalysisResult, ReferenceIndex, StandardAnalysisResult, TechniqueOnlyAnalysisResult } from "@/lib/analysis/types";
 import type { TrainingPlanPreview } from "@/lib/training-plans/types";
 
@@ -71,7 +71,7 @@ function StandardReportView({
             <MiniFact label="ReTest" value={`${result.plan.weeks} Wo.`} />
           </div>
         </div>
-        <Triangle result={result} />
+        <SpiderChart result={result} />
       </section>
 
       {techniqueGate.status === "gelb" ? (
@@ -217,6 +217,8 @@ function TechniqueOnlyReportView({
 
 function SprintReserveCard({ result }: { result: StandardAnalysisResult }) {
   const value = result.sprintReserve;
+  const category = result.sprintReserveCategory ?? (value === null ? "nicht_ermittelbar" : classifySprintReserve(value));
+  const plausibility = result.sprintReservePlausibility;
 
   return (
     <section className="surface grid gap-5 border-[color-mix(in_oklab,var(--accent)_44%,var(--line))] p-5 md:grid-cols-[0.75fr_1.25fr]">
@@ -228,6 +230,9 @@ function SprintReserveCard({ result }: { result: StandardAnalysisResult }) {
         <p className="display-serif text-5xl leading-none text-[var(--accent)]">
           {value === null ? "fehlt" : `${Math.round(value * 100)} %`}
         </p>
+        <p className="mono mt-3 text-xs uppercase tracking-[0.16em] text-[var(--subtle)]">
+          {sprintReserveCategoryLabel(category)}
+        </p>
       </div>
       <div>
         <h2 className="text-2xl font-semibold">
@@ -237,6 +242,14 @@ function SprintReserveCard({ result }: { result: StandardAnalysisResult }) {
           {value === null
             ? "Ohne 50-m-Zeit bleibt unklar, wie groß der Abstand zwischen maximaler Geschwindigkeit und CSS wirklich ist."
             : sprintReserveText(value)}
+        </p>
+        {plausibility ? (
+          <p className="mt-3 rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-3 text-sm text-[var(--muted)]">
+            {plausibility.label}: {plausibility.text}
+          </p>
+        ) : null}
+        <p className="mt-3 text-sm text-[var(--subtle)]">
+          Neutraler Cross-Check: hoch ist nicht automatisch gut, niedrig nicht automatisch schlecht.
         </p>
       </div>
     </section>
@@ -493,7 +506,20 @@ function Metric({
 }
 
 function MetricMeaningGrid({ result }: { result: StandardAnalysisResult }) {
+  const metabolicProfile = result.metabolicProfile;
   const meanings = [
+    ...(metabolicProfile
+      ? [
+          {
+            label: "Profil",
+            text: `${metabolicProfile.label}. ${metabolicProfile.priority}`,
+          },
+          {
+            label: "CSS-Erwartung",
+            text: metabolicProfile.cssInterpretation,
+          },
+        ]
+      : []),
     {
       label: "CSS",
       text: `Deine Schwellenpace liegt bei ${formatPace(result.cssPace)} /100 m. Daraus lassen sich ruhige Dauer-, Schwellen- und ReTest-Serien steuern.`,
@@ -531,38 +557,73 @@ function MetricMeaningGrid({ result }: { result: StandardAnalysisResult }) {
   );
 }
 
-function Triangle({ result }: { result: StandardAnalysisResult }) {
-  const cssScore = Math.min(1, Math.max(0.2, 1 - (result.cssPace - 85) / 80));
-  const points = [
-    { label: "VO2", score: result.vo2.score, x: 90, y: 12 },
-    { label: "VLa", score: result.vla.score, x: 20, y: 145 },
-    { label: "CSS", score: cssScore, x: 160, y: 145 },
-  ];
-  const cx = 90;
+function SpiderChart({ result }: { result: StandardAnalysisResult }) {
+  const scores = result.spiderScores ?? fallbackSpiderScores(result);
+  const axes = [
+    { key: "css", label: "CSS", value: scores.css, x: 100, y: 12 },
+    { key: "dps", label: "DPS", value: scores.dps, x: 176, y: 56 },
+    { key: "sr", label: "SR", value: scores.sr, x: 176, y: 144 },
+    { key: "dpsStability", label: "DPS-Stabilität", value: scores.dpsStability, x: 100, y: 188 },
+    { key: "srAdaptation", label: "SR-Anpassung", value: scores.srAdaptation, x: 24, y: 144 },
+    { key: "tempoEfficiency", label: "Tempo-Effizienz", value: scores.tempoEfficiency, x: 24, y: 56 },
+  ] as const;
+  const cx = 100;
   const cy = 100;
-  const inner = points
-    .map((point) => `${cx + (point.x - cx) * point.score},${cy + (point.y - cy) * point.score}`)
+  const polygon = axes
+    .map((axis) => {
+      const score = Math.max(0, Math.min(100, axis.value)) / 100;
+      return `${cx + (axis.x - cx) * score},${cy + (axis.y - cy) * score}`;
+    })
     .join(" ");
 
   return (
     <div className="rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-4">
-      <svg viewBox="0 0 180 165" className="h-48 w-full">
-        <polygon points="90,12 20,145 160,145" fill="none" stroke="var(--line)" />
-        <polygon points="90,56 55,123 125,123" fill="none" stroke="var(--line)" opacity="0.55" />
-        <polygon points={inner} fill="color-mix(in oklab, var(--accent) 25%, transparent)" stroke="var(--accent)" />
-        {points.map((point) => (
-          <text key={point.label} x={point.x} y={point.y} textAnchor="middle" className="fill-white text-[10px]">
-            {point.label}
+      <p className="mono mb-2 text-xs uppercase tracking-[0.18em] text-[var(--subtle)]">Swim-Profil</p>
+      <svg viewBox="0 0 200 200" className="h-56 w-full">
+        {[0.25, 0.5, 0.75, 1].map((ratio) => (
+          <polygon
+            key={ratio}
+            points={axes.map((axis) => `${cx + (axis.x - cx) * ratio},${cy + (axis.y - cy) * ratio}`).join(" ")}
+            fill="none"
+            stroke="var(--line)"
+            opacity={ratio === 1 ? 1 : 0.45}
+          />
+        ))}
+        {axes.map((axis) => (
+          <line key={axis.key} x1={cx} y1={cy} x2={axis.x} y2={axis.y} stroke="var(--line)" opacity="0.5" />
+        ))}
+        <polygon points={polygon} fill="color-mix(in oklab, var(--accent) 24%, transparent)" stroke="var(--accent)" />
+        {axes.map((axis) => (
+          <text key={axis.key} x={axis.x} y={axis.y} textAnchor="middle" dominantBaseline="middle" className="fill-white text-[7px]">
+            {axis.label}
           </text>
         ))}
       </svg>
-      <div className="mt-3 grid gap-2 text-sm">
-        <TriangleNote label="VO2" text={`aerobe Leistung: ${levelLabel(result.vo2.level)}`} />
-        <TriangleNote label="VLa" text={`Laktat-Proxy: ${levelLabel(result.vla.level)}`} />
-        <TriangleNote label="CSS" text={`Dauertempo: ${formatPace(result.cssPace)} /100 m`} />
+      <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+        {axes.map((axis) => (
+          <div key={axis.key} className="flex items-center justify-between gap-2 border-t border-[var(--line)] pt-2">
+            <span className="text-[var(--subtle)]">{axis.label}</span>
+            <span className="font-medium text-[var(--accent)]">{Math.round(axis.value)}</span>
+          </div>
+        ))}
       </div>
     </div>
   );
+}
+
+function fallbackSpiderScores(result: StandardAnalysisResult) {
+  const css = result.reference.css ? Math.max(0, Math.min(100, 100 - Math.max(0, result.reference.css.index) * 180)) : 50;
+  const dpsDrop = (result.test200.dps - result.test400.dps) / result.test200.dps;
+  const srChange = Math.abs((result.test200.sr - result.test400.sr) / result.test400.sr);
+
+  return {
+    css,
+    dps: Math.max(0, Math.min(100, ((result.test200.dps - 1.2) / 0.8) * 100)),
+    sr: Math.max(0, Math.min(100, ((result.test200.sr - 45) / 40) * 100)),
+    dpsStability: Math.max(0, Math.min(100, 100 - Math.max(0, dpsDrop - 0.05) * 320)),
+    srAdaptation: srChange >= 0.05 && srChange <= 0.15 ? 100 : Math.max(0, 75 - Math.abs(srChange - 0.15) * 180),
+    tempoEfficiency: 50,
+  };
 }
 
 function RawDataDetails({ input, result }: { input: AnalysisInput; result: AnalysisResult }) {
@@ -577,6 +638,7 @@ function RawDataDetails({ input, result }: { input: AnalysisInput; result: Analy
         <RawData label="50 m Zeit" value={input.t50 || "nicht erfasst"} />
         <RawData label="200 m Zeit" value={input.t200} />
         <RawData label="400 m Zeit" value={input.t400 || "nicht erfasst"} />
+        <RawData label="Züge 50 m" value={input.s50 ? String(input.s50) : "nicht erfasst"} />
         <RawData label="Züge 200 m" value={String(input.s200)} />
         <RawData label="Züge 400 m" value={input.s400 ? String(input.s400) : "nicht erfasst"} />
         <RawData label="KFA" value={input.bodyFatPercentage ? `${input.bodyFatPercentage} %` : "nicht erfasst"} />
@@ -589,6 +651,9 @@ function RawDataDetails({ input, result }: { input: AnalysisInput; result: Analy
             <RawData label="Pace-Differenz" value={`${result.comparison.paceDiff.toFixed(1)} s/100 m`} />
             <RawData label="DPS-Differenz" value={`${result.comparison.dpsDiff.toFixed(2)} m`} />
             <RawData label="SR-Differenz" value={`${result.comparison.srDiff.toFixed(1)} Züge/min`} />
+            <RawData label="Sprintreserve" value={result.sprintReserveCategory ?? "nicht erfasst"} />
+            <RawData label="VLa-Band" value={result.vla.performanceBand ?? "nicht erfasst"} />
+            <RawData label="CSS-Erwartung" value={result.cssExpectation ?? "nicht erfasst"} />
           </>
         ) : null}
       </div>
@@ -620,15 +685,6 @@ function MiniFact({ label, value }: { label: string; value: string }) {
   );
 }
 
-function TriangleNote({ label, text }: { label: string; text: string }) {
-  return (
-    <div className="flex items-center justify-between gap-3 border-t border-[var(--line)] pt-2">
-      <span className="font-medium text-[var(--accent)]">{label}</span>
-      <span className="muted text-right">{text}</span>
-    </div>
-  );
-}
-
 function RawData({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-4">
@@ -652,17 +708,15 @@ function formatReferenceDelta(index: number) {
   return `${Math.round(index * 100)} % über Referenz`;
 }
 
-function levelLabel(level: StandardAnalysisResult["vla"]["level"] | StandardAnalysisResult["vo2"]["level"]) {
-  if (level === "nicht_ermittelbar") return "nicht ermittelbar";
-  if (level === "hoch") return "hoch";
-  if (level === "mittel") return "mittel";
-  return "niedrig";
-}
-
 function sprintReserveHeadline(value: number) {
   if (value >= 0.2) return "Viel Tempo oberhalb der Schwelle.";
   if (value >= 0.1) return "Solide Reserve, gut dosierbar.";
   return "Reserve knapp, CSS und Sprint liegen nah beieinander.";
+}
+
+function sprintReserveCategoryLabel(category: NonNullable<StandardAnalysisResult["sprintReserveCategory"]>) {
+  if (category === "nicht_ermittelbar") return "nicht ermittelbar";
+  return category;
 }
 
 function sprintReserveText(value: number) {

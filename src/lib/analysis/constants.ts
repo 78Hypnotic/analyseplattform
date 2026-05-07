@@ -207,6 +207,7 @@ export const DEFAULT_ANALYSIS_INPUT: AnalysisInput = {
   testType: "wall_push",
   equipment: "ohne",
   t50: "38.2",
+  s50: 22,
   t200: "3:38",
   s200: 21,
   t400: "7:48",
