@@ -8,11 +8,16 @@ import { BodyFatVisualSelector } from "@/components/body-fat-visual-selector";
 import { Button } from "@/components/button";
 import { ReportView } from "@/components/report-view";
 import { getBodyFatSexFromGender } from "@/lib/body-fat";
-import { CHALLENGE_GROUPS, GOALS, TARGET_DISTANCES, TEST_TYPES } from "@/lib/analysis/constants";
+import { CHALLENGE_GROUPS, GOALS, TARGET_DISTANCES } from "@/lib/analysis/constants";
 import { runAnalysis } from "@/lib/analysis/calculations";
 import { analysisInputSchema } from "@/lib/analysis/schema";
 import type { AnalysisInput } from "@/lib/analysis/types";
-import { getAnalysisValidationMessages } from "@/lib/analysis/validation";
+import {
+  getAnalysisValidationMessages,
+  getAnalysisValidationResult,
+  type AnalysisFieldKey,
+  type AnalysisValidationResult,
+} from "@/lib/analysis/validation";
 import { createAnalysis } from "../actions";
 
 type AnalysisDraft = Omit<
@@ -103,6 +108,51 @@ export type InitialAnalysisInput = Partial<
 
 const PENDING_ANALYSIS_STORAGE_KEY = "pending-analysis-input";
 const PENDING_ANALYSIS_NEXT_PATH = "/analyse/new?resume=1";
+const DATA_STEP_FIELDS = [
+  "name",
+  "age",
+  "gender",
+  "height",
+  "weight",
+  "bodyFatPercentage",
+  "fitnessLevel",
+  "poolLength",
+  "canSwim400m",
+  "testType",
+  "equipment",
+  "t50",
+  "s50",
+  "t200",
+  "s200",
+  "t400",
+  "s400",
+] satisfies AnalysisFieldKey[];
+const DATA_STEP_FIELD_SET = new Set<AnalysisFieldKey>(DATA_STEP_FIELDS);
+const FIELD_LABELS = {
+  name: "Name",
+  age: "Alter",
+  gender: "Geschlecht",
+  height: "Größe",
+  weight: "Gewicht",
+  bodyFatPercentage: "KFA",
+  fitnessLevel: "Fitnesslevel",
+  poolLength: "Becken",
+  canSwim400m: "400 m am Stück",
+  testType: "Testart",
+  equipment: "Hilfsmittel",
+  t50: "50 m Zeit",
+  s50: "50 m Züge pro Bahn",
+  t200: "200 m Zeit",
+  s200: "200 m Züge pro Bahn",
+  t400: "400 m Zeit",
+  s400: "400 m Züge pro Bahn",
+  goal: "Ziel",
+  level: "Niveau",
+  targetDistance: "Zielwettkampf",
+  raceDate: "Wettkampfdatum",
+  swimSessionsPerWeek: "Schwimmeinheiten pro Woche",
+  challenges: "Technische Herausforderungen",
+} satisfies Record<AnalysisFieldKey, string>;
 
 export function AnalysisFlow({
   initialInput,
@@ -121,6 +171,7 @@ export function AnalysisFlow({
   }));
   const [bodyFatInputMode, setBodyFatInputMode] = useState<BodyFatInputMode>(initialInput?.bodyFatPercentage ? "manual" : "visual");
   const [message, setMessage] = useState<string | null>(null);
+  const [validationScope, setValidationScope] = useState<"data" | "all" | null>(null);
   const [isPending, startTransition] = useTransition();
   const resumeStarted = useRef(false);
   const parsedInput = useMemo(() => {
@@ -129,9 +180,28 @@ export function AnalysisFlow({
   }, [input]);
   const result = useMemo(() => (parsedInput ? runAnalysis(parsedInput) : null), [parsedInput]);
   const validationMessages = useMemo(() => getAnalysisValidationMessages(input), [input]);
+  const validationResult = useMemo(() => getAnalysisValidationResult(input), [input]);
+  const visibleValidation = useMemo(
+    () => getVisibleValidationResult(validationResult, validationScope),
+    [validationResult, validationScope],
+  );
 
   function update(patch: Partial<AnalysisDraft>) {
     setInput((current) => ({ ...current, ...patch }));
+    setMessage(null);
+  }
+
+  function goToContext() {
+    const dataValidation = filterValidationResult(getAnalysisValidationResult(input), DATA_STEP_FIELDS);
+    setValidationScope("data");
+
+    if (dataValidation.messages.length > 0) {
+      focusFirstInvalidField(dataValidation.fieldErrors);
+      return;
+    }
+
+    setValidationScope(null);
+    setStep(1);
   }
 
   useEffect(() => {
@@ -160,21 +230,30 @@ export function AnalysisFlow({
 
   function save() {
     setMessage(null);
+    setValidationScope("all");
 
-    if (!parsedInput) {
-      setMessage(validationMessages[0] ?? "Bitte fülle alle Pflichtfelder mit plausiblen Werten aus.");
+    const currentValidation = getAnalysisValidationResult(input);
+    if (currentValidation.messages.length > 0) {
+      const firstInvalidField = getFirstInvalidField(currentValidation.fieldErrors);
+      if (firstInvalidField && DATA_STEP_FIELD_SET.has(firstInvalidField)) {
+        setStep(0);
+      }
+      focusFirstInvalidField(currentValidation.fieldErrors);
       return;
     }
 
+    const parsed = analysisInputSchema.safeParse(input);
+    if (!parsed.success) return;
+
     startTransition(async () => {
-      const state = await createAnalysis(parsedInput);
+      const state = await createAnalysis(parsed.data);
       if (state.ok) {
         clearPendingAnalysisInput();
         router.push(`/analyse/${state.id}`);
         return;
       }
       if (state.reason === "unauthenticated") {
-        storePendingAnalysisInput(parsedInput);
+        storePendingAnalysisInput(parsed.data);
         router.push(`/login?next=${encodeURIComponent(PENDING_ANALYSIS_NEXT_PATH)}`);
         return;
       }
@@ -206,9 +285,10 @@ export function AnalysisFlow({
         <DataStep
           input={input}
           update={update}
+          validation={visibleValidation}
           bodyFatInputMode={bodyFatInputMode}
           setBodyFatInputMode={setBodyFatInputMode}
-          next={() => setStep(1)}
+          next={goToContext}
           isPending={isPending}
         />
       ) : null}
@@ -216,6 +296,8 @@ export function AnalysisFlow({
         <ContextStep
           input={input}
           update={update}
+          validation={visibleValidation}
+          message={message}
           back={() => setStep(0)}
           save={save}
           isPending={isPending}
@@ -410,22 +492,26 @@ function AccountGate({
 function ContextStep({
   input,
   update,
+  validation,
+  message,
   back,
   save,
   isPending,
 }: {
   input: AnalysisDraft;
   update: (patch: Partial<AnalysisDraft>) => void;
+  validation: AnalysisValidationResult;
+  message: string | null;
   back: () => void;
   save: () => void;
   isPending: boolean;
 }) {
-  function toggleChallenge(item: string) {
+  function toggleChallenge(groupItems: readonly string[], item: string) {
     const active = input.challenges.includes(item);
     update({
       challenges: active
         ? input.challenges.filter((challenge) => challenge !== item)
-        : [...input.challenges, item],
+        : [...input.challenges.filter((challenge) => !groupItems.includes(challenge)), item],
     });
   }
 
@@ -443,14 +529,24 @@ function ContextStep({
 
   return (
     <section className="space-y-6">
+      <ValidationSummary validation={validation} fallbackMessage={message} />
+
       <div className="surface p-5">
         <p className="mono mb-4 text-xs uppercase tracking-[0.18em] text-[var(--subtle)]">
           Ziel
         </p>
-        <div className="grid gap-3 md:grid-cols-4">
+        <div
+          data-analysis-field="goal"
+          className={
+            validation.fieldErrors.goal
+              ? "grid gap-3 rounded-lg border border-[var(--warn)] bg-[color-mix(in_oklab,var(--warn)_8%,transparent)] p-2 md:grid-cols-4"
+              : "grid gap-3 md:grid-cols-4"
+          }
+        >
           {GOALS.map((goal) => (
             <button
               key={goal.id}
+              type="button"
               onClick={() => updateGoal(goal.id)}
               className={
                 input.goal === goal.id
@@ -463,16 +559,25 @@ function ContextStep({
             </button>
           ))}
         </div>
+        <FieldErrorMessage message={validation.fieldErrors.goal} />
       </div>
 
       <div className="surface p-5">
         <p className="mono mb-4 text-xs uppercase tracking-[0.18em] text-[var(--subtle)]">
           Zielwettkampf
         </p>
-        <div className="grid gap-3 md:grid-cols-6">
+        <div
+          data-analysis-field="targetDistance"
+          className={
+            validation.fieldErrors.targetDistance
+              ? "grid gap-3 rounded-lg border border-[var(--warn)] bg-[color-mix(in_oklab,var(--warn)_8%,transparent)] p-2 md:grid-cols-6"
+              : "grid gap-3 md:grid-cols-6"
+          }
+        >
           {targetDistances.map((distance) => (
             <button
               key={distance.id}
+              type="button"
               onClick={() => update({ targetDistance: distance.id })}
               className={
                 input.targetDistance === distance.id
@@ -485,11 +590,14 @@ function ContextStep({
             </button>
           ))}
         </div>
+        <FieldErrorMessage message={validation.fieldErrors.targetDistance} />
         <div className="mt-5 grid gap-4 md:grid-cols-2">
           <Field
             label="Wettkampfdatum (optional)"
-            type="date"
             value={input.raceDate ?? ""}
+            placeholder="JJJJ-MM-TT"
+            fieldKey="raceDate"
+            error={validation.fieldErrors.raceDate}
             onChange={(value) => update({ raceDate: value })}
           />
           <Field
@@ -497,6 +605,8 @@ function ContextStep({
             type="number"
             value={input.swimSessionsPerWeek}
             placeholder="z. B. 3"
+            fieldKey="swimSessionsPerWeek"
+            error={validation.fieldErrors.swimSessionsPerWeek}
             onChange={(value) => update({ swimSessionsPerWeek: optionalNumber(value) })}
           />
         </div>
@@ -516,7 +626,10 @@ function ContextStep({
                   return (
                     <button
                       key={item}
-                      onClick={() => toggleChallenge(item)}
+                      type="button"
+                      data-analysis-field="challenges"
+                      aria-pressed={active}
+                      onClick={() => toggleChallenge(group.items, item)}
                       className={
                         active
                           ? "rounded-lg border border-[var(--accent)] bg-[var(--panel-2)] px-3 py-2 text-sm"
@@ -531,6 +644,7 @@ function ContextStep({
             </div>
           ))}
         </div>
+        <FieldErrorMessage message={validation.fieldErrors.challenges} />
       </div>
 
       <div className="flex justify-between">
@@ -549,6 +663,7 @@ function ContextStep({
 function DataStep({
   input,
   update,
+  validation,
   bodyFatInputMode,
   setBodyFatInputMode,
   next,
@@ -556,6 +671,7 @@ function DataStep({
 }: {
   input: AnalysisDraft;
   update: (patch: Partial<AnalysisDraft>) => void;
+  validation: AnalysisValidationResult;
   bodyFatInputMode: BodyFatInputMode;
   setBodyFatInputMode: (mode: BodyFatInputMode) => void;
   next: () => void;
@@ -565,6 +681,8 @@ function DataStep({
 
   return (
     <section className="space-y-6">
+      <ValidationSummary validation={validation} />
+
       <div className="surface p-5">
         <p className="mono mb-4 text-xs uppercase tracking-[0.18em] text-[var(--subtle)]">
           Test-Setup
@@ -586,12 +704,12 @@ function DataStep({
             </div>
           </div>
 
-          <OptionGrid
-            label="Testart"
-            options={TEST_TYPES}
-            value={input.testType}
-            onSelect={(value) => update({ testType: value as AnalysisDraft["testType"] })}
-          />
+          <div className="rounded-lg border border-[var(--line)] bg-[var(--soft-bg)] p-3 text-sm">
+            <p className="font-medium">Testart: Abstoß von der Wand</p>
+            <p className="muted mt-1">
+              Schwimmen immer mit Abstoß vom Beckenrand. Maximal ein Delfinbeinschlag unter Wasser nach Abstoß und Wende, damit die Zeiten vergleichbar bleiben.
+            </p>
+          </div>
           <div className="rounded-lg border border-[var(--warn)] bg-[color-mix(in_oklab,var(--warn)_10%,var(--panel))] p-3">
             <div className="flex items-start gap-3">
               <AlertTriangle size={18} className="mt-0.5 shrink-0 text-[var(--warn)]" />
@@ -608,13 +726,13 @@ function DataStep({
           Athlet
         </p>
         <div className="grid gap-4 md:grid-cols-3">
-          <Field label="Name" value={input.name} placeholder="z. B. Lena Bergmann" onChange={(value) => update({ name: value })} />
-          <Field label="Alter" type="number" value={input.age} placeholder="z. B. 34" onChange={(value) => update({ age: optionalNumber(value) })} />
-          <GenderSegment value={input.gender} onChange={(value) => update({ gender: value })} />
-          <Field label="Größe (cm)" type="number" value={input.height} placeholder="z. B. 172" onChange={(value) => update({ height: optionalNumber(value) })} />
-          <Field label="Gewicht (kg)" type="number" value={input.weight} placeholder="z. B. 63" onChange={(value) => update({ weight: optionalNumber(value) })} />
-          <FitnessLevelSlider value={input.fitnessLevel} onChange={(value) => update({ fitnessLevel: value })} />
-          <PoolLengthSegment value={input.poolLength} onChange={(value) => update({ poolLength: value })} />
+          <Field label="Name" fieldKey="name" error={validation.fieldErrors.name} value={input.name} placeholder="z. B. Lena Bergmann" onChange={(value) => update({ name: value })} />
+          <Field label="Alter" fieldKey="age" error={validation.fieldErrors.age} type="number" value={input.age} placeholder="z. B. 34" onChange={(value) => update({ age: optionalNumber(value) })} />
+          <GenderSegment value={input.gender} error={validation.fieldErrors.gender} onChange={(value) => update({ gender: value })} />
+          <Field label="Größe (cm)" fieldKey="height" error={validation.fieldErrors.height} type="number" value={input.height} placeholder="z. B. 172" onChange={(value) => update({ height: optionalNumber(value) })} />
+          <Field label="Gewicht (kg)" fieldKey="weight" error={validation.fieldErrors.weight} type="number" value={input.weight} placeholder="z. B. 63" onChange={(value) => update({ weight: optionalNumber(value) })} />
+          <FitnessLevelSlider value={input.fitnessLevel} error={validation.fieldErrors.fitnessLevel} onChange={(value) => update({ fitnessLevel: value })} />
+          <PoolLengthSegment value={input.poolLength} error={validation.fieldErrors.poolLength} onChange={(value) => update({ poolLength: value })} />
         </div>
         <div className="mt-5 rounded-xl border border-[var(--line)] bg-[var(--soft-bg)] p-5">
           <div className="mb-5 flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
@@ -641,7 +759,7 @@ function DataStep({
 
           {bodyFatInputMode === "manual" ? (
             <div className="max-w-sm">
-              <Field label="KFA (%)" type="number" value={input.bodyFatPercentage} placeholder="z. B. 21.5" onChange={(value) => update({ bodyFatPercentage: optionalNumber(value) })} />
+              <Field label="KFA (%)" fieldKey="bodyFatPercentage" error={validation.fieldErrors.bodyFatPercentage} type="number" value={input.bodyFatPercentage} placeholder="z. B. 21.5" onChange={(value) => update({ bodyFatPercentage: optionalNumber(value) })} />
             </div>
           ) : (
             <BodyFatVisualSelector
@@ -658,14 +776,18 @@ function DataStep({
         <div className="surface min-w-0 overflow-hidden p-5">
           <h2 className="mb-4 text-xl font-semibold">50 m Test</h2>
           <div className="grid min-w-0 gap-4 sm:grid-cols-2">
-            <Field label="Zeit" value={input.t50} placeholder="z. B. 38.2" onChange={(value) => update({ t50: value })} />
-            <Field label="Züge pro Bahn optional" type="number" value={input.s50} placeholder="z. B. 22" onChange={(value) => update({ s50: optionalNumber(value) })} />
+            <Field label="Zeit" fieldKey="t50" error={validation.fieldErrors.t50} value={input.t50} placeholder="z. B. 38.2" onChange={(value) => update({ t50: value })} />
+            <Field label="Züge pro Bahn optional" fieldKey="s50" error={validation.fieldErrors.s50} type="number" value={input.s50} placeholder="z. B. 22" onChange={(value) => update({ s50: optionalNumber(value) })} />
           </div>
         </div>
         <TestCard
           title="200 m Test"
           time={input.t200}
           strokes={input.s200}
+          timeFieldKey="t200"
+          strokesFieldKey="s200"
+          timeError={validation.fieldErrors.t200}
+          strokesError={validation.fieldErrors.s200}
           onTime={(value) => update({ t200: value })}
           onStrokes={(value) => update({ s200: optionalNumber(value) })}
         />
@@ -674,6 +796,10 @@ function DataStep({
             title="400 m Test"
             time={input.t400 ?? ""}
             strokes={input.s400 ?? ""}
+            timeFieldKey="t400"
+            strokesFieldKey="s400"
+            timeError={validation.fieldErrors.t400}
+            strokesError={validation.fieldErrors.s400}
             onTime={(value) => update({ t400: value })}
             onStrokes={(value) => update({ s400: optionalNumber(value) })}
           />
@@ -686,44 +812,6 @@ function DataStep({
         </Button>
       </div>
     </section>
-  );
-}
-
-function OptionGrid({
-  label,
-  options,
-  value,
-  onSelect,
-}: {
-  label: string;
-  options: ReadonlyArray<{ id: string; label: string; description: string }>;
-  value: string;
-  onSelect: (value: string) => void;
-}) {
-  return (
-    <div className="grid gap-2 text-sm">
-      <span>{label}</span>
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-        {options.map((option) => {
-          const active = value === option.id;
-          return (
-            <button
-              key={option.id}
-              type="button"
-              aria-pressed={active}
-              onClick={() => onSelect(option.id)}
-              className={
-                active
-                  ? "rounded-lg border border-[var(--accent)] bg-[var(--panel-2)] px-3 py-2.5 text-left"
-                  : "rounded-lg border border-[var(--line)] bg-[var(--soft-bg)] px-3 py-2.5 text-left text-[var(--muted)]"
-              }
-            >
-              <span className="block font-medium text-[var(--foreground)]">{option.label}</span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
   );
 }
 
@@ -760,9 +848,11 @@ function SegmentButton({
 
 function GenderSegment({
   value,
+  error,
   onChange,
 }: {
   value: AnalysisDraft["gender"];
+  error?: string;
   onChange: (value: Exclude<AnalysisDraft["gender"], "">) => void;
 }) {
   const options = [
@@ -772,9 +862,15 @@ function GenderSegment({
   ] as const;
 
   return (
-    <div className="grid gap-2 text-sm">
+    <div className="grid gap-2 text-sm" data-analysis-field="gender">
       <span>Geschlecht</span>
-      <div className="grid grid-cols-3 gap-1 rounded-lg border border-[var(--line)] bg-[var(--panel-2)] p-1">
+      <div
+        className={
+          error
+            ? "grid grid-cols-3 gap-1 rounded-lg border border-[var(--warn)] bg-[color-mix(in_oklab,var(--warn)_8%,var(--panel-2))] p-1"
+            : "grid grid-cols-3 gap-1 rounded-lg border border-[var(--line)] bg-[var(--panel-2)] p-1"
+        }
+      >
         {options.map((option) => (
           <SegmentButton
             key={option.value}
@@ -784,23 +880,32 @@ function GenderSegment({
           />
         ))}
       </div>
+      <FieldErrorMessage message={error} />
     </div>
   );
 }
 
 function PoolLengthSegment({
   value,
+  error,
   onChange,
 }: {
   value: AnalysisDraft["poolLength"];
+  error?: string;
   onChange: (value: Exclude<AnalysisDraft["poolLength"], "">) => void;
 }) {
   const options = [25, 50] as const;
 
   return (
-    <div className="grid gap-2 text-sm">
+    <div className="grid gap-2 text-sm" data-analysis-field="poolLength">
       <span>Becken</span>
-      <div className="grid grid-cols-2 gap-1 rounded-lg border border-[var(--line)] bg-[var(--panel-2)] p-1">
+      <div
+        className={
+          error
+            ? "grid grid-cols-2 gap-1 rounded-lg border border-[var(--warn)] bg-[color-mix(in_oklab,var(--warn)_8%,var(--panel-2))] p-1"
+            : "grid grid-cols-2 gap-1 rounded-lg border border-[var(--line)] bg-[var(--panel-2)] p-1"
+        }
+      >
         {options.map((option) => {
           const active = value === option;
           return (
@@ -820,6 +925,7 @@ function PoolLengthSegment({
           );
         })}
       </div>
+      <FieldErrorMessage message={error} />
     </div>
   );
 }
@@ -829,9 +935,11 @@ function PoolLengthSegment({
  */
 function FitnessLevelSlider({
   value,
+  error,
   onChange,
 }: {
   value: number | "";
+  error?: string;
   onChange: (value: number | "") => void;
 }) {
   const sliderValue = value === "" ? 3 : value;
@@ -839,7 +947,7 @@ function FitnessLevelSlider({
   const meta = FITNESS_LEVEL_OPTIONS.find((item) => item.value === sliderValue) ?? FITNESS_LEVEL_OPTIONS[2];
 
   return (
-    <div className="grid gap-2 text-sm md:col-span-2">
+    <div className="grid gap-2 text-sm md:col-span-2" data-analysis-field="fitnessLevel">
       <div className="flex items-center justify-between gap-3">
         <span>Fitnesslevel</span>
         <div className="flex shrink-0 items-center gap-2">
@@ -857,7 +965,13 @@ function FitnessLevelSlider({
           ) : null}
         </div>
       </div>
-      <div className="rounded-lg border border-[var(--line)] bg-[var(--panel-2)] px-3 py-2.5">
+      <div
+        className={
+          error
+            ? "rounded-lg border border-[var(--warn)] bg-[color-mix(in_oklab,var(--warn)_8%,var(--panel-2))] px-3 py-2.5"
+            : "rounded-lg border border-[var(--line)] bg-[var(--panel-2)] px-3 py-2.5"
+        }
+      >
         <div className="relative h-6">
           <div className="absolute left-0 right-0 top-1/2 h-0.5 -translate-y-1/2 rounded-full bg-[color-mix(in_oklab,var(--accent)_70%,var(--line))]" />
           <div
@@ -867,6 +981,7 @@ function FitnessLevelSlider({
           />
           <input
             aria-label="Fitnesslevel"
+            aria-invalid={Boolean(error)}
             type="range"
             min={1}
             max={5}
@@ -882,6 +997,7 @@ function FitnessLevelSlider({
           <span>Master</span>
         </div>
       </div>
+      <FieldErrorMessage message={error} />
     </div>
   );
 }
@@ -890,12 +1006,20 @@ function TestCard({
   title,
   time,
   strokes,
+  timeFieldKey,
+  strokesFieldKey,
+  timeError,
+  strokesError,
   onTime,
   onStrokes,
 }: {
   title: string;
   time: string;
   strokes: number | "";
+  timeFieldKey: AnalysisFieldKey;
+  strokesFieldKey: AnalysisFieldKey;
+  timeError?: string;
+  strokesError?: string;
   onTime: (value: string) => void;
   onStrokes: (value: string) => void;
 }) {
@@ -903,8 +1027,8 @@ function TestCard({
     <div className="surface min-w-0 overflow-hidden p-5">
       <h2 className="mb-4 text-xl font-semibold">{title}</h2>
       <div className="grid min-w-0 gap-4 sm:grid-cols-2">
-        <Field label="Zeit" value={time} placeholder={title.startsWith("200") ? "z. B. 3:38" : "z. B. 7:48"} onChange={onTime} />
-        <Field label="Züge pro Bahn" type="number" value={strokes} placeholder={title.startsWith("200") ? "z. B. 21" : "z. B. 22.5"} onChange={onStrokes} />
+        <Field label="Zeit" fieldKey={timeFieldKey} error={timeError} value={time} placeholder={title.startsWith("200") ? "z. B. 3:38" : "z. B. 7:48"} onChange={onTime} />
+        <Field label="Züge pro Bahn" fieldKey={strokesFieldKey} error={strokesError} type="number" value={strokes} placeholder={title.startsWith("200") ? "z. B. 21" : "z. B. 22.5"} onChange={onStrokes} />
       </div>
     </div>
   );
@@ -912,29 +1036,124 @@ function TestCard({
 
 function Field({
   label,
+  fieldKey,
+  error,
   value,
   onChange,
   placeholder,
   type = "text",
 }: {
   label: string;
+  fieldKey: AnalysisFieldKey;
+  error?: string;
   value: string | number;
   onChange: (value: string) => void;
   placeholder?: string;
   type?: string;
 }) {
   return (
-    <label className="grid min-w-0 gap-2 text-sm">
+    <label className="grid min-w-0 gap-2 text-sm" data-analysis-field={fieldKey}>
       {label}
       <input
         type={type}
         value={value}
         placeholder={placeholder}
-        className="w-full min-w-0"
+        aria-invalid={Boolean(error)}
+        className={
+          error
+            ? "w-full min-w-0 border-[var(--warn)] bg-[color-mix(in_oklab,var(--warn)_8%,var(--panel-2))]"
+            : "w-full min-w-0"
+        }
         onChange={(event) => onChange(event.target.value)}
       />
+      <FieldErrorMessage message={error} />
     </label>
   );
+}
+
+function ValidationSummary({
+  validation,
+  fallbackMessage,
+}: {
+  validation: AnalysisValidationResult;
+  fallbackMessage?: string | null;
+}) {
+  if (validation.messages.length === 0 && !fallbackMessage) return null;
+
+  return (
+    <div
+      className="surface border-[var(--warn)] bg-[color-mix(in_oklab,var(--warn)_8%,var(--panel))] p-4 text-sm text-[var(--warn)]"
+      aria-live="polite"
+    >
+      {validation.messages.length > 0 ? (
+        <>
+          <p className="font-medium">Bitte prüfe diese Eingaben:</p>
+          <ul className="mt-2 list-disc space-y-1 pl-5">
+            {validation.messages.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </>
+      ) : (
+        fallbackMessage
+      )}
+    </div>
+  );
+}
+
+function FieldErrorMessage({ message }: { message?: string }) {
+  if (!message) return null;
+  return <span className="text-xs text-[var(--warn)]">{message}</span>;
+}
+
+function getVisibleValidationResult(
+  validation: AnalysisValidationResult,
+  scope: "data" | "all" | null,
+): AnalysisValidationResult {
+  if (!scope) return { messages: [], fieldErrors: {} };
+  if (scope === "all") return validation;
+  return filterValidationResult(validation, DATA_STEP_FIELDS);
+}
+
+function filterValidationResult(
+  validation: AnalysisValidationResult,
+  fields: readonly AnalysisFieldKey[],
+): AnalysisValidationResult {
+  const fieldErrors: Partial<Record<AnalysisFieldKey, string>> = {};
+  const messages: string[] = [];
+
+  for (const field of fields) {
+    const error = validation.fieldErrors[field];
+    if (!error) continue;
+    fieldErrors[field] = error;
+    messages.push(`${FIELD_LABELS[field]}: ${error}`);
+  }
+
+  return { messages, fieldErrors };
+}
+
+function focusFirstInvalidField(fieldErrors: Partial<Record<AnalysisFieldKey, string>>) {
+  const firstField = getFirstInvalidField(fieldErrors);
+  if (!firstField) return;
+
+  window.requestAnimationFrame(() => {
+    window.requestAnimationFrame(() => {
+      const field = document.querySelector<HTMLElement>(`[data-analysis-field="${firstField}"]`);
+      const focusTarget = field?.matches("input,button,select,textarea")
+        ? field
+        : field?.querySelector<HTMLElement>("input,button,select,textarea,[tabindex]");
+      focusTarget?.focus();
+      field?.scrollIntoView({ block: "center", behavior: "smooth" });
+    });
+  });
+}
+
+function getFirstInvalidField(fieldErrors: Partial<Record<AnalysisFieldKey, string>>) {
+  const orderedFields = [
+    ...DATA_STEP_FIELDS,
+    ...Object.keys(FIELD_LABELS).filter((field): field is AnalysisFieldKey => !DATA_STEP_FIELD_SET.has(field as AnalysisFieldKey)),
+  ];
+  return orderedFields.find((field) => fieldErrors[field]) ?? null;
 }
 
 function optionalNumber(value: string) {

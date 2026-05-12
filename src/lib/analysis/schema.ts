@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CHALLENGE_GROUPS } from "./constants";
 
 const timeSchema = z
   .string()
@@ -55,6 +56,17 @@ export const analysisInputSchema = z.object({
   swimSessionsPerWeek: z.coerce.number().int().min(1).max(7),
   challenges: z.array(z.string().trim().min(2).max(120)).max(12),
 }).superRefine((input, context) => {
+  for (const group of CHALLENGE_GROUPS) {
+    const selectedCount = group.items.filter((item) => input.challenges.includes(item)).length;
+    if (selectedCount > 1) {
+      context.addIssue({
+        code: "custom",
+        path: ["challenges"],
+        message: `Bitte wähle bei ${group.group} nur eine Aussage aus.`,
+      });
+    }
+  }
+
   if (!input.canSwim400m) return;
 
   if (!input.t400) {
