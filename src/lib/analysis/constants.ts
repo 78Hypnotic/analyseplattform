@@ -138,58 +138,54 @@ export const SWIM_REFERENCES = {
 export const CHALLENGE_GROUPS = [
   {
     group: "Wasserlage",
-    items: ["Ich komme gut ins Gleiten", "Meine Beine sinken ab", "Ich gleite kaum"],
+    items: ["Ich liege stabil im Wasser", "Meine Beine sinken ab", "Ich gleite kaum"],
   },
   {
     group: "Armzug",
     items: [
-      "Ich habe einen guten Armzug",
+      "Mein Zug fühlt sich stabil an",
       "Ich habe Probleme mit dem frühen Wasserfassen",
-      "Ich habe einen kurzen Armzug",
+      "Mein Zug fühlt sich kurz an",
     ],
   },
   {
     group: "Rückführung",
     items: [
-      "Ich kann meine Arme locker nach vorne schwingen",
-      "Ich schwimme mit hohem Ellenbogen",
-      "Ich führe meine Arme gestreckt nach vorne",
-      "Ich bekomme die Arme kaum aus dem Wasser",
+      "Meine Rückführung fühlt sich locker an",
+      "Ich verliere Rhythmus zwischen den Zügen",
+      "Meine Arme fühlen sich schwer an",
     ],
   },
   {
     group: "Rotation",
     items: [
-      "Ich liege flach und rotiere kaum",
-      "Ich rotiere ausreichend",
-      "Ich rotiere zu viel und verliere die Balance",
+      "Meine Rotation fühlt sich stabil an",
+      "Ich rotiere zu wenig",
+      "Ich verliere die Balance bei der Rotation",
     ],
   },
   {
     group: "Atmung",
     items: [
-      "Keine Probleme mit der Atmung",
-      "Ich japse schnell nach Luft",
-      "Ich hebe den Kopf zu stark",
+      "Meine Atmung fühlt sich ruhig an",
       "Ich verliere den Rhythmus beim Atmen",
+      "Ich bekomme schnell Luftprobleme",
     ],
   },
   {
     group: "Beinarbeit",
     items: [
-      "Mein Beinschlag klappt gut",
-      "Beinarbeit macht mich müde",
-      "Meine Beine erzeugen kaum Vortrieb",
-      "Ich mache kaum Beinschlag",
+      "Mein Beinschlag fühlt sich stabil an",
+      "Meine Beine sinken oder bremsen",
+      "Meine Beine ermüden schnell",
     ],
   },
   {
     group: "Wassergefühl",
     items: [
-      "Ich habe ein gutes Wassergefühl",
-      "Ich spüre kaum Druck beim Armzug",
-      "Ich ziehe schnell, habe aber kaum Vortrieb",
-      "Ich ziehe ruhig und gleichmäßig",
+      "Ich spüre guten Druck im Wasser",
+      "Ich spüre wenig Halt im Wasser",
+      "Ich ziehe schnell, komme aber wenig vorwärts",
     ],
   },
 ] as const;
@@ -220,6 +216,6 @@ export const DEFAULT_ANALYSIS_INPUT: AnalysisInput = {
   challenges: [
     "Meine Beine sinken ab",
     "Ich habe Probleme mit dem frühen Wasserfassen",
-    "Ich hebe den Kopf zu stark",
+    "Ich bekomme schnell Luftprobleme",
   ],
 };

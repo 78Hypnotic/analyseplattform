@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_ANALYSIS_INPUT } from "./constants";
+import { CHALLENGE_GROUPS, DEFAULT_ANALYSIS_INPUT } from "./constants";
 import { analysisInputSchema } from "./schema";
 import {
   buildSprintReservePlausibility,
@@ -14,7 +14,7 @@ import {
   parseTime,
   runAnalysis,
 } from "./calculations";
-import { getAnalysisValidationMessages } from "./validation";
+import { getAnalysisValidationMessages, getAnalysisValidationResult } from "./validation";
 import type { AnalysisInput } from "./types";
 
 describe("swim analysis calculations", () => {
@@ -295,6 +295,24 @@ describe("swim analysis calculations", () => {
     expect(messages[0]).toContain("Schwimmeinheiten pro Woche");
   });
 
+  it("returns field errors for missing pool length", () => {
+    const result = getAnalysisValidationResult({
+      ...DEFAULT_ANALYSIS_INPUT,
+      poolLength: "",
+    });
+
+    expect(result.fieldErrors.poolLength).toContain("25 m oder 50 m");
+  });
+
+  it("returns field errors for invalid race dates", () => {
+    const result = getAnalysisValidationResult({
+      ...DEFAULT_ANALYSIS_INPUT,
+      raceDate: "2026-99-99",
+    });
+
+    expect(result.fieldErrors.raceDate).toContain("gültiges Datum");
+  });
+
   it("returns actionable validation messages for impossible test timing", () => {
     const messages = getAnalysisValidationMessages({
       ...DEFAULT_ANALYSIS_INPUT,
@@ -303,5 +321,25 @@ describe("swim analysis calculations", () => {
     });
 
     expect(messages).toContain("400 m Zeit: muss langsamer sein als die 200 m Zeit.");
+  });
+
+  it("marks impossible 400m timing on the 400m field", () => {
+    const result = getAnalysisValidationResult({
+      ...DEFAULT_ANALYSIS_INPUT,
+      t200: "3:20",
+      t400: "3:10",
+    });
+
+    expect(result.fieldErrors.t400).toContain("langsamer");
+  });
+
+  it("allows only one technical challenge per category", () => {
+    const [first, second] = CHALLENGE_GROUPS[0].items;
+    const result = getAnalysisValidationResult({
+      ...DEFAULT_ANALYSIS_INPUT,
+      challenges: [first, second],
+    });
+
+    expect(result.fieldErrors.challenges).toContain("nur eine Aussage");
   });
 });
