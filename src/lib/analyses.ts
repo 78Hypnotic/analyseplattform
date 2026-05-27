@@ -22,6 +22,7 @@ export async function getUserAnalyses(limit = 20): Promise<StoredAnalysis[]> {
   const { data, error } = await supabase
     .from("analyses")
     .select("id,title,input,result,created_at")
+    .eq("user_id", user.id)
     .order("created_at", { ascending: false })
     .limit(limit);
 

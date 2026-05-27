@@ -2,9 +2,10 @@
 
 ## Rollenmodell
 
-Die Plattform nutzt zwei Rollen:
+Die Plattform nutzt drei Rollen:
 
 - `user`: normale Nutzer mit Zugriff auf eigene Analysen
+- `coach`: Trainer mit read-only Zugriff auf zugeordnete Athleten
 - `admin`: Zugriff auf Admin-Bereich und Trainingsplan-Builder
 
 Rollen liegen in `public.user_roles`. Normale Nutzer dürfen ihre Rolle nur lesen,
@@ -15,7 +16,7 @@ insert into public.user_roles (user_id, role)
 select id, 'admin'::public.app_role
 from auth.users
 where email = 'manuel.hohlwegler@gmx.de'
-on conflict (user_id) do update set role = 'admin'::public.app_role;
+on conflict (user_id, role) do nothing;
 ```
 
 Der RLS-Helfer `public.is_admin()` wird in Policies genutzt und verhindert, dass

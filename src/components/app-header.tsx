@@ -1,4 +1,4 @@
-import { Activity, LogOut, ShieldCheck, Waves } from "lucide-react";
+import { Activity, LogOut, ShieldCheck, UsersRound, Waves } from "lucide-react";
 import Link from "next/link";
 import { signOut } from "@/app/login/actions";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -11,10 +11,11 @@ export async function AppHeader({ userEmail }: { userEmail?: string | null }) {
   const currentUser =
     userEmail === undefined
       ? await getCurrentUserProfile()
-      : { email: userEmail, name: null, role: null, avatarUrl: null };
+      : { email: userEmail, name: null, roles: [] as AppRole[], avatarUrl: null };
   const resolvedUserEmail = currentUser.email;
   const profileLabel = currentUser.name || currentUser.email;
-  const isAdmin = currentUser.role === "admin";
+  const isAdmin = currentUser.roles.includes("admin");
+  const isCoach = currentUser.roles.includes("coach");
   const profileInitials = buildInitials(profileLabel ?? "Profil");
 
   return (
@@ -46,6 +47,12 @@ export async function AppHeader({ userEmail }: { userEmail?: string | null }) {
             <Activity size={16} />
             Analyse
           </Link>
+          {isCoach || isAdmin ? (
+            <Link className="flex items-center gap-2 rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/coach">
+              <UsersRound size={16} />
+              Coach
+            </Link>
+          ) : null}
           {isAdmin ? (
             <Link className="flex items-center gap-2 rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/admin">
               <ShieldCheck size={16} />
@@ -87,6 +94,7 @@ export async function AppHeader({ userEmail }: { userEmail?: string | null }) {
         <MobileHeaderMenu
           isAuthenticated={Boolean(resolvedUserEmail)}
           isAdmin={isAdmin}
+          isCoach={isCoach}
           profileLabel={profileLabel}
           avatarUrl={currentUser.avatarUrl}
         />
@@ -102,7 +110,7 @@ async function getCurrentUserProfile() {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (!user) return { email: null, name: null, role: null };
+    if (!user) return { email: null, name: null, roles: [] as AppRole[] };
 
     const metadataName =
       typeof user.user_metadata?.full_name === "string"
@@ -118,25 +126,30 @@ async function getCurrentUserProfile() {
       supabase
         .from("user_roles")
         .select("role")
-        .eq("user_id", user.id)
-        .maybeSingle(),
+        .eq("user_id", user.id),
     ]);
 
     const profile = profileData as { full_name?: string | null; avatar_url?: string | null } | null;
-    const role =
-      roleData?.role === "admin" || roleData?.role === "user"
-        ? (roleData.role as AppRole)
-        : null;
+    const roles = normalizeRoles(roleData?.map((row) => row.role));
 
     return {
       email: user.email ?? null,
       name: profile?.full_name || metadataName,
       avatarUrl: profile?.avatar_url ?? getMetadataAvatarUrl(user.user_metadata?.avatar_url),
-      role,
+      roles,
     };
   } catch {
-    return { email: null, name: null, role: null, avatarUrl: null };
+    return { email: null, name: null, roles: [] as AppRole[], avatarUrl: null };
   }
+}
+
+function normalizeRoles(values: unknown[] | undefined): AppRole[] {
+  const roles = (values ?? []).filter(isAppRole);
+  return roles.length > 0 ? Array.from(new Set(roles)) : ["user"];
+}
+
+function isAppRole(value: unknown): value is AppRole {
+  return value === "user" || value === "coach" || value === "admin";
 }
 
 function getMetadataAvatarUrl(value: unknown) {
