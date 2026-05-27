@@ -29,7 +29,7 @@ export default async function CoachAthleteDetailPage({
       <main className="mx-auto w-full max-w-6xl space-y-8 px-5 py-10">
         <Link href="/coach" className="inline-flex items-center gap-2 text-sm text-[var(--muted)] hover:text-[var(--foreground)]">
           <ArrowLeft size={16} />
-          Zuruck zur Athletenliste
+          Zurück zur Athletenliste
         </Link>
 
         <section className="surface p-6">
@@ -53,9 +53,9 @@ export default async function CoachAthleteDetailPage({
           <ProfileMetric label="Alter" value={athlete.age ? `${athlete.age} Jahre` : "-"} />
           <ProfileMetric label="Geschlecht" value={formatGender(athlete.gender)} />
           <ProfileMetric label="Fitness" value={athlete.fitnessLevel ? `${athlete.fitnessLevel}/5` : "-"} />
-          <ProfileMetric label="Groesse" value={athlete.heightCm ? `${athlete.heightCm} cm` : "-"} />
+          <ProfileMetric label="Größe" value={athlete.heightCm ? `${athlete.heightCm} cm` : "-"} />
           <ProfileMetric label="Gewicht" value={athlete.weightKg ? `${athlete.weightKg} kg` : "-"} />
-          <ProfileMetric label="Korperfett" value={athlete.bodyFatPercentage ? `${athlete.bodyFatPercentage}%` : "-"} />
+          <ProfileMetric label="Körperfett" value={athlete.bodyFatPercentage ? `${athlete.bodyFatPercentage}%` : "-"} />
           <ProfileMetric label="Disziplinen" value={athlete.disciplines.length > 0 ? athlete.disciplines.join(", ") : "-"} />
         </section>
 
@@ -127,7 +127,7 @@ function SmallMetric({ label, value }: { label: string; value: string }) {
 function formatTechniqueStatus(value: "rot" | "gelb" | "gruen" | null) {
   if (value === "rot") return "Rot";
   if (value === "gelb") return "Gelb";
-  if (value === "gruen") return "Grun";
+  if (value === "gruen") return "Grün";
   return "-";
 }
 
@@ -141,7 +141,7 @@ function formatProxy(value: "hoch" | "mittel" | "niedrig" | "nicht_ermittelbar" 
 }
 
 function formatGender(value: "weiblich" | "maennlich" | "divers" | null) {
-  if (value === "maennlich") return "Mannlich";
+  if (value === "maennlich") return "Männlich";
   if (value === "weiblich") return "Weiblich";
   if (value === "divers") return "Divers";
   return "-";

@@ -97,13 +97,13 @@ export default async function AdminCoachesPage() {
         <section className="surface p-5">
           <div className="mb-4">
             <h2 className="text-xl font-semibold">Athlet zuordnen</h2>
-            <p className="muted mt-1 text-sm">Nur Nutzer mit Rolle `coach` konnen Athleten erhalten.</p>
+            <p className="muted mt-1 text-sm">Nur Nutzer mit Rolle `coach` können Athleten erhalten.</p>
           </div>
           <form action={assignAthleteToCoach} className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
             <label className="grid gap-2 text-sm">
               Coach
               <select name="coachId" required>
-                <option value="">Coach auswahlen</option>
+                <option value="">Coach auswählen</option>
                 {data.coaches.map((coach) => (
                   <option key={coach.user_id} value={coach.user_id}>
                     {coach.name} ({coach.email})
@@ -114,7 +114,7 @@ export default async function AdminCoachesPage() {
             <label className="grid gap-2 text-sm">
               Athlet
               <select name="athleteId" required>
-                <option value="">Athlet auswahlen</option>
+                <option value="">Athlet auswählen</option>
                 {data.athletes.map((athlete) => (
                   <option key={athlete.user_id} value={athlete.user_id}>
                     {athlete.name} ({athlete.email})

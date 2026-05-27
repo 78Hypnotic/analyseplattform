@@ -14,7 +14,7 @@ gespeicherten Analysen, erweitertem Report und Admin-verwalteten Trainingspläne
 - Analyse-Übersicht unter `/analyse`
 - Detailreport pro Analyse unter `/analyse/[id]`
 - Admin-Rollenmodell und Trainingsplan-Builder unter `/admin/plans`
-- Coach-Zugang fuer zugeordnete Athleten unter `/coach`
+- Coach-Zugang für zugeordnete Athleten unter `/coach`
 - Gesperrte Trainingsplan-Vorschau im Report
 
 ## Datenmodell
@@ -22,8 +22,8 @@ gespeicherten Analysen, erweitertem Report und Admin-verwalteten Trainingspläne
 Supabase nutzt:
 
 - `profiles` für User-Basisdaten
-- `user_roles` fuer `user`, `coach` und `admin`
-- `coach_athletes` fuer Coach-Athlet-Zuordnungen
+- `user_roles` für `user`, `coach` und `admin`
+- `coach_athletes` für Coach-Athlet-Zuordnungen
 - `analyses` für gespeicherte Analyse-Reports
 - `training_plans` für Admin-verwaltete Planinhalte
 
