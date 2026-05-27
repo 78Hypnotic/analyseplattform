@@ -42,7 +42,7 @@ export function MobileHeaderMenu({
             <MobileLink href="/#methodik" label="Methodik" onClick={() => setOpen(false)} />
             <MobileLink href="/#preise" label="Preise" onClick={() => setOpen(false)} />
             <MobileLink href="/analyse" label="Analyse" icon={<Activity size={16} />} onClick={() => setOpen(false)} />
-            {isCoach || isAdmin ? (
+            {isCoach ? (
               <MobileLink href="/coach" label="Coach" icon={<UsersRound size={16} />} onClick={() => setOpen(false)} />
             ) : null}
             {isAdmin ? (

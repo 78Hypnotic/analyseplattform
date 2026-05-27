@@ -16,7 +16,7 @@ const assignmentSchema = z
     athleteId: z.string().uuid(),
   })
   .refine((value) => value.coachId !== value.athleteId, {
-    message: "Coach und Athlet mussen unterschiedliche Nutzer sein.",
+    message: "Coach und Athlet müssen unterschiedliche Nutzer sein.",
   });
 
 export async function setCoachRole(formData: FormData) {
@@ -28,7 +28,7 @@ export async function setCoachRole(formData: FormData) {
   });
 
   if (parsed.userId === user.id) {
-    throw new Error("Die eigene Admin-Rolle kann hier nicht geandert werden.");
+    throw new Error("Die eigene Admin-Rolle kann hier nicht geändert werden.");
   }
 
   const { error: currentRoleError } = await supabase
@@ -86,7 +86,7 @@ export async function assignAthleteToCoach(formData: FormData) {
 
   const coachHasRole = roles?.some((role) => role.user_id === parsed.coachId && role.role === "coach");
 
-  if (!coachHasRole) throw new Error("Der ausgewahlte Nutzer ist kein Coach.");
+  if (!coachHasRole) throw new Error("Der ausgewählte Nutzer ist kein Coach.");
 
   const { error } = await supabase.from("coach_athletes").insert({
     coach_id: parsed.coachId,

@@ -46,14 +46,14 @@ export default async function CoachPage() {
                   <h2 className="truncate font-medium">{athlete.fullName}</h2>
                   <p className="mono mt-1 truncate text-xs text-[var(--subtle)]">{athlete.email}</p>
                   <p className="muted mt-2 text-sm">
-                    {[athlete.city, athlete.age ? `${athlete.age} Jahre` : null].filter(Boolean).join(" | ") || "Profil unvollstandig"}
+                    {[athlete.city, athlete.age ? `${athlete.age} Jahre` : null].filter(Boolean).join(" | ") || "Profil unvollständig"}
                   </p>
                 </div>
                 <SmallMetric label="Technik" value={formatTechniqueStatus(athlete.latestSwimTechniqueStatus)} />
                 <SmallMetric label="CSS" value={formatNullablePace(athlete.latestSwimCssPaceSec)} />
                 <SmallMetric label="Letzte Analyse" value={formatDate(athlete.latestSwimAnalyzedAt)} />
                 <span className="flex items-center gap-2 text-sm font-medium text-[var(--accent)] md:justify-end">
-                  Offnen
+                  Öffnen
                   <ArrowRight size={16} />
                 </span>
               </Link>
@@ -80,7 +80,7 @@ function SmallMetric({ label, value }: { label: string; value: string }) {
 function formatTechniqueStatus(value: "rot" | "gelb" | "gruen" | null) {
   if (value === "rot") return "Rot";
   if (value === "gelb") return "Gelb";
-  if (value === "gruen") return "Grun";
+  if (value === "gruen") return "Grün";
   return "-";
 }
 

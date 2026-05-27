@@ -47,7 +47,7 @@ export async function AppHeader({ userEmail }: { userEmail?: string | null }) {
             <Activity size={16} />
             Analyse
           </Link>
-          {isCoach || isAdmin ? (
+          {isCoach ? (
             <Link className="flex items-center gap-2 rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/coach">
               <UsersRound size={16} />
               Coach
