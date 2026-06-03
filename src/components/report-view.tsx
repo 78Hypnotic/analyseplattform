@@ -306,6 +306,13 @@ function TrainingLeverCard({
             Trainingsplan freischalten
           </button>
         </div>
+        <div className="mt-4 rounded-lg border border-[color-mix(in_oklab,var(--accent)_38%,var(--line))] bg-[color-mix(in_oklab,var(--accent)_8%,var(--raised-bg))] p-4">
+          <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--accent)]">
+            Potenzial mit diesem Fokus
+          </p>
+          <p className="mt-2 text-2xl font-semibold">{result.potential.paceGain}</p>
+          <p className="muted mt-2 text-sm leading-6">{result.potential.description}</p>
+        </div>
         <p className="muted mt-3 text-sm leading-6">
           {trainingPlanPreview?.summary ?? `${result.plan.weeks} Wochen mit einem klaren Schwerpunkt und ReTest am Ende.`}
         </p>
