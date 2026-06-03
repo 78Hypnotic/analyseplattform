@@ -50,6 +50,18 @@ Die zusätzliche Technikklasse wird aus der 400-m-Pace abgeleitet:
 VO2-Proxy wird nur berechnet, wenn für Alter und Geschlecht Referenzwerte
 vorliegen. Für `divers` bleiben Referenzindex und VO2-Proxy nicht ermittelbar.
 
+## Report-Ausgabe
+
+Standardberichte zeigen CSS als Hauptbotschaft. VO2- und VLa-Proxies werden in
+der sichtbaren Oberfläche nicht als Laborwerte ausgegeben, sondern als
+sportartspezifische Indizes für aerobe und anaerobe Kapazität. Rohdaten,
+Pace-Differenzen, Sprintreserve, Referenzwerte und Profil-Scores liegen im
+eingeklappten Expertenmodus.
+
+Technique-only Reports zeigen keine CSS-Hauptbotschaft. Sie erklären zuerst,
+warum die physiologische Auswertung blockiert ist, und führen den Athleten zu
+Technikfokus, Schwimm-Mechanik, Trainingshebel und ReTest.
+
 ## Planempfehlung
 
 - Technik-Gate rot: `wasserlage-balance`
