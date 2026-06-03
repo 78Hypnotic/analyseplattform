@@ -12,6 +12,7 @@ test.describe("Schwimmdiagnostik Report", () => {
     await expect(page.getByText("Schwimm-Mechanik", { exact: true })).toBeVisible();
     await expect(page.getByText("Dein aktuelles Schwimmmuster", { exact: true })).toBeVisible();
     await expect(page.getByText("Trainingshebel", { exact: true })).toBeVisible();
+    await expect(page.getByText("Potenzial mit diesem Fokus", { exact: true })).toBeVisible();
     await expect(page.locator("section").filter({ hasText: /^ReTest/ }).first()).toBeVisible();
 
     const expertDetails = page.locator("details").filter({ hasText: "Expertenmodus / Details" });
@@ -35,6 +36,7 @@ test.describe("Schwimmdiagnostik Report", () => {
     await expect(page.getByText("Schwimm-Mechanik", { exact: true })).toBeVisible();
     await expect(page.getByText("Dein aktuelles Schwimmmuster", { exact: true })).toBeVisible();
     await expect(page.getByText("Trainingshebel", { exact: true })).toBeVisible();
+    await expect(page.getByText("Potenzial mit diesem Fokus", { exact: true })).toBeVisible();
     await expect(page.getByText("Expertenmodus / Details", { exact: true })).toBeVisible();
 
     await page.screenshot({

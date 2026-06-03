@@ -46,6 +46,7 @@ describe("ReportView", () => {
     expect(screen.getByText("Schwimm-Mechanik")).toBeTruthy();
     expect(screen.getByText("Dein aktuelles Schwimmmuster")).toBeTruthy();
     expect(screen.getByText("Trainingshebel")).toBeTruthy();
+    expect(screen.getByText("Potenzial mit diesem Fokus")).toBeTruthy();
     expect(screen.getByText("Expertenmodus / Details")).toBeTruthy();
     expect(screen.queryByText("Radar")).toBeNull();
     expect(screen.queryByText("VO2-Proxy")).toBeNull();
@@ -71,6 +72,7 @@ describe("ReportView", () => {
     expect(screen.queryByRole("heading", { name: /Deine CSS beträgt/i })).toBeNull();
     expect(screen.getByText("Schwimm-Mechanik")).toBeTruthy();
     expect(screen.getByText("Trainingshebel")).toBeTruthy();
+    expect(screen.getByText("Potenzial mit diesem Fokus")).toBeTruthy();
   });
 
   it("renders stored legacy standard reports without newer optional fields", () => {
