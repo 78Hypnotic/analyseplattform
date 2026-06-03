@@ -54,7 +54,7 @@ vorliegen. Für `divers` bleiben Referenzindex und VO2-Proxy nicht ermittelbar.
 
 Standardberichte zeigen CSS als Hauptbotschaft. VO2- und VLa-Proxies werden in
 der sichtbaren Oberfläche nicht als Laborwerte ausgegeben, sondern als
-sportartspezifische Indizes für aerobe und anaerobe Kapazität. Rohdaten,
+qualitative Einordnung der aeroben und anaeroben Kapazität. Rohdaten,
 Pace-Differenzen, Sprintreserve, Referenzwerte und Profil-Scores liegen im
 eingeklappten Expertenmodus.
 
