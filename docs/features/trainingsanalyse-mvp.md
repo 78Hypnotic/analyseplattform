@@ -22,7 +22,9 @@ gespeicherten Analysen, erweitertem Report und Admin-verwalteten Trainingspläne
 Der Report folgt dem Prinzip "Weniger Labor. Mehr Coaching." Standardberichte
 zeigen CSS, Schwimm-Mechanik, Stilprofil, Trainingshebel und ReTest zuerst.
 Technische Cross-Checks wie Pace-Differenzen, Sprintreserve, Referenzwerte und
-Profil-Scores bleiben im eingeklappten Expertenmodus verfügbar.
+Profil-Scores bleiben im eingeklappten Expertenmodus verfügbar. Im sichtbaren
+Report werden die physiologischen Ableitungen qualitativ gelabelt statt als
+harte Zahlenwerte ausgegeben.
 
 Physiologische Ableitungen werden sichtbar als sportartspezifische
 Leistungsindizes kommuniziert:

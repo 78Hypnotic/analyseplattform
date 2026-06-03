@@ -154,16 +154,19 @@ function PhysiologicalProfileCard({ result }: { result: StandardAnalysisResult }
     {
       label: "Aerobe Kapazität",
       score: Math.round(result.vo2.score * 100),
+      value: capacityLabel(result.vo2.score * 100, "aerobic"),
       text: aerobicCapacityText(result.vo2.score),
     },
     {
       label: "Anaerobe Kapazität",
       score: Math.round(result.vla.score * 100),
+      value: capacityLabel(result.vla.score * 100, "anaerobic"),
       text: anaerobicCapacityText(result.vla.score),
     },
     {
       label: "Schwellenleistung / CSS",
       score: cssScore,
+      value: capacityLabel(cssScore, "css"),
       text: cssCapacityText(cssScore),
     },
   ];
@@ -175,25 +178,25 @@ function PhysiologicalProfileCard({ result }: { result: StandardAnalysisResult }
       </p>
       <h2 className="mt-2 text-2xl font-semibold">Leistungsindizes für dein Schwimmen</h2>
       <p className="muted mt-2 max-w-2xl leading-7">
-        Die Balken sind sportartspezifische Indizes aus deinem Test, keine Labordiagnostik.
+        Die Einordnung basiert auf deinem Schwimmtest und bleibt bewusst qualitativ, keine Labordiagnostik.
       </p>
       <div className="mt-5 grid gap-3 lg:grid-cols-3">
         {bars.map((bar) => (
-          <CapacityBar key={bar.label} label={bar.label} score={bar.score} text={bar.text} />
+          <CapacityBar key={bar.label} label={bar.label} score={bar.score} value={bar.value} text={bar.text} />
         ))}
       </div>
     </section>
   );
 }
 
-function CapacityBar({ label, score, text }: { label: string; score: number; text: string }) {
+function CapacityBar({ label, score, value, text }: { label: string; score: number; value: string; text: string }) {
   const safeScore = Math.max(0, Math.min(100, score));
 
   return (
     <div className="rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-4">
       <div className="flex items-center justify-between gap-3">
         <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--subtle)]">{label}</p>
-        <p className="text-sm font-medium">{safeScore}</p>
+        <p className="text-sm font-medium text-[var(--accent)]">{value}</p>
       </div>
       <div className="mt-4 h-2 rounded-full bg-[var(--line)]">
         <div className="h-full rounded-full bg-[var(--accent)]" style={{ width: `${safeScore}%` }} />
@@ -522,15 +525,35 @@ function formatStrokeCount(value: number) {
 
 function mechanicsSummary(test: TestMetrics) {
   if (test.dps >= 1.75 && test.sr < 60) {
-    return "Du erzeugst deine Geschwindigkeit aktuell eher über Zuglänge als über hohe Frequenz.";
+    return "Deine Zuglänge ist aktuell deutlich ausgeprägter als deine Frequenz. Tempo entsteht deshalb vor allem über lange Züge.";
   }
   if (test.sr >= 62 && test.dps < 1.6) {
-    return "Du erzeugst Tempo aktuell eher über Frequenz als über lange, ruhige Züge.";
+    return "Deine Frequenz ist aktuell deutlich ausgeprägter als deine Zuglänge. Tempo entsteht deshalb vor allem über Rhythmus.";
   }
   if (test.dps >= 1.7 && test.sr >= 58) {
     return "Zuglänge und Frequenz arbeiten bereits gut zusammen; der nächste Schritt ist Stabilität unter Belastung.";
   }
   return "Dein Tempo entsteht aktuell über einen soliden Grundrhythmus; Zuglänge und Frequenz können noch stabiler zusammenfinden.";
+}
+
+function capacityLabel(score: number, type: "aerobic" | "anaerobic" | "css") {
+  if (type === "anaerobic") {
+    if (score >= 70) return "ausgeprägt";
+    if (score >= 45) return "ausgeglichen";
+    return "ruhig";
+  }
+
+  if (type === "css") {
+    if (score >= 75) return "stark";
+    if (score >= 50) return "solide";
+    if (score >= 25) return "entwickelbar";
+    return "viel Potenzial";
+  }
+
+  if (score >= 70) return "stark";
+  if (score >= 50) return "solide";
+  if (score >= 25) return "entwickelbar";
+  return "viel Potenzial";
 }
 
 function aerobicCapacityText(score: number) {
