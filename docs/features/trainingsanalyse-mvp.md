@@ -9,13 +9,30 @@ gespeicherten Analysen, erweitertem Report und Admin-verwalteten Trainingspläne
 - Neuer Analyseflow für Schwimmen
 - Zielwettkampf-Kontext mit Zielstrecke, optionalem Wettkampfdatum und Einheiten/Woche
 - Berechnung von Pace, DPS, SR, CSS, VO2-Proxy, VLa-Proxy und Sprint-Reserve
-- Report mit Hauptproblem, Stilprofil, Trainingsbedeutung pro Metrik, Rohdaten und ReTest
+- Coaching-Report mit CSS-Hero, physiologischen Leistungsindizes, Schwimm-Mechanik, aktuellem Schwimmmuster, Trainingshebel, ReTest und eingeklapptem Expertenmodus
 - Speicherung von Eingaben und Analyseergebnissen in Supabase
 - Analyse-Übersicht unter `/analyse`
 - Detailreport pro Analyse unter `/analyse/[id]`
 - Admin-Rollenmodell und Trainingsplan-Builder unter `/admin/plans`
 - Coach-Zugang für zugeordnete Athleten unter `/coach`
 - Gesperrte Trainingsplan-Vorschau im Report
+
+## Report-Struktur
+
+Der Report folgt dem Prinzip "Weniger Labor. Mehr Coaching." Standardberichte
+zeigen CSS, Schwimm-Mechanik, Stilprofil, Trainingshebel und ReTest zuerst.
+Technische Cross-Checks wie Pace-Differenzen, Sprintreserve, Referenzwerte und
+Profil-Scores bleiben im eingeklappten Expertenmodus verfügbar.
+
+Physiologische Ableitungen werden sichtbar als sportartspezifische
+Leistungsindizes kommuniziert:
+
+- Aerobe Kapazität
+- Anaerobe Kapazität
+- Schwellenleistung / CSS
+
+Die internen VO2- und VLa-Proxies bleiben Teil der Berechnung, werden aber nicht
+als Laborwerte oder medizinische Diagnostik ausgegeben.
 
 ## Datenmodell
 
