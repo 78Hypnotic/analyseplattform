@@ -10,7 +10,9 @@ export const dynamic = "force-dynamic";
 export default async function AdminPage() {
   const { supabase } = await requireAdmin();
   const [{ count: userCount, error: userCountError }, plans] = await Promise.all([
-    supabase.from("user_roles").select("user_id", { count: "exact", head: true }),
+    // Count distinct users via profiles (one row per user); counting user_roles
+    // would double-count users that hold more than one role.
+    supabase.from("profiles").select("id", { count: "exact", head: true }),
     getTrainingPlans(20),
   ]);
 
