@@ -109,7 +109,8 @@ function Cell({ label, children }: { label: string; children: React.ReactNode })
 }
 
 function RoleBadges({ roles }: { roles: RoleRow["role"][] }) {
-  const unique = Array.from(new Set(roles.length > 0 ? roles : ["user"]));
+  const fallback: RoleRow["role"][] = ["user"];
+  const unique = Array.from(new Set(roles.length > 0 ? roles : fallback));
   const order: Record<RoleRow["role"], number> = { admin: 0, coach: 1, user: 2 };
   unique.sort((a, b) => order[a] - order[b]);
 
