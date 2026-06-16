@@ -1,17 +1,17 @@
 import "server-only";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { AnalysisInput, AnalysisResult, StoredAnalysis } from "./analysis/types";
+import type { RunInput, RunResult, StoredRunAnalysis } from "./running/types";
 
-type AnalysisRow = {
+type RunAnalysisRow = {
   id: string;
   title: string;
-  input: AnalysisInput;
-  result: AnalysisResult;
+  input: RunInput;
+  result: RunResult;
   created_at: string;
 };
 
-export async function getUserAnalyses(limit = 20): Promise<StoredAnalysis[]> {
+export async function getUserRunAnalyses(limit = 20): Promise<StoredRunAnalysis[]> {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -23,15 +23,15 @@ export async function getUserAnalyses(limit = 20): Promise<StoredAnalysis[]> {
     .from("analyses")
     .select("id,title,input,result,created_at")
     .eq("user_id", user.id)
-    .eq("discipline", "swim")
+    .eq("discipline", "run")
     .order("created_at", { ascending: false })
     .limit(limit);
 
   if (error) throw new Error(error.message);
-  return (data ?? []) as AnalysisRow[];
+  return (data ?? []) as RunAnalysisRow[];
 }
 
-export async function getAnalysisById(id: string): Promise<StoredAnalysis | null> {
+export async function getRunAnalysisById(id: string): Promise<StoredRunAnalysis | null> {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -43,9 +43,9 @@ export async function getAnalysisById(id: string): Promise<StoredAnalysis | null
     .from("analyses")
     .select("id,title,input,result,created_at")
     .eq("id", id)
-    .eq("discipline", "swim")
+    .eq("discipline", "run")
     .single();
 
   if (error) return null;
-  return data as AnalysisRow;
+  return data as RunAnalysisRow;
 }
