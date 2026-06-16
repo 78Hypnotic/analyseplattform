@@ -5,9 +5,10 @@ import {
   BarChart3,
   Bike,
   Check,
+  Footprints,
+  Gauge,
   HelpCircle,
   LineChart,
-  PersonStanding,
   Timer,
   Triangle,
   Waves,
@@ -33,7 +34,7 @@ export default async function Home() {
         <ValueProps />
         <Pricing isAuthenticated={isAuthenticated} />
         <Faq />
-        <Cta isAuthenticated={isAuthenticated} />
+        <Cta />
       </main>
     </>
   );
@@ -68,27 +69,30 @@ function Hero({ isAuthenticated }: { isAuthenticated: boolean }) {
           <div>
             <p className="mono inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--raised-bg)] px-3 py-2 text-[10px] uppercase tracking-[0.22em] text-[var(--muted)]">
               <span className="size-2 rounded-full bg-[var(--accent)] shadow-[0_0_0_4px_var(--accent-ring)]" />
-              Endurance Coaching · Live für Schwimmen
+              Endurance Coaching · Live für Schwimmen &amp; Laufen
             </p>
             <h1 className="display-serif mt-6 max-w-3xl text-6xl leading-[0.95] text-[var(--foreground)] sm:text-8xl">
               Deine Zeit. Dein <em className="text-[var(--muted)]">Hebel.</em>{" "}
               <em className="text-[var(--accent)]">Klar.</em>
             </h1>
             <p className="mt-7 max-w-2xl text-lg leading-8 text-[var(--muted)]">
-              Bewährte Testprotokolle, klare Diagnose, konkrete Maßnahmen. Ohne
-              Labor, ohne Datenflut. Zwei Testzeiten und zwei Zugzahlen ergeben
-              einen verdichteten Coaching-Report.
+              Bewährte Feldtests, klare Diagnose, konkrete Maßnahmen. Ohne Labor,
+              ohne Datenflut. Jetzt für Schwimmen und Laufen: zwei kurze Tests
+              ergeben einen verdichteten Coaching-Report.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <ButtonLink href="/analyse/new" variant="primary" className="h-12 px-6">
-                {isAuthenticated ? "Neue Analyse starten" : "Kostenlose Analyse starten"} <ArrowRight size={16} />
+                <Waves size={16} /> Schwimm-Analyse
               </ButtonLink>
-              <ButtonLink href={isAuthenticated ? "/analyse" : "/login"} className="h-12 px-6">
-                {isAuthenticated ? "Analysen öffnen" : "Account erstellen"}
+              <ButtonLink href="/lauf/new" variant="primary" className="h-12 px-6">
+                <Footprints size={16} /> Lauf-Analyse
+              </ButtonLink>
+              <ButtonLink href="/rad/new" variant="primary" className="h-12 px-6">
+                <Bike size={16} /> Rad-Analyse
               </ButtonLink>
             </div>
             <p className="mono mt-4 text-xs tracking-[0.14em] text-[var(--subtle)]">
-              Ø 2 Minuten · keine Kreditkarte
+              {isAuthenticated ? "Mit deinem Profil verknüpft" : "Ø 2 Minuten · keine Kreditkarte"}
             </p>
           </div>
           <ReportPreview />
@@ -103,10 +107,10 @@ function Hero({ isAuthenticated }: { isAuthenticated: boolean }) {
 function Stats() {
   return (
     <div className="mt-24 grid gap-8 border-y border-[var(--line)] py-9 sm:grid-cols-2 lg:grid-cols-4">
-      <Stat value="2 Tests" label="200 m + 400 m" />
-      <Stat value="8 Metriken" label="Pace · DPS · SR · CSS · ..." />
-      <Stat value="1 Hebel" label="Priorisiertes Hauptproblem" />
-      <Stat value="6-8 Wo." label="Trainingsplan + ReTest" />
+      <Stat value="3 Disziplinen" label="Schwimmen · Laufen · Rad" />
+      <Stat value="2 Feldtests" label="pro Diagnostik" />
+      <Stat value="Klare Diagnose" label="ohne Laborwerte" />
+      <Stat value="Plan + ReTest" label="Trainingsgrundlage" />
     </div>
   );
 }
@@ -127,28 +131,28 @@ function ReportPreview() {
     <div className="surface rounded-[20px] bg-[color-mix(in_oklab,var(--panel)_92%,var(--accent)_8%)] p-7 shadow-[0_24px_60px_var(--shadow-color)]">
       <div className="mb-6 flex items-center justify-between">
         <p className="mono text-[10px] uppercase tracking-[0.22em] text-[var(--subtle)]">
-          Analyse-Ergebnis · Lena B.
+          Laufdiagnostik · Jonas K.
         </p>
         <p className="mono text-[10px] uppercase tracking-[0.16em] text-[#8fe388]">
           · Abgeschlossen
         </p>
       </div>
       <h2 className="display-serif text-3xl leading-tight">
-        Du gewinnst auf <em>Frequenz</em> und verlierst <em>Länge</em>.
+        Großer <em>Motor</em>, aktuell <em>anaerob</em> geprägt.
       </h2>
       <div className="mt-6 grid gap-3 sm:grid-cols-3">
-        <PreviewMetric label="Pace 400" value="1:57" hint="/100 m" />
-        <PreviewMetric label="CSS" value="1:55" hint="Schwelle" active />
-        <PreviewMetric label="DPS 400" value="1.11" hint="m / Zug" />
+        <PreviewMetric label="Critical Speed" value="4:11" hint="/km" active />
+        <PreviewMetric label="API" value="5.0" hint="/ 10" />
+        <PreviewMetric label="ACI" value="7.0" hint="/ 10" />
       </div>
-      <div className="mt-5 rounded-lg border border-[color-mix(in_oklab,var(--warn)_35%,var(--line))] bg-[color-mix(in_oklab,var(--panel)_94%,var(--warn)_6%)] p-4">
-        <p className="mono mb-2 inline-flex rounded bg-[color-mix(in_oklab,var(--warn)_12%,transparent)] px-2 py-1 text-[10px] uppercase tracking-[0.12em] text-[var(--warn)]">
-          Hauptproblem
+      <div className="mt-5 rounded-lg border border-[color-mix(in_oklab,var(--accent)_35%,var(--line))] bg-[color-mix(in_oklab,var(--panel)_94%,var(--accent)_6%)] p-4">
+        <p className="mono mb-2 inline-flex rounded bg-[color-mix(in_oklab,var(--accent)_12%,transparent)] px-2 py-1 text-[10px] uppercase tracking-[0.12em] text-[var(--accent)]">
+          Trainingsbereiche
         </p>
-        <h3 className="font-semibold">Wasserlage: die Hüfte liegt zu tief</h3>
+        <h3 className="font-semibold">Pace-Zonen direkt aus deiner Critical Speed</h3>
         <p className="muted mt-2 text-sm leading-6">
-          Beine sinken ab, Körper zieht nach unten. Jeder Zug kompensiert
-          Bremseffekt statt Vortrieb zu erzeugen.
+          Z1 Rekom bis Z6 Spitze – als konkrete Pace pro Kilometer für die
+          tägliche Steuerung.
         </p>
       </div>
     </div>
@@ -204,16 +208,18 @@ function Disciplines() {
           text="Pace, DPS, SR, CSS, Technik-Kontext und Planempfehlung."
         />
         <DisciplineCard
-          icon={<PersonStanding size={22} />}
+          live
+          icon={<Footprints size={22} />}
           title="Laufen"
-          meta="Roadmap"
-          text="Pace, Laufstil, Belastungssteuerung und Wettkampfziel."
+          meta="Live"
+          text="Critical Speed, API, ACI und CS-basierte Trainingszonen."
         />
         <DisciplineCard
+          live
           icon={<Bike size={22} />}
           title="Radfahren"
-          meta="Geplant"
-          text="FTP, Drehmoment, Kadenz und ökonomische Belastung."
+          meta="Live"
+          text="FTP, VO₂max, VLamax-Proxy, FatMax und Wattbereiche."
         />
         <DisciplineCard
           icon={<Triangle size={22} />}
@@ -260,10 +266,10 @@ function HowItWorks() {
       muted
     >
       <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-        <Step number="01" title="Ziel & Niveau" text="Drei kurze Fragen ordnen deine Zahlen ein." />
-        <Step number="02" title="200 m & 400 m" text="Zwei Zeiten und durchschnittliche Zugzahlen pro Bahn." />
-        <Step number="03" title="Verdichtung" text="Pace, DPS, SR, CSS, VO2- und VLa-Proxy." />
-        <Step number="04" title="Plan & ReTest" text="Hauptproblem, Cue, Drill und nächster Trainingsblock." />
+        <Step number="01" title="Ziel & Niveau" text="Wenige kurze Fragen ordnen deine Zahlen ein." />
+        <Step number="02" title="Zwei Feldtests" text="Je Sportart zwei kurze Tests – Schwimmen, Laufen oder Rad." />
+        <Step number="03" title="Verdichtung" text="Schwellenpace, Profilindizes und Trainingszonen." />
+        <Step number="04" title="Plan & ReTest" text="Klares Ergebnis und ein belastbar vergleichbarer ReTest." />
       </div>
     </Section>
   );
@@ -272,24 +278,24 @@ function HowItWorks() {
 function VocabularyMarquee() {
   const words = [
     "Atemrhythmus",
+    "Critical Speed",
     "Hüftrotation",
-    "Schwimmbrille",
-    "Badekappe",
-    "Pull Buoy",
-    "Paddles",
+    "Cooper-Test",
     "Pace Clock",
     "Wasserlage",
     "Catch",
+    "Laktatschwelle",
     "Druckphase",
-    "Beinschlag",
+    "Kadenz",
     "Gleiten",
+    "VO₂-Proxy",
   ];
   const track = [...words, ...words];
 
   return (
     <section className="overflow-hidden border-y border-[var(--line)] bg-[var(--panel)] py-14">
       <p className="mono mb-8 text-center text-[10px] uppercase tracking-[0.24em] text-[var(--subtle)]">
-        Vokabular des Schwimmens
+        Vokabular der Ausdauer
       </p>
       <div className="vocab-track">
         {track.map((word, index) => (
@@ -321,24 +327,53 @@ function Method() {
       <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
         <div>
           <p className="muted max-w-xl leading-7">
-            Das System bewertet keine Einzelwerte isoliert. Es analysiert, wie
-            Geschwindigkeit entsteht: über Zuglänge, Frequenz oder ein
-            ineffizientes Verhältnis aus Aufwand und Output.
+            Das System bewertet keine Einzelwerte isoliert. Beim Schwimmen zählt,
+            wie Geschwindigkeit aus Zuglänge und Frequenz entsteht; beim Laufen,
+            wie Dauerleistung und anaerobe Prägung zusammenspielen; beim Radfahren,
+            wie aerobe Leistung und Glykolyse die Schwelle bestimmen – ganz ohne
+            Laborwerte.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <ButtonLink href="/analyse/new" variant="primary">
-              Test starten <ArrowRight size={16} />
+              Schwimmtest <ArrowRight size={16} />
+            </ButtonLink>
+            <ButtonLink href="/lauf/new" variant="primary">
+              Lauftest <ArrowRight size={16} />
+            </ButtonLink>
+            <ButtonLink href="/rad/new" variant="primary">
+              Radtest <ArrowRight size={16} />
             </ButtonLink>
           </div>
         </div>
-        <div className="space-y-4">
-          <Metric icon={<Timer size={20} />} abbr="Pace" title="Tempo pro 100 m" text="Grundlage für 200 m, 400 m und CSS." />
-          <Metric icon={<Waves size={20} />} abbr="DPS" title="Distance per Stroke" text="Wie viele Meter du aus einem Armzug holst." />
-          <Metric icon={<BarChart3 size={20} />} abbr="SR" title="Stroke Rate" text="Züge pro Minute als Gegenspieler zur Zuglänge." />
-          <Metric icon={<LineChart size={20} />} abbr="CSS" title="Critical Swim Speed" text="Schwellen-Pace aus der Relation von 200 m und 400 m." />
+        <div className="space-y-8">
+          <MetricGroup label="Schwimmen">
+            <Metric icon={<Timer size={20} />} abbr="Pace" title="Tempo pro 100 m" text="Grundlage für 200 m, 400 m und CSS." />
+            <Metric icon={<Waves size={20} />} abbr="DPS" title="Distance per Stroke" text="Wie viele Meter du aus einem Armzug holst." />
+            <Metric icon={<BarChart3 size={20} />} abbr="SR" title="Stroke Rate" text="Züge pro Minute als Gegenspieler zur Zuglänge." />
+            <Metric icon={<LineChart size={20} />} abbr="CSS" title="Critical Swim Speed" text="Schwellen-Pace aus der Relation von 200 m und 400 m." />
+          </MetricGroup>
+          <MetricGroup label="Laufen">
+            <Metric icon={<Gauge size={20} />} abbr="CS" title="Critical Speed" text="Dauerleistungs-Pace aus 3- und 12-Minuten-Test." />
+            <Metric icon={<BarChart3 size={20} />} abbr="API" title="Anaerobic Profile Index" text="Verhältnis von Kurzzeit- zu Dauerleistung (1–10)." />
+            <Metric icon={<LineChart size={20} />} abbr="ACI" title="Aerobic Capacity Index" text="Größe des aeroben Motors als Profilindex (1–10)." />
+          </MetricGroup>
+          <MetricGroup label="Radfahren">
+            <Metric icon={<Gauge size={20} />} abbr="FTP" title="Schwellenleistung" text="Maximal nachhaltige Leistung aus PVO₂ und Profilfaktor." />
+            <Metric icon={<LineChart size={20} />} abbr="VO₂" title="Maximale aerobe Leistung" text="VO₂max-Proxy aus dem Rampentest (PPO × 0,875 × 12)." />
+            <Metric icon={<BarChart3 size={20} />} abbr="VLa" title="VLamax-Proxy" text="Anaerob-glykolytische Kapazität aus dem 20-s-Sprint." />
+          </MetricGroup>
         </div>
       </div>
     </Section>
+  );
+}
+
+function MetricGroup({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div>
+      <p className="mono mb-3 text-[10px] uppercase tracking-[0.18em] text-[var(--accent)]">{label}</p>
+      <div className="space-y-4">{children}</div>
+    </div>
   );
 }
 
@@ -371,9 +406,9 @@ function ValueProps() {
   return (
     <Section eyebrow="Wofür" title="Weniger Zahlen. Mehr Hebel." muted>
       <div className="mt-10 grid gap-4 lg:grid-cols-3">
-        <Value title="Max. 1-2 Baustellen" label="Priorisierung" text="Du bekommst die eine Sache, die jetzt zählt, mit Begründung und konkretem Drill." />
-        <Value title="Tempoabhängige Analyse" label="Kontext" text="Eine hohe Frequenz im Sprint ist normal. Bei 400 m kann sie ein Symptom sein." />
-        <Value title="Plan statt Report" label="Transfer" text="Jede Analyse führt zu einem nächsten 6-8-Wochen-Block mit ReTest-Logik." />
+        <Value title="Max. 1-2 Baustellen" label="Priorisierung" text="Du bekommst die eine Sache, die jetzt zählt, mit Begründung und konkretem Schritt." />
+        <Value title="Profil statt Einzelwert" label="Kontext" text="API und ACI zeigen dein Leistungsmuster – ausdauerstark oder anaerob geprägt." />
+        <Value title="Plan statt Report" label="Transfer" text="Jede Analyse führt zu Trainingsbereichen und einer ReTest-Logik." />
       </div>
     </Section>
   );
@@ -393,8 +428,8 @@ function Pricing({ isAuthenticated }: { isAuthenticated: boolean }) {
   return (
     <Section id="preise" eyebrow="Preise" title="Fair. Transparent.">
       <div className="mt-10 grid gap-4 lg:grid-cols-3">
-        <Plan name="Free" price="0" hint="Für den Einstieg" items={["1 Analyse / Monat", "Basis-Report", "Stärken + Hauptproblem", "Community-Zugang"]} href="/analyse/new" cta="Starten" />
-        <Plan popular name="Athlet" price="9" hint="Unlimited analyses" items={["Unbegrenzt Analysen", "Voller Report + CSS, VLa, VO2", "Historie & ReTest-Vergleich", "PDF-Export geplant"]} href={isAuthenticated ? "/analyse" : "/login"} cta={isAuthenticated ? "Analysen öffnen" : "Account erstellen"} />
+        <Plan name="Free" price="0" hint="Für den Einstieg" items={["1 Analyse / Monat", "Basis-Report", "Schwimmen & Laufen", "Community-Zugang"]} href="/analyse/new" cta="Starten" />
+        <Plan popular name="Athlet" price="9" hint="Unbegrenzte Analysen" items={["Unbegrenzt Analysen", "Schwimmen: CSS, VLa, VO2", "Laufen: CS, API, ACI + Zonen", "Historie & ReTest-Vergleich"]} href={isAuthenticated ? "/analyse" : "/login"} cta={isAuthenticated ? "Analysen öffnen" : "Account erstellen"} />
         <Plan name="Coach" price="39" hint="Für Trainer mit Gruppen" items={["Bis zu 25 Athleten", "Team-Übersicht geplant", "Custom Trainingspläne", "White-Label Reports geplant"]} href={isAuthenticated ? "/analyse" : "/login"} cta={isAuthenticated ? "Analysen öffnen" : "Kontakt vorbereiten"} />
       </div>
     </Section>
@@ -449,10 +484,10 @@ function Faq() {
   return (
     <Section id="faq" eyebrow="FAQ" title="Häufige Fragen." muted>
       <div className="mt-8 max-w-3xl space-y-3">
-        <FaqItem question="Brauche ich spezielle Hardware?" answer="Nein. Eine Stoppuhr oder ein Schwimmpartner, der zählt, reicht für den ersten Report." />
-        <FaqItem question="Wie lange dauert ein Test?" answer="Der Swim-Test dauert etwa 12-15 Minuten inklusive Pause. Die Eingabe dauert ca. 2 Minuten." />
+        <FaqItem question="Brauche ich spezielle Hardware?" answer="Nein. Eine Stoppuhr (oder Laufuhr) und beim Schwimmen jemand, der die Züge zählt, reichen für den ersten Report." />
+        <FaqItem question="Wie lange dauert ein Test?" answer="Der Schwimmtest dauert etwa 12-15 Minuten inklusive Pause. Der Lauftest besteht aus einem 3- und einem 12-Minuten-All-Out. Die Eingabe dauert jeweils ca. 2 Minuten." />
         <FaqItem question="Ersetzt das einen Trainer?" answer="Nein. Es ist ein Werkzeug für Struktur, Priorisierung und bessere Trainingsentscheidungen." />
-        <FaqItem question="Wann kommen Laufen und Rad?" answer="Laufen ist als nächste Disziplin geplant, Rad und Triathlon folgen danach." />
+        <FaqItem question="Welche Disziplinen gibt es?" answer="Schwimmen, Laufen und Radfahren sind live. Triathlon folgt danach." />
       </div>
     </Section>
   );
@@ -470,7 +505,7 @@ function FaqItem({ question, answer }: { question: string; answer: string }) {
   );
 }
 
-function Cta({ isAuthenticated }: { isAuthenticated: boolean }) {
+function Cta() {
   return (
     <section className="mx-auto max-w-6xl px-5 py-20">
       <div className="surface cta-stripes relative grid overflow-hidden rounded-[18px] border-[color-mix(in_oklab,var(--accent)_45%,var(--line))] bg-[color-mix(in_oklab,var(--panel)_72%,var(--accent)_18%)] p-8 pb-16 lg:grid-cols-[1fr_0.55fr] lg:items-center lg:p-12">
@@ -482,15 +517,18 @@ function Cta({ isAuthenticated }: { isAuthenticated: boolean }) {
             Zwei Tests. Ein Hebel. <em>Dein nächster Block wird anders.</em>
           </h2>
           <p className="muted mt-4 max-w-2xl leading-7">
-            Starte mit dem kostenfreien Schwimm-Report. Keine Kreditkarte, kein
-            Download.
+            Starte mit dem kostenfreien Schwimm-, Lauf- oder Rad-Report. Keine
+            Kreditkarte, kein Download.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <ButtonLink href="/analyse/new" variant="primary">
-              Analyse starten <ArrowRight size={16} />
+              <Waves size={16} /> Schwimm-Analyse
             </ButtonLink>
-            <ButtonLink href={isAuthenticated ? "/analyse" : "/login"}>
-              {isAuthenticated ? "Analysen öffnen" : "Account erstellen"}
+            <ButtonLink href="/lauf/new" variant="primary">
+              <Footprints size={16} /> Lauf-Analyse
+            </ButtonLink>
+            <ButtonLink href="/rad/new" variant="primary">
+              <Bike size={16} /> Rad-Analyse
             </ButtonLink>
           </div>
         </div>

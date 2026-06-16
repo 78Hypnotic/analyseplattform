@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Activity, LogOut, Menu, ShieldCheck, UserRound, UsersRound, X } from "lucide-react";
+import { Activity, Bike, Footprints, LogOut, Menu, ShieldCheck, UserRound, UsersRound, X } from "lucide-react";
 import Link from "next/link";
 import { signOut } from "@/app/login/actions";
 import { Button } from "./button";
@@ -41,7 +41,9 @@ export function MobileHeaderMenu({
             <MobileLink href="/#disciplines" label="Disziplinen" onClick={() => setOpen(false)} />
             <MobileLink href="/#methodik" label="Methodik" onClick={() => setOpen(false)} />
             <MobileLink href="/#preise" label="Preise" onClick={() => setOpen(false)} />
-            <MobileLink href="/analyse" label="Analyse" icon={<Activity size={16} />} onClick={() => setOpen(false)} />
+            <MobileLink href="/analyse" label="Schwimmen" icon={<Activity size={16} />} onClick={() => setOpen(false)} />
+            <MobileLink href="/lauf" label="Laufen" icon={<Footprints size={16} />} onClick={() => setOpen(false)} />
+            <MobileLink href="/rad" label="Radfahren" icon={<Bike size={16} />} onClick={() => setOpen(false)} />
             {isCoach ? (
               <MobileLink href="/coach" label="Coach" icon={<UsersRound size={16} />} onClick={() => setOpen(false)} />
             ) : null}

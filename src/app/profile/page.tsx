@@ -27,6 +27,16 @@ type ProfileData = {
   latest_swim_css_pace_sec?: number | string | null;
   latest_swim_vo2_proxy?: "hoch" | "mittel" | "niedrig" | "nicht_ermittelbar" | null;
   latest_swim_vla_profile?: "Diesel" | "Allrounder" | "Sprinter" | null;
+  latest_run_analysis_id?: string | null;
+  latest_run_analyzed_at?: string | null;
+  latest_run_cs_pace_sec?: number | string | null;
+  latest_run_api?: number | string | null;
+  latest_run_aci?: number | string | null;
+  latest_bike_analysis_id?: string | null;
+  latest_bike_analyzed_at?: string | null;
+  latest_bike_ftp_watt?: number | null;
+  latest_bike_vo2max_rel?: number | string | null;
+  latest_bike_vlamax_proxy?: number | string | null;
 };
 
 export const dynamic = "force-dynamic";
@@ -135,6 +145,8 @@ export default async function ProfilePage() {
         </section>
 
         <LatestSwimSummary profile={profile} />
+        <LatestRunSummary profile={profile} />
+        <LatestBikeSummary profile={profile} />
 
         <ProfileForm
           email={user.email ?? ""}
@@ -184,6 +196,56 @@ function LatestSwimSummary({ profile }: { profile: ProfileData | null }) {
   );
 }
 
+function LatestRunSummary({ profile }: { profile: ProfileData | null }) {
+  const hasSummary = Boolean(profile?.latest_run_analyzed_at || profile?.latest_run_cs_pace_sec);
+
+  return (
+    <section className="surface p-6 sm:p-7">
+      <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+        <div>
+          <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--subtle)]">Lauf-Diagnostik</p>
+          <h2 className="display-serif mt-2 text-3xl text-[var(--foreground)]">Letzte berechnete Werte</h2>
+        </div>
+        <p className="text-sm text-[var(--muted)]">
+          {hasSummary && profile?.latest_run_analyzed_at
+            ? new Date(profile.latest_run_analyzed_at).toLocaleDateString("de-DE")
+            : "Noch keine Analyse gespeichert"}
+        </p>
+      </div>
+      <div className="grid gap-3 md:grid-cols-3">
+        <SummaryMetric label="Critical Speed" value={formatPacePerKm(profile?.latest_run_cs_pace_sec)} />
+        <SummaryMetric label="API" value={formatIndex(profile?.latest_run_api)} />
+        <SummaryMetric label="ACI" value={formatIndex(profile?.latest_run_aci)} />
+      </div>
+    </section>
+  );
+}
+
+function LatestBikeSummary({ profile }: { profile: ProfileData | null }) {
+  const hasSummary = Boolean(profile?.latest_bike_analyzed_at || profile?.latest_bike_ftp_watt);
+
+  return (
+    <section className="surface p-6 sm:p-7">
+      <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+        <div>
+          <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--subtle)]">Rad-Diagnostik</p>
+          <h2 className="display-serif mt-2 text-3xl text-[var(--foreground)]">Letzte berechnete Werte</h2>
+        </div>
+        <p className="text-sm text-[var(--muted)]">
+          {hasSummary && profile?.latest_bike_analyzed_at
+            ? new Date(profile.latest_bike_analyzed_at).toLocaleDateString("de-DE")
+            : "Noch keine Analyse gespeichert"}
+        </p>
+      </div>
+      <div className="grid gap-3 md:grid-cols-3">
+        <SummaryMetric label="FTP" value={profile?.latest_bike_ftp_watt ? `${profile.latest_bike_ftp_watt} W` : "-"} />
+        <SummaryMetric label="VO₂max" value={formatVo2(profile?.latest_bike_vo2max_rel)} />
+        <SummaryMetric label="VLamax-Proxy" value={formatVlamax(profile?.latest_bike_vlamax_proxy)} />
+      </div>
+    </section>
+  );
+}
+
 function SummaryMetric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-4">
@@ -205,6 +267,32 @@ function formatSeconds(value: number | string | null | undefined) {
   const minutes = Math.floor(numberValue / 60);
   const seconds = Math.round(numberValue - minutes * 60);
   return `${minutes}:${String(seconds).padStart(2, "0")} /100 m`;
+}
+
+function formatPacePerKm(value: number | string | null | undefined) {
+  const numberValue = toNullableNumber(value);
+  if (numberValue === null) return "-";
+  const minutes = Math.floor(numberValue / 60);
+  const seconds = Math.round(numberValue - minutes * 60);
+  return `${minutes}:${String(seconds).padStart(2, "0")} /km`;
+}
+
+function formatIndex(value: number | string | null | undefined) {
+  const numberValue = toNullableNumber(value);
+  if (numberValue === null) return "-";
+  return `${numberValue.toFixed(1)} / 10`;
+}
+
+function formatVo2(value: number | string | null | undefined) {
+  const numberValue = toNullableNumber(value);
+  if (numberValue === null) return "-";
+  return `${numberValue.toFixed(1)} ml/kg/min`;
+}
+
+function formatVlamax(value: number | string | null | undefined) {
+  const numberValue = toNullableNumber(value);
+  if (numberValue === null) return "-";
+  return `${numberValue.toFixed(2)} mmol/l/s`;
 }
 
 function formatTechniqueStatus(value: ProfileData["latest_swim_technique_status"]) {
