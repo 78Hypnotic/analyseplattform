@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
 import { ButtonLink } from "@/components/button";
+import { HeroDisciplinePreview } from "@/components/hero-discipline-preview";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -95,7 +96,7 @@ function Hero({ isAuthenticated }: { isAuthenticated: boolean }) {
               {isAuthenticated ? "Mit deinem Profil verknüpft" : "Ø 2 Minuten · keine Kreditkarte"}
             </p>
           </div>
-          <ReportPreview />
+          <HeroDisciplinePreview />
         </div>
         <Stats />
       </div>
@@ -122,61 +123,6 @@ function Stat({ value, label }: { value: string; label: string }) {
       <p className="mono mt-2 text-xs uppercase tracking-[0.16em] text-[var(--subtle)]">
         {label}
       </p>
-    </div>
-  );
-}
-
-function ReportPreview() {
-  return (
-    <div className="surface rounded-[20px] bg-[color-mix(in_oklab,var(--panel)_92%,var(--accent)_8%)] p-7 shadow-[0_24px_60px_var(--shadow-color)]">
-      <div className="mb-6 flex items-center justify-between">
-        <p className="mono text-[10px] uppercase tracking-[0.22em] text-[var(--subtle)]">
-          Laufdiagnostik · Jonas K.
-        </p>
-        <p className="mono text-[10px] uppercase tracking-[0.16em] text-[#8fe388]">
-          · Abgeschlossen
-        </p>
-      </div>
-      <h2 className="display-serif text-3xl leading-tight">
-        Großer <em>Motor</em>, aktuell <em>anaerob</em> geprägt.
-      </h2>
-      <div className="mt-6 grid gap-3 sm:grid-cols-3">
-        <PreviewMetric label="Critical Speed" value="4:11" hint="/km" active />
-        <PreviewMetric label="API" value="5.0" hint="/ 10" />
-        <PreviewMetric label="ACI" value="7.0" hint="/ 10" />
-      </div>
-      <div className="mt-5 rounded-lg border border-[color-mix(in_oklab,var(--accent)_35%,var(--line))] bg-[color-mix(in_oklab,var(--panel)_94%,var(--accent)_6%)] p-4">
-        <p className="mono mb-2 inline-flex rounded bg-[color-mix(in_oklab,var(--accent)_12%,transparent)] px-2 py-1 text-[10px] uppercase tracking-[0.12em] text-[var(--accent)]">
-          Trainingsbereiche
-        </p>
-        <h3 className="font-semibold">Pace-Zonen direkt aus deiner Critical Speed</h3>
-        <p className="muted mt-2 text-sm leading-6">
-          Z1 Rekom bis Z6 Spitze – als konkrete Pace pro Kilometer für die
-          tägliche Steuerung.
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function PreviewMetric({
-  label,
-  value,
-  hint,
-  active,
-}: {
-  label: string;
-  value: string;
-  hint: string;
-  active?: boolean;
-}) {
-  return (
-    <div className={active ? "rounded-lg border border-[var(--accent)] bg-[color-mix(in_oklab,var(--accent)_8%,transparent)] p-4" : "rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-4"}>
-      <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--subtle)]">{label}</p>
-      <p className={active ? "display-serif mt-3 text-3xl text-[var(--accent)]" : "display-serif mt-3 text-3xl"}>
-        {value}
-      </p>
-      <p className="mono mt-1 text-[10px] text-[var(--subtle)]">{hint}</p>
     </div>
   );
 }
