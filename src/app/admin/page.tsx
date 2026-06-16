@@ -1,4 +1,4 @@
-import { ClipboardList, ShieldCheck, UsersRound } from "lucide-react";
+import { BookOpen, ClipboardList, ShieldCheck, UsersRound } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
 import { ButtonLink } from "@/components/button";
 import { requireAdmin } from "@/lib/auth/roles";
@@ -40,6 +40,10 @@ export default async function AdminPage() {
           <ButtonLink href="/admin/coaches">
             <UsersRound size={16} />
             Coaches verwalten
+          </ButtonLink>
+          <ButtonLink href="/admin/methodik">
+            <BookOpen size={16} />
+            Methodik &amp; Formeln
           </ButtonLink>
         </div>
 
