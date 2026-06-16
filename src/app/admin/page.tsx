@@ -1,4 +1,5 @@
-import { BookOpen, ClipboardList, ShieldCheck, UsersRound } from "lucide-react";
+import Link from "next/link";
+import { ArrowUpRight, BookOpen, ClipboardList, ShieldCheck, UsersRound } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
 import { ButtonLink } from "@/components/button";
 import { requireAdmin } from "@/lib/auth/roles";
@@ -48,7 +49,7 @@ export default async function AdminPage() {
         </div>
 
         <section className="mt-8 grid gap-4 md:grid-cols-3">
-          <AdminMetric label="User gesamt" value={String(userCount ?? 0)} />
+          <AdminMetric label="User gesamt" value={String(userCount ?? 0)} href="/admin/users" />
           <AdminMetric label="Pläne gesamt" value={String(plans.length)} />
           <AdminMetric label="Aktiv" value={String(activePlans)} />
         </section>
@@ -57,11 +58,27 @@ export default async function AdminPage() {
   );
 }
 
-function AdminMetric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="surface p-5">
-      <p className="mono text-xs uppercase tracking-[0.14em] text-[var(--subtle)]">{label}</p>
+function AdminMetric({ label, value, href }: { label: string; value: string; href?: string }) {
+  const content = (
+    <>
+      <p className="mono flex items-center justify-between text-xs uppercase tracking-[0.14em] text-[var(--subtle)]">
+        {label}
+        {href ? <ArrowUpRight size={14} className="text-[var(--accent)]" /> : null}
+      </p>
       <p className="mt-3 text-3xl font-semibold">{value}</p>
-    </div>
+    </>
   );
+
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className="surface block p-5 transition hover:border-[var(--accent)]"
+      >
+        {content}
+      </Link>
+    );
+  }
+
+  return <div className="surface p-5">{content}</div>;
 }
