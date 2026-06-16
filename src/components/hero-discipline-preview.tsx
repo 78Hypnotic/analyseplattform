@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 
 type PreviewMetricData = { label: string; value: string; hint: string; active?: boolean };
@@ -70,66 +70,48 @@ const SLIDES: Slide[] = [
 ];
 
 const ROTATE_MS = 4800;
-const FADE_MS = 320;
 
 export function HeroDisciplinePreview() {
   const [index, setIndex] = useState(0);
-  const [shown, setShown] = useState(true);
-  const fadeTimeout = useRef<number | null>(null);
 
   useEffect(() => {
     const interval = window.setInterval(() => {
-      setShown(false);
-      fadeTimeout.current = window.setTimeout(() => {
-        setIndex((current) => (current + 1) % SLIDES.length);
-        setShown(true);
-      }, FADE_MS);
+      setIndex((current) => (current + 1) % SLIDES.length);
     }, ROTATE_MS);
-
-    return () => {
-      window.clearInterval(interval);
-      if (fadeTimeout.current) window.clearTimeout(fadeTimeout.current);
-    };
+    return () => window.clearInterval(interval);
   }, []);
-
-  function jumpTo(next: number) {
-    if (next === index) return;
-    if (fadeTimeout.current) window.clearTimeout(fadeTimeout.current);
-    setShown(false);
-    fadeTimeout.current = window.setTimeout(() => {
-      setIndex(next);
-      setShown(true);
-    }, FADE_MS / 2);
-  }
-
-  const slide = SLIDES[index];
 
   return (
     <div className="surface rounded-[20px] bg-[color-mix(in_oklab,var(--panel)_92%,var(--accent)_8%)] p-7 shadow-[0_24px_60px_var(--shadow-color)]">
-      <div
-        className="flex flex-col transition-opacity duration-300 sm:min-h-[376px]"
-        style={{ opacity: shown ? 1 : 0 }}
-        aria-live="polite"
-      >
-        <div className="mb-6 flex items-center justify-between gap-3">
-          <p className="mono text-[10px] uppercase tracking-[0.22em] text-[var(--subtle)]">
-            {slide.eyebrow}
-          </p>
-          <p className="mono text-[10px] uppercase tracking-[0.16em] text-[#8fe388]">· Abgeschlossen</p>
-        </div>
-        <h2 className="display-serif text-3xl leading-tight">{slide.title}</h2>
-        <div className="mt-6 grid gap-3 sm:grid-cols-3">
-          {slide.metrics.map((metric) => (
-            <PreviewMetric key={metric.label} {...metric} />
-          ))}
-        </div>
-        <div className="mt-5 rounded-lg border border-[color-mix(in_oklab,var(--accent)_35%,var(--line))] bg-[color-mix(in_oklab,var(--panel)_94%,var(--accent)_6%)] p-4">
-          <p className="mono mb-2 inline-flex rounded bg-[color-mix(in_oklab,var(--accent)_12%,transparent)] px-2 py-1 text-[10px] uppercase tracking-[0.12em] text-[var(--accent)]">
-            {slide.box.tag}
-          </p>
-          <h3 className="font-semibold">{slide.box.heading}</h3>
-          <p className="muted mt-2 text-sm leading-6">{slide.box.text}</p>
-        </div>
+      {/* All slides share one grid cell so the card is always as tall as the
+          tallest slide — only visibility crossfades, the layout never shifts. */}
+      <div className="grid">
+        {SLIDES.map((slide, slideIndex) => (
+          <div
+            key={slide.eyebrow}
+            aria-hidden={slideIndex !== index}
+            className={`transition-opacity duration-500 ${slideIndex === index ? "opacity-100" : "pointer-events-none opacity-0"}`}
+            style={{ gridArea: "1 / 1" }}
+          >
+            <div className="mb-6 flex items-center justify-between gap-3">
+              <p className="mono text-[10px] uppercase tracking-[0.22em] text-[var(--subtle)]">{slide.eyebrow}</p>
+              <p className="mono text-[10px] uppercase tracking-[0.16em] text-[#8fe388]">· Abgeschlossen</p>
+            </div>
+            <h2 className="display-serif text-3xl leading-tight">{slide.title}</h2>
+            <div className="mt-6 grid gap-3 sm:grid-cols-3">
+              {slide.metrics.map((metric) => (
+                <PreviewMetric key={metric.label} {...metric} />
+              ))}
+            </div>
+            <div className="mt-5 rounded-lg border border-[color-mix(in_oklab,var(--accent)_35%,var(--line))] bg-[color-mix(in_oklab,var(--panel)_94%,var(--accent)_6%)] p-4">
+              <p className="mono mb-2 inline-flex rounded bg-[color-mix(in_oklab,var(--accent)_12%,transparent)] px-2 py-1 text-[10px] uppercase tracking-[0.12em] text-[var(--accent)]">
+                {slide.box.tag}
+              </p>
+              <h3 className="font-semibold">{slide.box.heading}</h3>
+              <p className="muted mt-2 text-sm leading-6">{slide.box.text}</p>
+            </div>
+          </div>
+        ))}
       </div>
 
       <div className="mt-6 flex items-center justify-center gap-2">
@@ -139,7 +121,7 @@ export function HeroDisciplinePreview() {
             type="button"
             aria-label={`Disziplin ${dotIndex + 1} anzeigen`}
             aria-current={dotIndex === index}
-            onClick={() => jumpTo(dotIndex)}
+            onClick={() => setIndex(dotIndex)}
             className={
               dotIndex === index
                 ? "h-1.5 w-6 rounded-full bg-[var(--accent)] transition-all"
