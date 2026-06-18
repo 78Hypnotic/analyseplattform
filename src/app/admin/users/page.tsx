@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Bike, Footprints, ShieldCheck, Waves } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
 import { requireAdmin } from "@/lib/auth/roles";
+import { CreateUserForm } from "./create-user-form";
 
 export const dynamic = "force-dynamic";
 
@@ -65,7 +66,15 @@ export default async function AdminUsersPage() {
           </Link>
         </div>
 
-        <p className="mono mt-6 text-xs uppercase tracking-[0.14em] text-[var(--subtle)]">
+        <section className="mt-8">
+          <div className="mb-3">
+            <h2 className="text-xl font-semibold">User anlegen</h2>
+            <p className="muted mt-1 text-sm">Erstellt einen bestätigten Account mit normaler User-Rolle.</p>
+          </div>
+          <CreateUserForm />
+        </section>
+
+        <p className="mono mt-8 text-xs uppercase tracking-[0.14em] text-[var(--subtle)]">
           {users.length} {users.length === 1 ? "Nutzer" : "Nutzer"}
         </p>
 
