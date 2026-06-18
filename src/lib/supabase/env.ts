@@ -13,6 +13,17 @@ export function getSupabaseEnv() {
   return { url, anonKey };
 }
 
+export function getSupabaseAdminEnv() {
+  const { url } = getSupabaseEnv();
+  const serviceRoleKey = cleanEnvValue(process.env.SUPABASE_SERVICE_ROLE_KEY);
+
+  if (!serviceRoleKey) {
+    throw new Error("Supabase service role key is missing.");
+  }
+
+  return { url, serviceRoleKey };
+}
+
 function cleanEnvValue(value: string | undefined) {
   return value?.trim().replace(/^["']|["']$/g, "");
 }
