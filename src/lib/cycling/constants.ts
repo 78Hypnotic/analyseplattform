@@ -4,8 +4,6 @@ import type { BikeGoal, BikeInput, MetabolicBand } from "./types";
 export const SPRINT_SECONDS = 20;
 export const ALACTIC_SECONDS = 4;
 export const GLYCOLYTIC_SECONDS = 16;
-export const RAMP_STEP_WATT = 25;
-export const RAMP_STEP_SECONDS = 30;
 
 /** PVO₂ is approximated as a fixed share of the ramp peak power (PPO). */
 export const PVO2_FACTOR = 0.875;
@@ -19,6 +17,14 @@ export const KJ_PER_LITER_O2 = 20.9;
 export const O2_PER_LACTATE = 3;
 /** Relative total energy demand per watt (for the fat/CHO model). */
 export const ENERGY_PER_WATT = 3.82;
+
+/** Lactate model anchors (mmol/l): resting baseline and threshold at FTP. */
+export const LACTATE_REST = 1.0;
+export const LACTATE_THRESHOLD = 4.0;
+/** Energy yield per gram of carbohydrate (kJ/g) for fuelling calculations. */
+export const KJ_PER_GRAM_CARB = 17.1;
+/** Energy yield per gram of fat (kJ/g) for fuelling calculations. */
+export const KJ_PER_GRAM_FAT = 37.7;
 
 /** Plausible VLamax-proxy band the model is calibrated for. */
 export const VLAMAX_MIN = 0.25;
@@ -101,8 +107,7 @@ export const DEFAULT_BIKE_INPUT: BikeInput = {
   fitnessLevel: 3,
   sprintPeakWatt: 900,
   sprintAvg20sWatt: 700,
-  rampLastStageWatt: 425,
-  rampExtraSeconds: 15,
+  oneMinPowerWatt: 438,
   goal: "Strasse",
   raceDate: "",
   bikeSessionsPerWeek: 4,

@@ -7,16 +7,18 @@ Laufen. Basiert auf zwei Tests (20-s-Sprint + Rampentest) und simuliert einen
 
 ## Testprotokoll
 
-- **Sprint:** 20 s All-Out → `PeakP` (höchste Leistung), `Avg20s` (Schnitt 20 s).
-- **Rampe:** +25 W alle 30 s bis Ausbelastung → letzte volle Stufe (W) +
-  Zusatzsekunden in der nächsten Stufe.
+Drei Wattwerte vom Powermeter:
+
+- **Peak 1 s** → `PeakP` (höchste 1-Sekunden-Leistung).
+- **20 s Ø** → `Avg20s` (Durchschnitt über den 20-s-All-Out).
+- **1 min Ø** → beste 1-Minuten-Durchschnittsleistung, direkt als MAP/PPO.
 - **Optional:** 12-min-Best-Effort (W) zur Plausibilitätsprüfung.
 
 ## Modell
 
 | Schritt | Formel |
 |---|---|
-| PPO/MAP | `letzteStufe + (Zusatzsek / 30) × 25` |
+| PPO/MAP | `1-Minuten-Leistung` (direkt) |
 | PVO₂ | `PPO × 0.875` |
 | VO₂max abs / rel | `PVO₂ × 12` / `… / Gewicht` |
 | Wgly | `Avg20s × 20 − PeakP × 4` |
@@ -29,6 +31,8 @@ Laufen. Basiert auf zwei Tests (20-s-Sprint + Rampentest) und simuliert einen
 | FTP | `PVO₂ × Profilfaktor(VLamax)` |
 | Fett/KH | `KH = FTP×3.82 × e^(−k×(FTP−P))`, `Fat = P×3.82 − KH` |
 | FatMax | Leistung mit maximaler Fettverbrennung (Sweep 0…FTP) |
+| Laktat (Kurve) | `1.0 × e^(ln4 × P/FTP)` (Ruhe 1, Schwelle 4 mmol/l) |
+| KH-Bedarf | `(P/0.225 × 3.6 × KH-Anteil) / 17.1` g/h |
 
 Profilfaktor und `k` stammen aus den VLamax-Lookup-Tabellen (linear
 interpoliert, an den Rändern geclamped). Zonen: Coggan 7-Zonen-Modell (% FTP).

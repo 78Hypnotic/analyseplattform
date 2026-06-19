@@ -111,8 +111,8 @@ end $$;
 ## 5. Rückmeldung & Test
 
 Kurz zurückmelden (neu angewendet vs. bereits vorhanden + Verifikationsergebnis).
-Danach manueller End-to-End-Test: `/rad/new` mit Beispieldaten (Peak 900 W,
-Ø 700 W, letzte Stufe 425 W, +15 s, 75 kg) → FTP ≈ 294 W, VO₂max ≈ 61 ml/kg/min,
+Danach manueller End-to-End-Test: `/rad/new` mit Beispieldaten (Peak 1 s 900 W,
+20 s Ø 700 W, 1 min Ø 438 W, 75 kg) → FTP ≈ 294 W, VO₂max ≈ 61 ml/kg/min,
 VLamax-Proxy ≈ 0,61, FatMax ≈ 194 W; speichern → erscheint unter `/rad` und in
 der Profil-Zusammenfassung.
 

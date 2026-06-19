@@ -23,8 +23,7 @@ export const bikeInputSchema = z
     ),
     sprintPeakWatt: z.coerce.number().int().min(200).max(2500),
     sprintAvg20sWatt: z.coerce.number().int().min(150).max(2000),
-    rampLastStageWatt: z.coerce.number().int().min(50).max(700),
-    rampExtraSeconds: z.coerce.number().int().min(0).max(29),
+    oneMinPowerWatt: z.coerce.number().int().min(50).max(700),
     goal: z.enum(["Strasse", "Zeitfahren", "MTB_Gravel", "GranFondo", "Triathlon"]),
     raceDate: z.preprocess((value) => (value === "" ? undefined : value), raceDateSchema.optional()),
     bikeSessionsPerWeek: z.coerce.number().int().min(1).max(14),
@@ -46,6 +45,13 @@ export const bikeInputSchema = z
         code: "custom",
         path: ["sprintAvg20sWatt"],
         message: "Sprintwerte ergeben keine glykolytische Arbeit. Bitte Peak und Durchschnitt prüfen.",
+      });
+    }
+    if (input.oneMinPowerWatt > input.sprintAvg20sWatt) {
+      context.addIssue({
+        code: "custom",
+        path: ["oneMinPowerWatt"],
+        message: "Die 1-Minuten-Leistung sollte unter der 20-s-Leistung liegen.",
       });
     }
   });

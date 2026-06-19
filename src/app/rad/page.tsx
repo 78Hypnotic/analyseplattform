@@ -39,7 +39,7 @@ export default async function BikeAnalysesPage() {
         {analyses.length === 0 ? (
           <section className="surface p-8">
             <h2 className="text-xl font-semibold">Noch keine Rad-Analyse gespeichert</h2>
-            <p className="muted mt-2">Starte mit Sprint- und Rampentest und speichere den ersten Report.</p>
+            <p className="muted mt-2">Starte mit deinen drei Wattwerten (1 s / 20 s / 1 min) und speichere den ersten Report.</p>
           </section>
         ) : (
           <div className="grid gap-3">

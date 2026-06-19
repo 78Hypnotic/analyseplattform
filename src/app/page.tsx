@@ -305,7 +305,7 @@ function Method() {
           </MetricGroup>
           <MetricGroup label="Radfahren">
             <Metric icon={<Gauge size={20} />} abbr="FTP" title="Schwellenleistung" text="Maximal nachhaltige Leistung aus PVO₂ und Profilfaktor." />
-            <Metric icon={<LineChart size={20} />} abbr="VO₂" title="Maximale aerobe Leistung" text="VO₂max-Proxy aus dem Rampentest (PPO × 0,875 × 12)." />
+            <Metric icon={<LineChart size={20} />} abbr="VO₂" title="Maximale aerobe Leistung" text="VO₂max-Proxy aus der 1-Minuten-Leistung (× 0,875 × 12)." />
             <Metric icon={<BarChart3 size={20} />} abbr="VLa" title="VLamax-Proxy" text="Anaerob-glykolytische Kapazität aus dem 20-s-Sprint." />
           </MetricGroup>
         </div>

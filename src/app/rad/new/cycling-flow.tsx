@@ -30,8 +30,7 @@ type BikeDraft = {
   fitnessLevel: number | "";
   sprintPeakWatt: number | "";
   sprintAvg20sWatt: number | "";
-  rampLastStageWatt: number | "";
-  rampExtraSeconds: number | "";
+  oneMinPowerWatt: number | "";
   goal: BikeInput["goal"] | "";
   raceDate: string;
   bikeSessionsPerWeek: number | "";
@@ -50,8 +49,7 @@ const EMPTY_BIKE_INPUT: BikeDraft = {
   fitnessLevel: "",
   sprintPeakWatt: "",
   sprintAvg20sWatt: "",
-  rampLastStageWatt: "",
-  rampExtraSeconds: "",
+  oneMinPowerWatt: "",
   goal: "",
   raceDate: "",
   bikeSessionsPerWeek: "",
@@ -82,8 +80,7 @@ const DATA_STEP_FIELDS = [
   "fitnessLevel",
   "sprintPeakWatt",
   "sprintAvg20sWatt",
-  "rampLastStageWatt",
-  "rampExtraSeconds",
+  "oneMinPowerWatt",
 ] satisfies BikeFieldKey[];
 const DATA_STEP_FIELD_SET = new Set<BikeFieldKey>(DATA_STEP_FIELDS);
 const FIELD_LABELS = {
@@ -94,10 +91,9 @@ const FIELD_LABELS = {
   weight: "Gewicht",
   bodyFatPercentage: "KFA",
   fitnessLevel: "Fitnesslevel",
-  sprintPeakWatt: "Sprint Peak-Leistung",
-  sprintAvg20sWatt: "Sprint Ø 20 s",
-  rampLastStageWatt: "Letzte Rampenstufe",
-  rampExtraSeconds: "Zusatzsekunden",
+  sprintPeakWatt: "Peak-Leistung (1 s)",
+  sprintAvg20sWatt: "20 s Ø-Leistung",
+  oneMinPowerWatt: "1 min Ø-Leistung",
   goal: "Ziel",
   raceDate: "Wettkampfdatum",
   bikeSessionsPerWeek: "Radeinheiten pro Woche",
@@ -459,10 +455,10 @@ function DataStep({
           Testprotokoll
         </p>
         <div className="rounded-lg border border-[var(--line)] bg-[var(--soft-bg)] p-3 text-sm">
-          <p className="font-medium">Sprint + Rampe</p>
+          <p className="font-medium">Drei Leistungswerte</p>
           <p className="muted mt-1">
-            20 s All-Out-Sprint (Peak- und Durchschnittsleistung) sowie ein Rampentest (+25 W alle 30 s bis zur
-            Ausbelastung). Leistungswerte vom Powermeter ablesen.
+            Vom Powermeter ablesen: höchste 1-Sekunden-Leistung, Durchschnitt über 20 s All-Out und die beste
+            1-Minuten-Durchschnittsleistung.
           </p>
         </div>
       </div>
@@ -509,22 +505,13 @@ function DataStep({
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <div className="surface min-w-0 overflow-hidden p-5">
-          <h2 className="text-xl font-semibold">Sprinttest (20 s)</h2>
-          <p className="muted mt-1 text-sm">Maximaler Antritt über 20 Sekunden.</p>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <Field label="Peak-Leistung (W)" fieldKey="sprintPeakWatt" error={validation.fieldErrors.sprintPeakWatt} type="number" value={input.sprintPeakWatt} placeholder="z. B. 900" onChange={(value) => update({ sprintPeakWatt: optionalNumber(value) })} />
-            <Field label="Ø 20 s (W)" fieldKey="sprintAvg20sWatt" error={validation.fieldErrors.sprintAvg20sWatt} type="number" value={input.sprintAvg20sWatt} placeholder="z. B. 700" onChange={(value) => update({ sprintAvg20sWatt: optionalNumber(value) })} />
-          </div>
-        </div>
-        <div className="surface min-w-0 overflow-hidden p-5">
-          <h2 className="text-xl font-semibold">Rampentest</h2>
-          <p className="muted mt-1 text-sm">+25 W alle 30 s bis zur Ausbelastung.</p>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <Field label="Letzte volle Stufe (W)" fieldKey="rampLastStageWatt" error={validation.fieldErrors.rampLastStageWatt} type="number" value={input.rampLastStageWatt} placeholder="z. B. 425" onChange={(value) => update({ rampLastStageWatt: optionalNumber(value) })} />
-            <Field label="Zusatzsekunden (0–29)" fieldKey="rampExtraSeconds" error={validation.fieldErrors.rampExtraSeconds} type="number" value={input.rampExtraSeconds} placeholder="z. B. 15" onChange={(value) => update({ rampExtraSeconds: optionalNumber(value) })} />
-          </div>
+      <div className="surface min-w-0 overflow-hidden p-5">
+        <h2 className="text-xl font-semibold">Leistungswerte</h2>
+        <p className="muted mt-1 text-sm">Drei Wattwerte aus deinen Tests.</p>
+        <div className="mt-4 grid gap-4 md:grid-cols-3">
+          <Field label="Peak-Leistung 1 s (W)" fieldKey="sprintPeakWatt" error={validation.fieldErrors.sprintPeakWatt} type="number" value={input.sprintPeakWatt} placeholder="z. B. 900" onChange={(value) => update({ sprintPeakWatt: optionalNumber(value) })} />
+          <Field label="20 s Ø (W)" fieldKey="sprintAvg20sWatt" error={validation.fieldErrors.sprintAvg20sWatt} type="number" value={input.sprintAvg20sWatt} placeholder="z. B. 700" onChange={(value) => update({ sprintAvg20sWatt: optionalNumber(value) })} />
+          <Field label="1 min Ø (W)" fieldKey="oneMinPowerWatt" error={validation.fieldErrors.oneMinPowerWatt} type="number" value={input.oneMinPowerWatt} placeholder="z. B. 438" onChange={(value) => update({ oneMinPowerWatt: optionalNumber(value) })} />
         </div>
       </div>
 

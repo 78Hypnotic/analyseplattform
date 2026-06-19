@@ -201,8 +201,8 @@ function RunSection() {
 function BikeSection() {
   return (
     <DisciplineSection title="Radfahren" file="src/lib/cycling/calculations.ts">
-      <Block title="Rampentest → aerobe Leistung">
-        <Formula formula="PPO/MAP [W] = letzte Stufe + (Zusatzsek / 30) × 25" desc="Maximale aerobe Rampenleistung." />
+      <Block title="1-Minuten-Leistung → aerobe Leistung">
+        <Formula formula="PPO/MAP [W] = beste 1-Minuten-Durchschnittsleistung" desc="Direkt eingegeben (beste angenäherte 1-min-Leistung)." />
         <Formula formula={`PVO₂ [W] = PPO × ${PVO2_FACTOR}`} desc="Leistung bei VO₂max (pauschaler Korrekturfaktor)." />
         <Formula formula={`VO₂max abs [ml/min] = PVO₂ × ${O2_PER_WATT}`} desc={`relativ = … / Gewicht. Annahme: 1 W ≈ ${O2_PER_WATT} ml O₂/min.`} />
       </Block>
@@ -225,6 +225,16 @@ function BikeSection() {
         <Formula formula="KH(P) = (FTP × 3,82) × e^(−k × (FTP − P))" desc="Kohlenhydrat-Energie; k aus untenstehender Tabelle." />
         <Formula formula="Fat(P) = Gesamtenergie(P) − KH(P)" desc="FatMax = Leistung P mit maximaler Fettverbrennung (Sweep 0…FTP)." />
         <LookupTable title="VLamax → k-Faktor" rows={K_FACTOR_TABLE} />
+      </Block>
+
+      <Block title="Laktat-Modell (für die Kurve)">
+        <Formula formula="Laktat(P) [mmol/l] = 1,0 × e^(ln(4) × (P / FTP))" desc="FTP-verankertes Modell: 1,0 mmol/l in Ruhe, 4,0 mmol/l an der Schwelle (P = FTP)." />
+      </Block>
+
+      <Block title="Kohlenhydrat-Rechner">
+        <Formula formula="KH-Anteil(P) = KH(P) / Gesamtenergie(P)" desc="Anteil der Kohlenhydrate an der Energiebereitstellung bei Leistung P." />
+        <Formula formula="metabol. kJ/h = (P / 0,225) × 3,6" desc="Stoffwechsel-Energieumsatz pro Stunde bei Leistung P." />
+        <Formula formula="KH [g/h] = (metabol. kJ/h × KH-Anteil) / 17,1" desc="1 g Kohlenhydrate ≈ 17,1 kJ; Fett ≈ 37,7 kJ/g." />
       </Block>
 
       <Block title="Metabolisches Profil (aus VLamax-Proxy)">

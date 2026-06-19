@@ -21,14 +21,12 @@ export type BikeInput = {
   weight: number;
   bodyFatPercentage?: number;
   fitnessLevel?: number;
-  /** Highest power during the 20-second sprint (W). */
+  /** Peak 1-second power during the sprint (W). */
   sprintPeakWatt: number;
   /** Average power across the full 20-second sprint (W). */
   sprintAvg20sWatt: number;
-  /** Power of the last fully completed ramp stage (W). */
-  rampLastStageWatt: number;
-  /** Extra seconds completed into the next, unfinished ramp stage (0–29). */
-  rampExtraSeconds: number;
+  /** Best 1-minute average power (W) — used directly as MAP/PPO. */
+  oneMinPowerWatt: number;
   goal: BikeGoal;
   raceDate?: string;
   bikeSessionsPerWeek?: number;
@@ -50,6 +48,8 @@ export type FatCurvePoint = {
   watt: number;
   fat: number;
   cho: number;
+  /** Modelled blood lactate (mmol/l) at this power. */
+  lactate: number;
 };
 
 export type BikeMetabolicProfile = {

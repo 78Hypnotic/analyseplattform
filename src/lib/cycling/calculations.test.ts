@@ -1,14 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_BIKE_INPUT, PROFILE_FACTOR_TABLE } from "./constants";
 import {
+  buildFatCurve,
   buildTrainingZones,
   computeFatMax,
   computeFtp,
   computeGlycolytic,
-  computePpo,
   computePvo2,
   computeVlamaxProxy,
   computeVo2,
+  estimateFueling,
   interpolateTable,
   kFactorFor,
   profileFactorFor,
@@ -17,17 +18,12 @@ import {
 import { getBikeValidationResult } from "./validation";
 
 describe("bike diagnostics calculations", () => {
-  it("computes PPO from the ramp test", () => {
-    expect(computePpo(425, 15)).toBe(437.5);
-    expect(computePpo(425, 0)).toBe(425);
-  });
-
-  it("computes PVO2 and VO2max", () => {
-    const pvo2 = computePvo2(437.5);
-    expect(pvo2).toBeCloseTo(382.8125, 3);
+  it("uses the 1-minute power directly as PPO and derives VO2max", () => {
+    const pvo2 = computePvo2(438);
+    expect(pvo2).toBeCloseTo(383.25, 2);
     const vo2 = computeVo2(pvo2, 75);
-    expect(vo2.abs).toBeCloseTo(4593.75, 1);
-    expect(vo2.rel).toBeCloseTo(61.25, 2);
+    expect(vo2.abs).toBeCloseTo(4599, 0);
+    expect(vo2.rel).toBeCloseTo(61.32, 1);
   });
 
   it("computes glycolytic work from the sprint", () => {
@@ -75,16 +71,31 @@ describe("bike diagnostics calculations", () => {
   });
 
   it("produces the full diagnostic for the worked example", () => {
-    const result = runBikeAnalysis({ ...DEFAULT_BIKE_INPUT, sprintPeakWatt: 900, sprintAvg20sWatt: 700, rampLastStageWatt: 425, rampExtraSeconds: 15, weight: 75 });
+    const result = runBikeAnalysis({ ...DEFAULT_BIKE_INPUT, sprintPeakWatt: 900, sprintAvg20sWatt: 700, oneMinPowerWatt: 438, weight: 75 });
     expect(result).not.toBeNull();
-    expect(result?.ppo).toBe(437.5);
-    expect(result?.vo2rel).toBeCloseTo(61.25, 2);
+    expect(result?.ppo).toBe(438);
+    expect(result?.vo2rel).toBeCloseTo(61.32, 1);
     expect(result?.vlamaxProxy).toBeCloseTo(0.6143, 3);
-    expect(result?.ftpWatt).toBeCloseTo(293.7, 0);
+    expect(result?.ftpWatt).toBeCloseTo(294, 0);
     expect(result?.ftpPerKg).toBeCloseTo(3.92, 1);
     expect(result?.fatMaxWatt).toBeGreaterThan(170);
     expect(result?.fatMaxWatt).toBeLessThan(220);
     expect(result?.fatCurve.length).toBeGreaterThan(50);
+  });
+
+  it("anchors the modelled lactate curve at rest and threshold", () => {
+    const curve = buildFatCurve(294, 0.01454);
+    expect(curve[0].lactate).toBeCloseTo(1.0, 1);
+    expect(curve[curve.length - 1].lactate).toBeCloseTo(4.0, 1);
+  });
+
+  it("estimates carbohydrate fuelling from the model", () => {
+    const fueling = estimateFueling(294, 0.01454, 200);
+    expect(fueling).not.toBeNull();
+    expect(fueling?.carbFraction).toBeGreaterThan(0.2);
+    expect(fueling?.carbFraction).toBeLessThan(0.6);
+    expect(fueling?.carbGramsPerHour).toBeGreaterThan(40);
+    expect(fueling?.carbGramsPerHour).toBeLessThan(110);
   });
 
   it("flags the sprint when the 12-minute test diverges", () => {

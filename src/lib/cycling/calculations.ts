@@ -4,7 +4,11 @@ import {
   ENERGY_PER_WATT,
   GLYCOLYTIC_SECONDS,
   K_FACTOR_TABLE,
+  KJ_PER_GRAM_CARB,
+  KJ_PER_GRAM_FAT,
   KJ_PER_LITER_O2,
+  LACTATE_REST,
+  LACTATE_THRESHOLD,
   MECH_EFFICIENCY,
   METABOLIC_BANDS,
   O2_PER_LACTATE,
@@ -12,8 +16,6 @@ import {
   PLAUSIBILITY_TOLERANCE,
   PROFILE_FACTOR_TABLE,
   PVO2_FACTOR,
-  RAMP_STEP_SECONDS,
-  RAMP_STEP_WATT,
   SPRINT_SECONDS,
   VLAMAX_MAX,
   VLAMAX_MIN,
@@ -26,14 +28,6 @@ import type {
   BikeZone,
   FatCurvePoint,
 } from "./types";
-
-/** Maximal aerobic power (PPO/MAP) from the ramp test. */
-export function computePpo(lastStageWatt: number, extraSeconds: number): number {
-  if (!Number.isFinite(lastStageWatt) || !Number.isFinite(extraSeconds) || lastStageWatt <= 0) {
-    return Number.NaN;
-  }
-  return lastStageWatt + (extraSeconds / RAMP_STEP_SECONDS) * RAMP_STEP_WATT;
-}
 
 /** Power at VO₂max, approximated as a fixed share of PPO. */
 export function computePvo2(ppo: number): number {
@@ -100,13 +94,16 @@ export function computeFtp(pvo2: number, profileFactor: number): number {
 }
 
 /**
- * Sweeps power from rest to FTP and returns the fat/CHO energy curve.
+ * Sweeps power from rest to FTP and returns the substrate/lactate curve.
  * CHO follows an exponential approaching the threshold demand; fat is the
- * remainder of the total demand. Magnitudes share the ENERGY_PER_WATT scale.
+ * remainder of the total demand (both share the ENERGY_PER_WATT scale).
+ * Lactate is a transparent FTP-anchored model: LACTATE_REST at rest, rising
+ * exponentially to LACTATE_THRESHOLD at FTP.
  */
 export function buildFatCurve(ftp: number, k: number): FatCurvePoint[] {
   if (!Number.isFinite(ftp) || ftp <= 0 || !Number.isFinite(k)) return [];
   const energyThreshold = ftp * ENERGY_PER_WATT;
+  const lactateGrowth = Math.log(LACTATE_THRESHOLD / LACTATE_REST);
   const step = Math.max(1, Math.round(ftp / 120));
   const points: FatCurvePoint[] = [];
 
@@ -114,7 +111,8 @@ export function buildFatCurve(ftp: number, k: number): FatCurvePoint[] {
     const cho = energyThreshold * Math.exp(-k * (ftp - watt));
     const total = watt * ENERGY_PER_WATT;
     const fat = Math.max(0, total - cho);
-    points.push({ watt, fat, cho });
+    const lactate = LACTATE_REST * Math.exp(lactateGrowth * (watt / ftp));
+    points.push({ watt, fat, cho, lactate });
   }
   return points;
 }
@@ -179,18 +177,38 @@ export function buildPlausibility(ftp: number, validation12minWatt?: number): Bi
 }
 
 /**
- * Turns the sprint + ramp test and athlete context into a deterministic
- * metabolic bike diagnostic. Returns null when the inputs cannot form a
- * plausible model (no glycolytic work, sprint average above peak, or a
+ * Estimates substrate use and fuelling at a target power, using the same
+ * fat/CHO model as the curve. Rates are per hour and duration-independent.
+ */
+export function estimateFueling(ftp: number, k: number, watt: number) {
+  if (!Number.isFinite(ftp) || ftp <= 0 || !Number.isFinite(watt) || watt <= 0) return null;
+  const total = watt * ENERGY_PER_WATT;
+  const cho = ftp * ENERGY_PER_WATT * Math.exp(-k * (ftp - watt));
+  const carbFraction = Math.max(0, Math.min(1, cho / total));
+  const metabolicKjPerHour = (watt / MECH_EFFICIENCY) * 3.6;
+
+  return {
+    carbFraction,
+    carbGramsPerHour: (metabolicKjPerHour * carbFraction) / KJ_PER_GRAM_CARB,
+    fatGramsPerHour: (metabolicKjPerHour * (1 - carbFraction)) / KJ_PER_GRAM_FAT,
+    kcalPerHour: metabolicKjPerHour / 4.184,
+  };
+}
+
+/**
+ * Turns the sprint + 1-minute power test and athlete context into a
+ * deterministic metabolic bike diagnostic. Returns null when the inputs cannot
+ * form a plausible model (no glycolytic work, sprint average above peak, or a
  * VLamax proxy outside the calibrated band).
  */
 export function runBikeAnalysis(input: BikeInput): BikeResult | null {
   if (!Number.isFinite(input.weight) || input.weight <= 0) return null;
   if (input.sprintAvg20sWatt > input.sprintPeakWatt) return null;
 
-  const ppo = computePpo(input.rampLastStageWatt, input.rampExtraSeconds);
+  // The best 1-minute average power is used directly as MAP/PPO.
+  const ppo = input.oneMinPowerWatt;
   const pvo2 = computePvo2(ppo);
-  if (!Number.isFinite(ppo) || !Number.isFinite(pvo2) || pvo2 <= 0) return null;
+  if (!Number.isFinite(ppo) || ppo <= 0 || !Number.isFinite(pvo2) || pvo2 <= 0) return null;
 
   const { abs: vo2abs, rel: vo2rel } = computeVo2(pvo2, input.weight);
   const { w20, walakt, wgly, pgly } = computeGlycolytic(input.sprintPeakWatt, input.sprintAvg20sWatt);

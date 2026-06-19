@@ -1,6 +1,8 @@
 import { AlertTriangle, Flame, Gauge, Info, Zap } from "lucide-react";
+import { BikeCarbCalculator } from "@/components/bike-carb-calculator";
+import { BikeMetabolicChart } from "@/components/bike-metabolic-chart";
 import { VLAMAX_MAX, VLAMAX_MIN } from "@/lib/cycling/constants";
-import type { BikeInput, BikeResult, BikeZone, FatCurvePoint } from "@/lib/cycling/types";
+import type { BikeInput, BikeResult, BikeZone } from "@/lib/cycling/types";
 
 export function CyclingReportView({ input, result }: { input: BikeInput; result: BikeResult }) {
   return (
@@ -32,6 +34,7 @@ export function CyclingReportView({ input, result }: { input: BikeInput; result:
       <MetabolicProfileCard result={result} />
       <FatCurveCard result={result} />
       <TrainingZonesCard result={result} />
+      <BikeCarbCalculator ftp={result.ftpWatt} kFactor={result.kFactor} fatMaxWatt={result.fatMaxWatt} />
       <DisclaimerCard />
       <ExpertDetails input={input} result={result} />
     </div>
@@ -116,48 +119,18 @@ function FatCurveCard({ result }: { result: BikeResult }) {
     <section className="surface p-5">
       <div className="mb-2 flex items-center gap-2 text-sm font-medium">
         <Flame size={18} className="text-[var(--accent)]" />
-        <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--subtle)]">Fettstoffwechsel</p>
+        <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--subtle)]">Stoffwechsel & Laktat</p>
       </div>
-      <h2 className="text-2xl font-semibold">Fettverbrennung über die Leistung</h2>
+      <h2 className="text-2xl font-semibold">Substrate & Laktat über die Leistung</h2>
       <p className="muted mt-2 max-w-2xl leading-7">
-        Die Fettverbrennung steigt mit der Leistung bis zum FatMax-Punkt bei {Math.round(result.fatMaxWatt)} W
-        ({Math.round(result.fatMaxPctFtp * 100)} % FTP) und fällt zur Schwelle hin wieder ab.
+        Kohlenhydrat- und Fettanteil sowie das modellierte Laktat über die Leistung. FatMax liegt bei{" "}
+        {Math.round(result.fatMaxWatt)} W ({Math.round(result.fatMaxPctFtp * 100)} % FTP). Fahre über die Kurve, um
+        Werte abzulesen.
       </p>
       <div className="mt-5">
-        <FatCurveChart curve={result.fatCurve} fatMaxWatt={result.fatMaxWatt} ftp={result.ftpWatt} />
+        <BikeMetabolicChart curve={result.fatCurve} ftp={result.ftpWatt} fatMaxWatt={result.fatMaxWatt} />
       </div>
     </section>
-  );
-}
-
-function FatCurveChart({ curve, fatMaxWatt, ftp }: { curve: FatCurvePoint[]; fatMaxWatt: number; ftp: number }) {
-  const width = 600;
-  const height = 220;
-  const padX = 36;
-  const padY = 24;
-  if (curve.length < 2) return null;
-
-  const maxWatt = ftp;
-  const maxFat = Math.max(...curve.map((point) => point.fat)) || 1;
-  const x = (watt: number) => padX + (watt / maxWatt) * (width - padX * 2);
-  const y = (fat: number) => height - padY - (fat / maxFat) * (height - padY * 2);
-
-  const line = curve.map((point) => `${x(point.watt).toFixed(1)},${y(point.fat).toFixed(1)}`).join(" ");
-  const area = `${padX},${height - padY} ${line} ${x(curve[curve.length - 1].watt).toFixed(1)},${height - padY}`;
-  const markerX = x(fatMaxWatt);
-
-  return (
-    <svg viewBox={`0 0 ${width} ${height}`} className="w-full" role="img" aria-label="Fettverbrennungskurve">
-      <polygon points={area} fill="color-mix(in oklab, var(--accent) 14%, transparent)" />
-      <polyline points={line} fill="none" stroke="var(--accent)" strokeWidth={2.5} />
-      <line x1={markerX} y1={padY} x2={markerX} y2={height - padY} stroke="var(--foreground)" strokeWidth={1} strokeDasharray="4 4" />
-      <circle cx={markerX} cy={y(Math.max(...curve.map((p) => p.fat)))} r={4} fill="var(--foreground)" />
-      <text x={markerX} y={padY - 8} textAnchor="middle" fill="var(--foreground)" fontSize="12">
-        FatMax {Math.round(fatMaxWatt)} W
-      </text>
-      <text x={padX} y={height - 6} fill="var(--subtle)" fontSize="11">0 W</text>
-      <text x={width - padX} y={height - 6} textAnchor="end" fill="var(--subtle)" fontSize="11">{Math.round(ftp)} W (FTP)</text>
-    </svg>
   );
 }
 
@@ -228,10 +201,9 @@ function ExpertDetails({ input, result }: { input: BikeInput; result: BikeResult
         <div>
           <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--subtle)]">Testdaten</p>
           <div className="mt-4 grid gap-3 md:grid-cols-3">
-            <DetailItem label="Sprint Peak" value={`${input.sprintPeakWatt} W`} />
-            <DetailItem label="Sprint Ø 20 s" value={`${input.sprintAvg20sWatt} W`} />
-            <DetailItem label="Letzte Rampenstufe" value={`${input.rampLastStageWatt} W`} />
-            <DetailItem label="Zusatzsekunden" value={`${input.rampExtraSeconds} s`} />
+            <DetailItem label="Peak 1 s" value={`${input.sprintPeakWatt} W`} />
+            <DetailItem label="20 s Ø" value={`${input.sprintAvg20sWatt} W`} />
+            <DetailItem label="1 min Ø" value={`${input.oneMinPowerWatt} W`} />
             <DetailItem label="Gewicht" value={`${input.weight} kg`} />
             <DetailItem label="12-Min-Test" value={input.validation12minWatt ? `${input.validation12minWatt} W` : "nicht erfasst"} />
           </div>
