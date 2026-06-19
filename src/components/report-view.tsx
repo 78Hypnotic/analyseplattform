@@ -1,12 +1,5 @@
-import {
-  AlertTriangle,
-  CalendarCheck2,
-  Dumbbell,
-  Lock,
-  RefreshCcw,
-  ShoppingCart,
-} from "lucide-react";
-import { explainStyle, formatPace, isTechniqueOnlyResult } from "@/lib/analysis/calculations";
+import { CalendarCheck2, RefreshCcw } from "lucide-react";
+import { formatPace, isTechniqueOnlyResult } from "@/lib/analysis/calculations";
 import type {
   AnalysisInput,
   AnalysisResult,
@@ -15,41 +8,28 @@ import type {
   TechniqueOnlyAnalysisResult,
   TestMetrics,
 } from "@/lib/analysis/types";
-import type { TrainingPlanPreview } from "@/lib/training-plans/types";
 
 export function ReportView({
   input,
   result,
-  trainingPlanPreview,
 }: {
   input: AnalysisInput;
   result: AnalysisResult;
-  trainingPlanPreview?: TrainingPlanPreview | null;
 }) {
   if (isTechniqueOnlyResult(result)) {
-    return (
-      <TechniqueOnlyReportView
-        input={input}
-        result={result}
-        trainingPlanPreview={trainingPlanPreview}
-      />
-    );
+    return <TechniqueOnlyReportView input={input} result={result} />;
   }
 
-  return <StandardReportView input={input} result={result} trainingPlanPreview={trainingPlanPreview} />;
+  return <StandardReportView input={input} result={result} />;
 }
 
 function StandardReportView({
   input,
   result,
-  trainingPlanPreview,
 }: {
   input: AnalysisInput;
   result: StandardAnalysisResult;
-  trainingPlanPreview?: TrainingPlanPreview | null;
 }) {
-  const issue = result.issues[0];
-  const styleProfile = result.styleProfile ?? explainStyle(result.style);
   const targetDistance = input.targetDistance ?? result.plan.targetDistance ?? "Becken";
   const sessionsPerWeek = input.swimSessionsPerWeek ?? result.plan.swimSessionsPerWeek ?? 3;
   const techniqueGate = getTechniqueGate(result);
@@ -87,15 +67,6 @@ function StandardReportView({
       <PhysiologicalProfileCard result={result} />
       <SwimMechanicsCard result={result} />
 
-      <section className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
-        <StyleProfileCard profile={styleProfile} />
-        <TrainingLeverCard
-          issue={issue}
-          result={result}
-          trainingPlanPreview={trainingPlanPreview}
-        />
-      </section>
-
       <RetestCard result={result} />
       <ExpertDetails input={input} result={result} />
     </div>
@@ -105,15 +76,10 @@ function StandardReportView({
 function TechniqueOnlyReportView({
   input,
   result,
-  trainingPlanPreview,
 }: {
   input: AnalysisInput;
   result: TechniqueOnlyAnalysisResult;
-  trainingPlanPreview?: TrainingPlanPreview | null;
 }) {
-  const issue = result.issues[0];
-  const styleProfile = result.styleProfile ?? explainStyle(result.style);
-
   return (
     <div className="space-y-6">
       <section className="surface border-[color-mix(in_oklab,var(--warn)_68%,var(--line))] p-6">
@@ -132,15 +98,6 @@ function TechniqueOnlyReportView({
       </section>
 
       <SwimMechanicsCard result={result} />
-
-      <section className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
-        <StyleProfileCard profile={styleProfile} />
-        <TrainingLeverCard
-          issue={issue}
-          result={result}
-          trainingPlanPreview={trainingPlanPreview}
-        />
-      </section>
 
       <RetestCard result={result} />
       <ExpertDetails input={input} result={result} />
@@ -231,108 +188,6 @@ function MechanicMetric({ label, value, detail }: { label: string; value: string
       <p className="mono text-xs uppercase tracking-[0.14em] text-[var(--subtle)]">{label}</p>
       <p className="mt-3 text-4xl font-semibold text-[var(--accent)]">{value}</p>
       <p className="muted mt-2 text-sm">{detail}</p>
-    </div>
-  );
-}
-
-function StyleProfileCard({
-  profile,
-}: {
-  profile: NonNullable<AnalysisResult["styleProfile"]>;
-}) {
-  return (
-    <div className="surface p-5">
-      <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--accent)]">
-        Dein aktuelles Schwimmmuster
-      </p>
-      <h2 className="mt-3 text-2xl font-semibold">{profile.name}</h2>
-      <p className="muted mt-3 leading-7">
-        Im aktuellen Test zeigt sich dieses Muster: {profile.description}
-      </p>
-      <div className="mt-4 rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-4">
-        <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--subtle)]">
-          Coaching-Fokus
-        </p>
-        <p className="mt-2 text-sm leading-6">{profile.trainingFocus}</p>
-      </div>
-    </div>
-  );
-}
-
-function TrainingLeverCard({
-  issue,
-  result,
-  trainingPlanPreview,
-}: {
-  issue: AnalysisResult["issues"][number] | undefined;
-  result: AnalysisResult;
-  trainingPlanPreview?: TrainingPlanPreview | null;
-}) {
-  const focus = getPublicTrainingFocus(result.plan.slug, result.plan.name);
-  const timeframe = result.plan.timeframeLabel ?? `${result.plan.weeks} Wochen`;
-
-  return (
-    <section className="surface border-[color-mix(in_oklab,var(--warn)_48%,var(--line))] p-5">
-      <div className="mb-4 flex items-center gap-2 text-sm font-medium text-[var(--warn)]">
-        <AlertTriangle size={18} />
-        Trainingshebel
-      </div>
-      <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--subtle)]">
-        Hauptproblem
-      </p>
-      <h2 className="mt-2 text-2xl font-semibold">{issue?.title ?? "Fokus stabilisieren"}</h2>
-      <p className="muted mt-3 leading-7">
-        {issue?.cause ?? "Der nächste Block bündelt Technik, Rhythmus und kontrollierbare Wiederholungen."}
-      </p>
-      <div className="mt-5 grid gap-3 sm:grid-cols-3">
-        <LeverItem label="Haupthebel" value={focus} />
-        <LeverItem label="Cue" value={issue?.cue ?? "Ruhig bleiben und Länge halten."} />
-        <LeverItem label="Drill" value={issue?.drill ?? "6 x 50 m locker mit stabiler Zugzahl."} />
-      </div>
-      <div className="mt-5 rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="flex items-center gap-2 text-sm font-medium text-[var(--accent)]">
-              <Dumbbell size={18} />
-              Trainingsblock
-            </div>
-            <p className="muted mt-2 text-sm">{timeframe}</p>
-          </div>
-          <button
-            type="button"
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[var(--accent)] px-4 text-sm font-medium text-[var(--accent-foreground)] transition hover:bg-[var(--accent-hover)]"
-          >
-            <ShoppingCart size={16} />
-            Trainingsplan freischalten
-          </button>
-        </div>
-        <div className="mt-4 rounded-lg border border-[color-mix(in_oklab,var(--accent)_38%,var(--line))] bg-[color-mix(in_oklab,var(--accent)_8%,var(--raised-bg))] p-4">
-          <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--accent)]">
-            Potenzial mit diesem Fokus
-          </p>
-          <p className="mt-2 text-2xl font-semibold">{result.potential.paceGain}</p>
-          <p className="muted mt-2 text-sm leading-6">{result.potential.description}</p>
-        </div>
-        <p className="muted mt-3 text-sm leading-6">
-          {trainingPlanPreview?.summary ?? `${result.plan.weeks} Wochen mit einem klaren Schwerpunkt und ReTest am Ende.`}
-        </p>
-        <div className="mt-4 flex items-center gap-2 text-sm text-[var(--accent)]">
-          <Lock size={16} />
-          <span>Die vollständigen Einheiten und Progressionen bleiben bis zur Freischaltung gesperrt.</span>
-        </div>
-        {trainingPlanPreview?.preview ? (
-          <p className="muted mt-3 text-sm leading-6">{trainingPlanPreview.preview}</p>
-        ) : null}
-      </div>
-    </section>
-  );
-}
-
-function LeverItem({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-4">
-      <p className="mono mb-2 text-xs uppercase text-[var(--subtle)]">{label}</p>
-      <p className="text-sm leading-6">{value}</p>
     </div>
   );
 }

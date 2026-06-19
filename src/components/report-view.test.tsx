@@ -44,9 +44,8 @@ describe("ReportView", () => {
     expect(screen.getByText("Aerobe Kapazität")).toBeTruthy();
     expect(screen.getByText("Anaerobe Kapazität")).toBeTruthy();
     expect(screen.getByText("Schwimm-Mechanik")).toBeTruthy();
-    expect(screen.getByText("Dein aktuelles Schwimmmuster")).toBeTruthy();
-    expect(screen.getByText("Trainingshebel")).toBeTruthy();
-    expect(screen.getByText("Potenzial mit diesem Fokus")).toBeTruthy();
+    expect(screen.queryByText("Dein aktuelles Schwimmmuster")).toBeNull();
+    expect(screen.queryByText("Trainingshebel")).toBeNull();
     expect(screen.getByText("Expertenmodus / Details")).toBeTruthy();
     expect(screen.queryByText("Radar")).toBeNull();
     expect(screen.queryByText("VO2-Proxy")).toBeNull();
@@ -71,8 +70,7 @@ describe("ReportView", () => {
     expect(screen.getByRole("heading", { name: "Erst Technik stabilisieren, dann physiologisch auswerten." })).toBeTruthy();
     expect(screen.queryByRole("heading", { name: /Deine CSS beträgt/i })).toBeNull();
     expect(screen.getByText("Schwimm-Mechanik")).toBeTruthy();
-    expect(screen.getByText("Trainingshebel")).toBeTruthy();
-    expect(screen.getByText("Potenzial mit diesem Fokus")).toBeTruthy();
+    expect(screen.queryByText("Trainingshebel")).toBeNull();
   });
 
   it("renders stored legacy standard reports without newer optional fields", () => {

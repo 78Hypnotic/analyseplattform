@@ -10,9 +10,8 @@ test.describe("Schwimmdiagnostik Report", () => {
     await expect(page.getByText("Aerobe Kapazität", { exact: true })).toBeVisible();
     await expect(page.getByText("Anaerobe Kapazität", { exact: true })).toBeVisible();
     await expect(page.getByText("Schwimm-Mechanik", { exact: true })).toBeVisible();
-    await expect(page.getByText("Dein aktuelles Schwimmmuster", { exact: true })).toBeVisible();
-    await expect(page.getByText("Trainingshebel", { exact: true })).toBeVisible();
-    await expect(page.getByText("Potenzial mit diesem Fokus", { exact: true })).toBeVisible();
+    await expect(page.getByText("Dein aktuelles Schwimmmuster", { exact: true })).toHaveCount(0);
+    await expect(page.getByText("Trainingshebel", { exact: true })).toHaveCount(0);
     await expect(page.locator("section").filter({ hasText: /^ReTest/ }).first()).toBeVisible();
 
     const expertDetails = page.locator("details").filter({ hasText: "Expertenmodus / Details" });
@@ -34,9 +33,8 @@ test.describe("Schwimmdiagnostik Report", () => {
     await expect(page.getByRole("heading", { name: "Erst Technik stabilisieren, dann physiologisch auswerten." })).toBeVisible();
     await expect(page.getByRole("heading", { name: /Deine CSS beträgt/i })).toHaveCount(0);
     await expect(page.getByText("Schwimm-Mechanik", { exact: true })).toBeVisible();
-    await expect(page.getByText("Dein aktuelles Schwimmmuster", { exact: true })).toBeVisible();
-    await expect(page.getByText("Trainingshebel", { exact: true })).toBeVisible();
-    await expect(page.getByText("Potenzial mit diesem Fokus", { exact: true })).toBeVisible();
+    await expect(page.getByText("Dein aktuelles Schwimmmuster", { exact: true })).toHaveCount(0);
+    await expect(page.getByText("Trainingshebel", { exact: true })).toHaveCount(0);
     await expect(page.getByText("Expertenmodus / Details", { exact: true })).toBeVisible();
 
     await page.screenshot({
