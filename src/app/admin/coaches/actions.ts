@@ -92,16 +92,6 @@ export async function assignAthleteToCoach(formData: FormData) {
     throw new Error("Der ausgewählte Athlet darf kein Coach oder Admin sein.");
   }
 
-  const { data: existingAssignment, error: existingAssignmentError } = await supabase
-    .from("coach_athletes")
-    .select("athlete_id")
-    .eq("athlete_id", parsed.athleteId)
-    .limit(1)
-    .maybeSingle();
-
-  if (existingAssignmentError) throw new Error(existingAssignmentError.message);
-  if (existingAssignment) throw new Error("Dieser Athlet ist bereits einem Coach zugeordnet.");
-
   const { error } = await supabase.from("coach_athletes").insert({
     coach_id: parsed.coachId,
     athlete_id: parsed.athleteId,

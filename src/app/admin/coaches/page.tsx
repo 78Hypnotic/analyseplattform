@@ -3,6 +3,7 @@ import { AppHeader } from "@/components/app-header";
 import { Button } from "@/components/button";
 import { requireAdmin } from "@/lib/auth/roles";
 import { assignAthleteToCoach, removeCoachAssignment, setCoachRole } from "./actions";
+import { AthleteSearchSelect } from "./athlete-search-select";
 
 type RoleRow = {
   user_id: string;
@@ -44,8 +45,6 @@ export default async function AdminCoachesPage() {
   const { supabase } = await requireAdmin();
   const data = await loadAdminCoachData(supabase);
   const userById = new Map(data.users.map((user) => [user.user_id, user]));
-  const assignedAthleteIds = new Set(data.assignments.map((assignment) => assignment.athlete_id));
-  const unassignedAthletes = data.athletes.filter((athlete) => !assignedAthleteIds.has(athlete.user_id));
   const coachCandidates = data.users.filter(
     (user) => !user.roles.includes("coach") && !user.roles.includes("admin"),
   );
@@ -143,25 +142,19 @@ export default async function AdminCoachesPage() {
                 ))}
               </select>
             </label>
-            <label className="grid gap-2 text-sm">
-              Athlet
-              <select name="athleteId" required disabled={unassignedAthletes.length === 0}>
-                <option value="">
-                  {unassignedAthletes.length === 0 ? "Alle Athleten sind zugeordnet" : "Athlet auswählen"}
-                </option>
-                {unassignedAthletes.map((athlete) => (
-                  <option key={athlete.user_id} value={athlete.user_id}>
-                    {athlete.name} ({athlete.email})
-                  </option>
-                ))}
-              </select>
-            </label>
+            <AthleteSearchSelect
+              athletes={data.athletes.map((athlete) => ({
+                id: athlete.user_id,
+                name: athlete.name,
+                email: athlete.email,
+              }))}
+            />
             <div className="flex items-end">
               <Button
                 type="submit"
                 variant="primary"
                 className="w-full"
-                disabled={data.coaches.length === 0 || unassignedAthletes.length === 0}
+                disabled={data.coaches.length === 0 || data.athletes.length === 0}
               >
                 <Link2 size={16} />
                 Zuordnen
