@@ -12,6 +12,10 @@ const createUserSchema = z.object({
   password: z.string().min(10, "Das Passwort muss mindestens 10 Zeichen haben.").max(128),
 });
 
+const deleteUserSchema = z.object({
+  userId: z.string().uuid(),
+});
+
 export type CreateUserActionState = {
   message?: string;
   success?: boolean;
@@ -77,6 +81,40 @@ export async function createAdminUser(
     const message = error instanceof Error ? error.message : "User konnte nicht erstellt werden.";
     return { message: mapCreateUserError(message) };
   }
+}
+
+export async function deleteAdminUser(formData: FormData) {
+  await assertRateLimit("admin-user-delete", 10, 60_000);
+  const { supabase, user } = await requireAdmin();
+  const parsed = deleteUserSchema.parse({
+    userId: formData.get("userId"),
+  });
+
+  if (parsed.userId === user.id) {
+    throw new Error("Der eigene Admin-Account kann nicht gelöscht werden.");
+  }
+
+  const { data: adminRole, error: adminRoleError } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", parsed.userId)
+    .eq("role", "admin")
+    .maybeSingle();
+
+  if (adminRoleError) throw new Error(adminRoleError.message);
+  if (adminRole?.role === "admin") {
+    throw new Error("Admin-Accounts können hier nicht gelöscht werden.");
+  }
+
+  const admin = createSupabaseAdminClient();
+  const { error } = await admin.auth.admin.deleteUser(parsed.userId);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/users");
+  revalidatePath("/admin/coaches");
+  revalidatePath("/coach");
 }
 
 function mapCreateUserError(message: string) {

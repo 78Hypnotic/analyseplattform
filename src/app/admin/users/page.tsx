@@ -3,8 +3,10 @@ import { Bike, Footprints, ShieldCheck, Waves } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
 import { requireAdmin } from "@/lib/auth/roles";
 import { CreateUserForm } from "./create-user-form";
+import { DeleteUserForm } from "./delete-user-form";
 
 export const dynamic = "force-dynamic";
+const USERS_PER_PAGE = 20;
 
 type ProfileRow = {
   id: string;
@@ -19,21 +21,35 @@ type ProfileRow = {
 
 type RoleRow = { user_id: string; role: "user" | "coach" | "admin" };
 
-export default async function AdminUsersPage() {
-  const { supabase } = await requireAdmin();
+export default async function AdminUsersPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ page?: string | string[] }>;
+}) {
+  const { supabase, user: currentUser } = await requireAdmin();
+  const params = await searchParams;
+  const currentPage = parsePageParam(params?.page);
+  const from = (currentPage - 1) * USERS_PER_PAGE;
+  const to = from + USERS_PER_PAGE - 1;
 
-  const [{ data: profiles, error: profilesError }, { data: roles, error: rolesError }] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select(
-        "id,email,full_name,city,created_at,latest_swim_analyzed_at,latest_run_analyzed_at,latest_bike_analyzed_at",
-      )
-      .order("created_at", { ascending: false })
-      .limit(500),
-    supabase.from("user_roles").select("user_id,role").limit(2000),
-  ]);
+  const { data: profiles, error: profilesError, count } = await supabase
+    .from("profiles")
+    .select(
+      "id,email,full_name,city,created_at,latest_swim_analyzed_at,latest_run_analyzed_at,latest_bike_analyzed_at",
+      { count: "exact" },
+    )
+    .order("created_at", { ascending: false })
+    .range(from, to);
 
   if (profilesError) throw new Error(profilesError.message);
+
+  const users = (profiles ?? []) as ProfileRow[];
+  const userIds = users.map((profile) => profile.id);
+  const { data: roles, error: rolesError } =
+    userIds.length > 0
+      ? await supabase.from("user_roles").select("user_id,role").in("user_id", userIds).limit(USERS_PER_PAGE * 3)
+      : { data: [], error: null };
+
   if (rolesError) throw new Error(rolesError.message);
 
   const rolesByUser = new Map<string, RoleRow["role"][]>();
@@ -41,7 +57,8 @@ export default async function AdminUsersPage() {
     rolesByUser.set(row.user_id, [...(rolesByUser.get(row.user_id) ?? []), row.role]);
   }
 
-  const users = (profiles ?? []) as ProfileRow[];
+  const totalUsers = count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalUsers / USERS_PER_PAGE));
 
   return (
     <>
@@ -75,37 +92,139 @@ export default async function AdminUsersPage() {
         </section>
 
         <p className="mono mt-8 text-xs uppercase tracking-[0.14em] text-[var(--subtle)]">
-          {users.length} {users.length === 1 ? "Nutzer" : "Nutzer"}
+          {totalUsers} {totalUsers === 1 ? "Nutzer" : "Nutzer"} · Seite {Math.min(currentPage, totalPages)} von {totalPages}
         </p>
 
         <div className="mt-3 grid gap-3">
-          {users.map((user) => (
-            <div
-              key={user.id}
-              className="surface grid gap-4 p-4 md:grid-cols-[minmax(0,1fr)_160px_220px_120px]"
-            >
-              <div className="min-w-0">
-                <p className="truncate font-medium">{user.full_name || "Ohne Namen"}</p>
-                <p className="mono mt-1 truncate text-xs text-[var(--subtle)]">{user.email ?? user.id}</p>
-                {user.city ? <p className="muted mt-1 truncate text-xs">{user.city}</p> : null}
-              </div>
-              <Cell label="Rollen">
-                <RoleBadges roles={rolesByUser.get(user.id) ?? ["user"]} />
-              </Cell>
-              <Cell label="Diagnostik">
-                <DisciplineBadges user={user} />
-              </Cell>
-              <Cell label="Registriert">
-                <span className="text-sm">
-                  {user.created_at ? new Date(user.created_at).toLocaleDateString("de-DE") : "-"}
-                </span>
-              </Cell>
-            </div>
-          ))}
+          {users.length === 0 ? (
+            <section className="surface p-5">
+              <p className="muted text-sm">Keine Nutzer auf dieser Seite.</p>
+            </section>
+          ) : (
+            users.map((user) => {
+              const rolesForUser = rolesByUser.get(user.id) ?? ["user"];
+              const isProtected = user.id === currentUser.id || rolesForUser.includes("admin");
+
+              return (
+                <div
+                  key={user.id}
+                  className="surface grid gap-4 p-4 md:grid-cols-[minmax(0,1fr)_150px_200px_120px_auto]"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{user.full_name || "Ohne Namen"}</p>
+                    <p className="mono mt-1 truncate text-xs text-[var(--subtle)]">{user.email ?? user.id}</p>
+                    {user.city ? <p className="muted mt-1 truncate text-xs">{user.city}</p> : null}
+                  </div>
+                  <Cell label="Rollen">
+                    <RoleBadges roles={rolesForUser} />
+                  </Cell>
+                  <Cell label="Diagnostik">
+                    <DisciplineBadges user={user} />
+                  </Cell>
+                  <Cell label="Registriert">
+                    <span className="text-sm">
+                      {user.created_at ? new Date(user.created_at).toLocaleDateString("de-DE") : "-"}
+                    </span>
+                  </Cell>
+                  <div className="flex items-end md:items-center md:justify-end">
+                    <DeleteUserForm
+                      userId={user.id}
+                      label={user.full_name || user.email || user.id}
+                      disabled={isProtected}
+                    />
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
+
+        <Pagination currentPage={currentPage} totalPages={totalPages} />
       </main>
     </>
   );
+}
+
+function Pagination({ currentPage, totalPages }: { currentPage: number; totalPages: number }) {
+  if (totalPages <= 1) return null;
+
+  const page = Math.min(currentPage, totalPages);
+
+  return (
+    <nav className="mt-6 flex flex-wrap items-center justify-between gap-3">
+      <PageLink page={page - 1} disabled={page <= 1}>
+        Zurück
+      </PageLink>
+      <div className="flex flex-wrap gap-2">
+        {getVisiblePages(page, totalPages).map((item) =>
+          item === "ellipsis" ? (
+            <span key={`${item}-${page}`} className="mono px-2 py-2 text-xs text-[var(--subtle)]">
+              ...
+            </span>
+          ) : (
+            <PageLink key={item} page={item} active={item === page}>
+              {item}
+            </PageLink>
+          ),
+        )}
+      </div>
+      <PageLink page={page + 1} disabled={page >= totalPages}>
+        Weiter
+      </PageLink>
+    </nav>
+  );
+}
+
+function PageLink({
+  page,
+  active = false,
+  disabled = false,
+  children,
+}: {
+  page: number;
+  active?: boolean;
+  disabled?: boolean;
+  children: React.ReactNode;
+}) {
+  const className = active
+    ? "inline-flex h-10 min-w-10 items-center justify-center rounded-lg border border-[var(--accent)] bg-[var(--raised-bg)] px-3 text-sm font-medium text-[var(--accent)]"
+    : "inline-flex h-10 min-w-10 items-center justify-center rounded-lg border border-[var(--line)] bg-[var(--panel-2)] px-3 text-sm font-medium transition hover:border-[var(--accent)]";
+
+  if (disabled) {
+    return (
+      <span className={`${className} cursor-not-allowed opacity-45`} aria-disabled="true">
+        {children}
+      </span>
+    );
+  }
+
+  return (
+    <Link href={`/admin/users?page=${page}`} className={className} aria-current={active ? "page" : undefined}>
+      {children}
+    </Link>
+  );
+}
+
+function parsePageParam(value: string | string[] | undefined) {
+  const raw = Array.isArray(value) ? value[0] : value;
+  const page = Number.parseInt(raw ?? "1", 10);
+  return Number.isFinite(page) && page > 0 ? page : 1;
+}
+
+function getVisiblePages(currentPage: number, totalPages: number): Array<number | "ellipsis"> {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+
+  const pages = new Set([1, totalPages, currentPage - 1, currentPage, currentPage + 1]);
+  const sorted = Array.from(pages)
+    .filter((page) => page >= 1 && page <= totalPages)
+    .sort((a, b) => a - b);
+
+  return sorted.flatMap((page, index) => {
+    const previous = sorted[index - 1];
+    return previous && page - previous > 1 ? (["ellipsis", page] as const) : [page];
+  });
 }
 
 function Cell({ label, children }: { label: string; children: React.ReactNode }) {
