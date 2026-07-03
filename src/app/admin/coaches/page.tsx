@@ -72,7 +72,7 @@ export default async function AdminCoachesPage() {
           <AdminMetric icon={<Link2 size={16} />} label="Zuordnungen" value={String(data.assignments.length)} />
         </section>
 
-        <details className="surface p-5">
+        <details open className="surface p-5">
           <summary className="flex cursor-pointer items-center gap-2 text-xl font-semibold">
             <ShieldCheck size={18} className="text-[var(--accent)]" />
             Trainer-Rollen
