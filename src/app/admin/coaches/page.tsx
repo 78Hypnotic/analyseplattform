@@ -127,7 +127,7 @@ export default async function AdminCoachesPage() {
           </div>
         </details>
 
-        <section className="surface p-5">
+        <section className="surface relative z-30 p-5">
           <div className="mb-4">
             <h2 className="text-xl font-semibold">Athlet zuordnen</h2>
             <p className="muted mt-1 text-sm">Nur Nutzer mit Rolle `coach` können Athleten erhalten.</p>
@@ -165,7 +165,7 @@ export default async function AdminCoachesPage() {
           </form>
         </section>
 
-        <section className="surface p-5">
+        <section className="surface relative z-0 p-5">
           <h2 className="text-xl font-semibold">Aktive Zuordnungen</h2>
           <div className="mt-4 grid gap-3">
             {data.assignments.length === 0 ? (

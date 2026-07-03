@@ -68,7 +68,7 @@ export function AthleteSearchSelect({ athletes }: { athletes: AthleteSelectOptio
       </button>
 
       {isOpen ? (
-        <div className="absolute left-0 right-0 top-full z-20 mt-2 overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--panel)] shadow-xl">
+        <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--panel)] shadow-xl">
           <div className="border-b border-[var(--line)] p-2">
             <input
               autoFocus
