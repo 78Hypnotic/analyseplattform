@@ -55,6 +55,7 @@ type AnalysisRow = {
   input: AnalysisInput;
   result: AnalysisResult;
   created_at: string;
+  discipline?: "swim" | "run" | "bike" | null;
 };
 
 export async function getAssignedCoachAthletes(limit = 50): Promise<CoachAthleteSummary[]> {
@@ -120,8 +121,9 @@ export async function getCoachAthleteDetail(athleteId: string): Promise<CoachAth
       .maybeSingle(),
     supabase
       .from("analyses")
-      .select("id,title,input,result,created_at")
+      .select("id,title,input,result,created_at,discipline")
       .eq("user_id", athleteId)
+      .eq("discipline", "swim")
       .order("created_at", { ascending: false })
       .limit(20),
   ]);

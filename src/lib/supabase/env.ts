@@ -15,13 +15,14 @@ export function getSupabaseEnv() {
 
 export function getSupabaseAdminEnv() {
   const { url } = getSupabaseEnv();
-  const serviceRoleKey = cleanEnvValue(process.env.SUPABASE_SERVICE_ROLE_KEY);
+  const adminKey =
+    cleanEnvValue(process.env.SUPABASE_SECRET_KEY) || cleanEnvValue(process.env.SUPABASE_SERVICE_ROLE_KEY);
 
-  if (!serviceRoleKey) {
-    throw new Error("Supabase service role key is missing.");
+  if (!adminKey) {
+    throw new Error("Supabase admin API key is missing.");
   }
 
-  return { url, serviceRoleKey };
+  return { url, adminKey };
 }
 
 function cleanEnvValue(value: string | undefined) {

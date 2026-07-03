@@ -16,8 +16,13 @@ Erforderliche Variablen:
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SECRET_KEY=
 NEXT_PUBLIC_SITE_URL=https://analyseplattform.vercel.app
 ```
+
+`SUPABASE_SECRET_KEY` wird nur serverseitig fuer Admin-Aktionen wie User-Anlage
+verwendet. Falls noch der alte JWT-Key genutzt wird, funktioniert alternativ
+`SUPABASE_SERVICE_ROLE_KEY`.
 
 Supabase Auth muss dieselbe URL erlauben:
 

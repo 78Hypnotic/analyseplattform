@@ -44,6 +44,11 @@ export default async function AdminCoachesPage() {
   const { supabase } = await requireAdmin();
   const data = await loadAdminCoachData(supabase);
   const userById = new Map(data.users.map((user) => [user.user_id, user]));
+  const assignedAthleteIds = new Set(data.assignments.map((assignment) => assignment.athlete_id));
+  const unassignedAthletes = data.athletes.filter((athlete) => !assignedAthleteIds.has(athlete.user_id));
+  const coachCandidates = data.users.filter(
+    (user) => !user.roles.includes("coach") && !user.roles.includes("admin"),
+  );
 
   return (
     <>
@@ -67,32 +72,59 @@ export default async function AdminCoachesPage() {
           <AdminMetric icon={<Link2 size={16} />} label="Zuordnungen" value={String(data.assignments.length)} />
         </section>
 
-        <section className="surface p-5">
-          <div className="mb-4 flex items-center gap-2">
+        <details className="surface p-5">
+          <summary className="flex cursor-pointer items-center gap-2 text-xl font-semibold">
             <ShieldCheck size={18} className="text-[var(--accent)]" />
-            <h2 className="text-xl font-semibold">Trainer-Rollen</h2>
-          </div>
-          <div className="grid gap-3">
-            {data.users.map((user) => (
-              <div
-                key={user.user_id}
-                className="grid gap-3 rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-4 md:grid-cols-[minmax(0,1fr)_120px_auto]"
-              >
-                <UserLabel name={user.name} email={user.email} />
-                <SmallMetric label="Rollen" value={formatRoles(user.roles)} />
-                <div className="flex flex-wrap gap-2 md:justify-end">
-                  <form action={setCoachRole}>
-                    <input type="hidden" name="userId" value={user.user_id} />
-                    <input type="hidden" name="role" value={user.roles.includes("coach") ? "user" : "coach"} />
-                    <Button type="submit" variant={user.roles.includes("coach") ? "secondary" : "primary"}>
-                      {user.roles.includes("coach") ? "Coach entfernen" : "Zu Coach machen"}
-                    </Button>
-                  </form>
-                </div>
+            Trainer-Rollen
+          </summary>
+          <div className="mt-5 grid gap-5">
+            <form action={setCoachRole} className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
+              <input type="hidden" name="role" value="coach" />
+              <label className="grid gap-2 text-sm">
+                Neuen Coach zuordnen
+                <select name="userId" required disabled={coachCandidates.length === 0}>
+                  <option value="">
+                    {coachCandidates.length === 0 ? "Keine Nutzer ohne Coach-Rolle" : "Nutzer auswählen"}
+                  </option>
+                  {coachCandidates.map((user) => (
+                    <option key={user.user_id} value={user.user_id}>
+                      {user.name} ({user.email})
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="flex items-end">
+                <Button type="submit" variant="primary" className="w-full" disabled={coachCandidates.length === 0}>
+                  <UserCheck size={16} />
+                  Zu Coach machen
+                </Button>
               </div>
-            ))}
+            </form>
+
+            <div className="grid gap-3">
+              {data.coaches.length === 0 ? (
+                <p className="muted text-sm">Noch keine Coaches angelegt.</p>
+              ) : (
+                data.coaches.map((coach) => (
+                  <div
+                    key={coach.user_id}
+                    className="grid gap-3 rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-4 md:grid-cols-[minmax(0,1fr)_120px_auto]"
+                  >
+                    <UserLabel name={coach.name} email={coach.email} />
+                    <SmallMetric label="Rollen" value={formatRoles(coach.roles)} />
+                    <form action={setCoachRole} className="flex md:justify-end">
+                      <input type="hidden" name="userId" value={coach.user_id} />
+                      <input type="hidden" name="role" value="user" />
+                      <Button type="submit" variant="secondary">
+                        Coach entfernen
+                      </Button>
+                    </form>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
-        </section>
+        </details>
 
         <section className="surface p-5">
           <div className="mb-4">
@@ -113,9 +145,11 @@ export default async function AdminCoachesPage() {
             </label>
             <label className="grid gap-2 text-sm">
               Athlet
-              <select name="athleteId" required>
-                <option value="">Athlet auswählen</option>
-                {data.athletes.map((athlete) => (
+              <select name="athleteId" required disabled={unassignedAthletes.length === 0}>
+                <option value="">
+                  {unassignedAthletes.length === 0 ? "Alle Athleten sind zugeordnet" : "Athlet auswählen"}
+                </option>
+                {unassignedAthletes.map((athlete) => (
                   <option key={athlete.user_id} value={athlete.user_id}>
                     {athlete.name} ({athlete.email})
                   </option>
@@ -123,7 +157,12 @@ export default async function AdminCoachesPage() {
               </select>
             </label>
             <div className="flex items-end">
-              <Button type="submit" variant="primary" className="w-full">
+              <Button
+                type="submit"
+                variant="primary"
+                className="w-full"
+                disabled={data.coaches.length === 0 || unassignedAthletes.length === 0}
+              >
                 <Link2 size={16} />
                 Zuordnen
               </Button>
@@ -210,7 +249,7 @@ async function loadAdminCoachData(
   return {
     users,
     coaches: users.filter((user) => user.roles.includes("coach")),
-    athletes: users.filter((user) => !user.roles.includes("coach")),
+    athletes: users.filter((user) => !user.roles.includes("coach") && !user.roles.includes("admin")),
     assignments: (assignments ?? []) as AssignmentRow[],
   };
 }

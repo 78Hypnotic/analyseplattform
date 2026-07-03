@@ -23,6 +23,7 @@ import {
   METABOLIC_BANDS,
   O2_PER_LACTATE,
   O2_PER_WATT,
+  PLAUSIBILITY_TOLERANCE,
   PROFILE_FACTOR_TABLE,
   PVO2_FACTOR,
   VLAMAX_MAX,
@@ -218,6 +219,13 @@ function BikeSection() {
       <Block title="Schwelle / FTP">
         <Formula formula="FTP [W] = PVO₂ × Profilfaktor(VLamax)" desc="Profilfaktor aus untenstehender Tabelle (linear interpoliert)." />
         <LookupTable title="VLamax → Profilfaktor (Schwelle/PVO₂)" rows={PROFILE_FACTOR_TABLE} />
+      </Block>
+
+      <Block title="Plausibilitätsprüfung (12-Minuten-Test)">
+        <Formula
+          formula="Abweichung = (FTP − 12-Minuten-Leistung) / 12-Minuten-Leistung"
+          desc={`Betrag bis ${Math.round(PLAUSIBILITY_TOLERANCE * 100)} % gilt als plausibel. Darüber: Sprint vermutlich überschätzt; darunter: Sprint unterschätzt oder Profilfaktor zu aggressiv.`}
+        />
       </Block>
 
       <Block title="Fettstoffwechsel & FatMax">

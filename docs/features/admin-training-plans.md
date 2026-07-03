@@ -22,6 +22,11 @@ on conflict (user_id, role) do nothing;
 Der RLS-Helfer `public.is_admin()` wird in Policies genutzt und verhindert, dass
 ein Nutzer sich über Client-Zugriff selbst hochstuft.
 
+Admin-Aktionen wie das serverseitige Anlegen bestätigter User benötigen in der
+Deployment-Umgebung `SUPABASE_SECRET_KEY` oder alternativ den Legacy-Key
+`SUPABASE_SERVICE_ROLE_KEY`. Diese Keys dürfen nicht mit `NEXT_PUBLIC_`
+prefixt werden.
+
 ## Trainingspläne
 
 Admins verwalten Pläne unter `/admin/plans`.

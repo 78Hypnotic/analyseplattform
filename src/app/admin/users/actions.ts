@@ -86,8 +86,8 @@ function mapCreateUserError(message: string) {
     return "Diese E-Mail-Adresse ist bereits registriert.";
   }
 
-  if (normalized.includes("service role key")) {
-    return "SUPABASE_SERVICE_ROLE_KEY fehlt auf dem Server.";
+  if (normalized.includes("admin api key") || normalized.includes("service role key")) {
+    return "SUPABASE_SECRET_KEY oder SUPABASE_SERVICE_ROLE_KEY fehlt auf dem Server.";
   }
 
   return message;

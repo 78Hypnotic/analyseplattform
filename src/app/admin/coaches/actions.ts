@@ -85,8 +85,22 @@ export async function assignAthleteToCoach(formData: FormData) {
   if (roleError) throw new Error(roleError.message);
 
   const coachHasRole = roles?.some((role) => role.user_id === parsed.coachId && role.role === "coach");
+  const athleteRoles = roles?.filter((role) => role.user_id === parsed.athleteId).map((role) => role.role) ?? [];
 
   if (!coachHasRole) throw new Error("Der ausgewählte Nutzer ist kein Coach.");
+  if (athleteRoles.includes("coach") || athleteRoles.includes("admin")) {
+    throw new Error("Der ausgewählte Athlet darf kein Coach oder Admin sein.");
+  }
+
+  const { data: existingAssignment, error: existingAssignmentError } = await supabase
+    .from("coach_athletes")
+    .select("athlete_id")
+    .eq("athlete_id", parsed.athleteId)
+    .limit(1)
+    .maybeSingle();
+
+  if (existingAssignmentError) throw new Error(existingAssignmentError.message);
+  if (existingAssignment) throw new Error("Dieser Athlet ist bereits einem Coach zugeordnet.");
 
   const { error } = await supabase.from("coach_athletes").insert({
     coach_id: parsed.coachId,
