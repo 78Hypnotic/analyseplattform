@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { Check, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -14,21 +14,29 @@ export type AthleteSelectOption = {
  * Searchable form control for large athlete lists while still submitting a plain athleteId.
  */
 export function AthleteSearchSelect({ athletes }: { athletes: AthleteSelectOption[] }) {
+  const listboxId = useId();
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const selectedAthlete = athletes.find((athlete) => athlete.id === selectedId);
+  const sortedAthletes = useMemo(
+    () =>
+      [...athletes].sort((first, second) =>
+        first.name.localeCompare(second.name, "de", { sensitivity: "base" }),
+      ),
+    [athletes],
+  );
   const filteredAthletes = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    if (!normalizedQuery) return athletes.slice(0, 50);
+    if (!normalizedQuery) return sortedAthletes.slice(0, 50);
 
-    return athletes
+    return sortedAthletes
       .filter((athlete) => {
         const haystack = `${athlete.name} ${athlete.email}`.toLowerCase();
         return haystack.includes(normalizedQuery);
       })
       .slice(0, 50);
-  }, [athletes, query]);
+  }, [query, sortedAthletes]);
 
   return (
     <div className="relative grid gap-2 text-sm">
@@ -40,12 +48,17 @@ export function AthleteSearchSelect({ athletes }: { athletes: AthleteSelectOptio
         required
         className="sr-only"
         tabIndex={-1}
-        aria-hidden="true"
       />
       <button
         type="button"
         disabled={athletes.length === 0}
         onClick={() => setIsOpen((value) => !value)}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") setIsOpen(false);
+        }}
+        aria-controls={listboxId}
+        aria-expanded={isOpen}
+        aria-haspopup="listbox"
         className="flex h-12 w-full items-center justify-between gap-3 rounded-lg border border-[var(--line)] bg-[var(--panel-2)] px-4 text-left text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
       >
         <span className={cn("truncate", selectedAthlete ? "text-[var(--foreground)]" : "text-[var(--muted)]")}>
@@ -61,11 +74,18 @@ export function AthleteSearchSelect({ athletes }: { athletes: AthleteSelectOptio
               autoFocus
               value={query}
               onChange={(event) => setQuery(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Escape") {
+                  setIsOpen(false);
+                  event.currentTarget.blur();
+                }
+              }}
               placeholder="Name oder E-Mail suchen"
+              type="search"
               className="h-10 w-full"
             />
           </div>
-          <div className="max-h-72 overflow-y-auto p-1">
+          <div id={listboxId} role="listbox" className="max-h-72 overflow-y-auto p-1">
             {filteredAthletes.length === 0 ? (
               <p className="muted px-3 py-2 text-sm">Keine Athleten gefunden.</p>
             ) : (
@@ -73,6 +93,8 @@ export function AthleteSearchSelect({ athletes }: { athletes: AthleteSelectOptio
                 <button
                   key={athlete.id}
                   type="button"
+                  role="option"
+                  aria-selected={selectedId === athlete.id}
                   onClick={() => {
                     setSelectedId(athlete.id);
                     setQuery("");

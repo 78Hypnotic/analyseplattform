@@ -38,6 +38,8 @@ type AdminCoachData = {
 
 export const dynamic = "force-dynamic";
 
+const ADMIN_COACH_QUERY_LIMIT = 1000;
+
 /**
  * Renders the admin surface for role assignment and coach-athlete links.
  */
@@ -206,12 +208,12 @@ async function loadAdminCoachData(
       .from("user_roles")
       .select("user_id,role")
       .order("updated_at", { ascending: false })
-      .limit(200),
+      .limit(ADMIN_COACH_QUERY_LIMIT),
     supabase
       .from("coach_athletes")
       .select("coach_id,athlete_id,created_at")
       .order("created_at", { ascending: false })
-      .limit(200),
+      .limit(ADMIN_COACH_QUERY_LIMIT),
   ]);
 
   if (rolesError) throw new Error(rolesError.message);
