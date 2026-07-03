@@ -10,15 +10,28 @@ export type AthleteSelectOption = {
   email: string;
 };
 
+type AthleteSearchSelectProps = {
+  athletes: AthleteSelectOption[];
+  disabled?: boolean;
+  placeholder?: string;
+  value: string;
+  onValueChange: (value: string) => void;
+};
+
 /**
  * Searchable form control for large athlete lists while still submitting a plain athleteId.
  */
-export function AthleteSearchSelect({ athletes }: { athletes: AthleteSelectOption[] }) {
+export function AthleteSearchSelect({
+  athletes,
+  disabled = false,
+  placeholder = "Athlet suchen",
+  value,
+  onValueChange,
+}: AthleteSearchSelectProps) {
   const listboxId = useId();
   const [query, setQuery] = useState("");
-  const [selectedId, setSelectedId] = useState("");
   const [isOpen, setIsOpen] = useState(false);
-  const selectedAthlete = athletes.find((athlete) => athlete.id === selectedId);
+  const selectedAthlete = athletes.find((athlete) => athlete.id === value);
   const sortedAthletes = useMemo(
     () =>
       [...athletes].sort((first, second) =>
@@ -43,7 +56,7 @@ export function AthleteSearchSelect({ athletes }: { athletes: AthleteSelectOptio
       <span>Athlet</span>
       <input
         name="athleteId"
-        value={selectedId}
+        value={value}
         onChange={() => undefined}
         required
         className="sr-only"
@@ -51,7 +64,7 @@ export function AthleteSearchSelect({ athletes }: { athletes: AthleteSelectOptio
       />
       <button
         type="button"
-        disabled={athletes.length === 0}
+        disabled={disabled || athletes.length === 0}
         onClick={() => setIsOpen((value) => !value)}
         onKeyDown={(event) => {
           if (event.key === "Escape") setIsOpen(false);
@@ -62,7 +75,7 @@ export function AthleteSearchSelect({ athletes }: { athletes: AthleteSelectOptio
         className="flex h-12 w-full items-center justify-between gap-3 rounded-lg border border-[var(--line)] bg-[var(--panel-2)] px-4 text-left text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
       >
         <span className={cn("truncate", selectedAthlete ? "text-[var(--foreground)]" : "text-[var(--muted)]")}>
-          {selectedAthlete ? `${selectedAthlete.name} (${selectedAthlete.email})` : "Athlet suchen"}
+          {selectedAthlete ? `${selectedAthlete.name} (${selectedAthlete.email})` : placeholder}
         </span>
         <Search size={16} className="shrink-0 text-[var(--subtle)]" />
       </button>
@@ -94,9 +107,9 @@ export function AthleteSearchSelect({ athletes }: { athletes: AthleteSelectOptio
                   key={athlete.id}
                   type="button"
                   role="option"
-                  aria-selected={selectedId === athlete.id}
+                  aria-selected={value === athlete.id}
                   onClick={() => {
-                    setSelectedId(athlete.id);
+                    onValueChange(athlete.id);
                     setQuery("");
                     setIsOpen(false);
                   }}
@@ -106,7 +119,7 @@ export function AthleteSearchSelect({ athletes }: { athletes: AthleteSelectOptio
                     <span className="block truncate font-medium">{athlete.name}</span>
                     <span className="mono mt-0.5 block truncate text-xs text-[var(--subtle)]">{athlete.email}</span>
                   </span>
-                  {selectedId === athlete.id ? <Check size={16} className="shrink-0 text-[var(--accent)]" /> : null}
+                  {value === athlete.id ? <Check size={16} className="shrink-0 text-[var(--accent)]" /> : null}
                 </button>
               ))
             )}

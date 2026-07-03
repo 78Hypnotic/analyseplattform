@@ -2,8 +2,8 @@ import { Link2, ShieldCheck, Trash2, UserCheck, Users } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
 import { Button } from "@/components/button";
 import { requireAdmin } from "@/lib/auth/roles";
-import { assignAthleteToCoach, removeCoachAssignment, setCoachRole } from "./actions";
-import { AthleteSearchSelect } from "./athlete-search-select";
+import { removeCoachAssignment, setCoachRole } from "./actions";
+import { CoachAthleteAssignmentForm } from "./coach-athlete-assignment-form";
 
 type RoleRow = {
   user_id: string;
@@ -132,37 +132,22 @@ export default async function AdminCoachesPage() {
             <h2 className="text-xl font-semibold">Athlet zuordnen</h2>
             <p className="muted mt-1 text-sm">Nur Nutzer mit Rolle `coach` können Athleten erhalten.</p>
           </div>
-          <form action={assignAthleteToCoach} className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
-            <label className="grid gap-2 text-sm">
-              Coach
-              <select name="coachId" required>
-                <option value="">Coach auswählen</option>
-                {data.coaches.map((coach) => (
-                  <option key={coach.user_id} value={coach.user_id}>
-                    {coach.name} ({coach.email})
-                  </option>
-                ))}
-              </select>
-            </label>
-            <AthleteSearchSelect
-              athletes={data.athletes.map((athlete) => ({
-                id: athlete.user_id,
-                name: athlete.name,
-                email: athlete.email,
-              }))}
-            />
-            <div className="flex items-end">
-              <Button
-                type="submit"
-                variant="primary"
-                className="w-full"
-                disabled={data.coaches.length === 0 || data.athletes.length === 0}
-              >
-                <Link2 size={16} />
-                Zuordnen
-              </Button>
-            </div>
-          </form>
+          <CoachAthleteAssignmentForm
+            coaches={data.coaches.map((coach) => ({
+              id: coach.user_id,
+              name: coach.name,
+              email: coach.email,
+            }))}
+            athletes={data.athletes.map((athlete) => ({
+              id: athlete.user_id,
+              name: athlete.name,
+              email: athlete.email,
+            }))}
+            assignments={data.assignments.map((assignment) => ({
+              coach_id: assignment.coach_id,
+              athlete_id: assignment.athlete_id,
+            }))}
+          />
         </section>
 
         <section className="surface relative z-0 p-5">
