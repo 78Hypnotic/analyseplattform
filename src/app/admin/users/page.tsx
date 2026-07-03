@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Bike, Footprints, ShieldCheck, Waves } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
 import { requireAdmin } from "@/lib/auth/roles";
@@ -43,6 +44,13 @@ export default async function AdminUsersPage({
 
   if (profilesError) throw new Error(profilesError.message);
 
+  const totalUsers = count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalUsers / USERS_PER_PAGE));
+
+  if (totalUsers > 0 && currentPage > totalPages) {
+    redirect(`/admin/users?page=${totalPages}`);
+  }
+
   const users = (profiles ?? []) as ProfileRow[];
   const userIds = users.map((profile) => profile.id);
   const { data: roles, error: rolesError } =
@@ -56,9 +64,6 @@ export default async function AdminUsersPage({
   for (const row of (roles ?? []) as RoleRow[]) {
     rolesByUser.set(row.user_id, [...(rolesByUser.get(row.user_id) ?? []), row.role]);
   }
-
-  const totalUsers = count ?? 0;
-  const totalPages = Math.max(1, Math.ceil(totalUsers / USERS_PER_PAGE));
 
   return (
     <>
@@ -156,9 +161,9 @@ function Pagination({ currentPage, totalPages }: { currentPage: number; totalPag
         Zurück
       </PageLink>
       <div className="flex flex-wrap gap-2">
-        {getVisiblePages(page, totalPages).map((item) =>
+        {getVisiblePages(page, totalPages).map((item, index) =>
           item === "ellipsis" ? (
-            <span key={`${item}-${page}`} className="mono px-2 py-2 text-xs text-[var(--subtle)]">
+            <span key={`${item}-${index}`} className="mono px-2 py-2 text-xs text-[var(--subtle)]">
               ...
             </span>
           ) : (
