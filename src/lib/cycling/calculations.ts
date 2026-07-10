@@ -169,6 +169,28 @@ export function computeFatMax(ftp: number, k: number, curve?: FatCurvePoint[]): 
   return { watt: best.watt, pctFtp: best.watt / ftp };
 }
 
+/** Converts one model point into relative shares and absolute oxidation rates. */
+export function computeSubstrateOxidation(point: Pick<FatCurvePoint, "watt" | "fat" | "cho">): {
+  carbFraction: number;
+  fatFraction: number;
+  carbGramsPerHour: number;
+  fatGramsPerHour: number;
+  kcalPerHour: number;
+} {
+  const total = point.fat + point.cho;
+  const carbFraction = total > 0 ? Math.max(0, Math.min(1, point.cho / total)) : 0;
+  const fatFraction = total > 0 ? 1 - carbFraction : 0;
+  const metabolicKjPerHour = (point.watt / MECH_EFFICIENCY) * 3.6;
+
+  return {
+    carbFraction,
+    fatFraction,
+    carbGramsPerHour: (metabolicKjPerHour * carbFraction) / KJ_PER_GRAM_CARB,
+    fatGramsPerHour: (metabolicKjPerHour * fatFraction) / KJ_PER_GRAM_FAT,
+    kcalPerHour: metabolicKjPerHour / 4.184,
+  };
+}
+
 export function classifyMetabolicProfile(vlamax: number): BikeMetabolicProfile {
   const entry = METABOLIC_BANDS.find((band) => vlamax <= band.max) ?? METABOLIC_BANDS[METABOLIC_BANDS.length - 1];
   return { band: entry.band, label: entry.label, description: entry.description };
@@ -224,14 +246,13 @@ export function estimateFueling(ftp: number, k: number, watt: number) {
   if (!Number.isFinite(ftp) || ftp <= 0 || !Number.isFinite(watt) || watt <= 0) return null;
   const total = watt * ENERGY_PER_WATT;
   const cho = ftp * ENERGY_PER_WATT * Math.exp(-k * (ftp - watt));
-  const carbFraction = Math.max(0, Math.min(1, cho / total));
-  const metabolicKjPerHour = (watt / MECH_EFFICIENCY) * 3.6;
+  const oxidation = computeSubstrateOxidation({ watt, cho, fat: Math.max(0, total - cho) });
 
   return {
-    carbFraction,
-    carbGramsPerHour: (metabolicKjPerHour * carbFraction) / KJ_PER_GRAM_CARB,
-    fatGramsPerHour: (metabolicKjPerHour * (1 - carbFraction)) / KJ_PER_GRAM_FAT,
-    kcalPerHour: metabolicKjPerHour / 4.184,
+    carbFraction: oxidation.carbFraction,
+    carbGramsPerHour: oxidation.carbGramsPerHour,
+    fatGramsPerHour: oxidation.fatGramsPerHour,
+    kcalPerHour: oxidation.kcalPerHour,
   };
 }
 

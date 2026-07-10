@@ -26,7 +26,7 @@ export function CyclingReportView({ input, result }: { input: BikeInput; result:
           <MiniFact label="FTP" value={`${Math.round(result.ftpWatt)} W · ${result.ftpPerKg.toFixed(2)} W/kg`} />
           <MiniFact label="VO₂max" value={`${result.vo2rel.toFixed(1)} ml/kg/min`} />
           <MiniFact label="VLamax-Proxy" value={`${result.vlamaxProxy.toFixed(2)} mmol/l/s`} />
-          <MiniFact label="FatMax" value={`${Math.round(result.fatMaxWatt)} W`} />
+          <MiniFact label="FatMax-Proxy" value={`${Math.round(result.fatMaxWatt)} W`} />
         </div>
       </section>
 
@@ -79,7 +79,7 @@ function KeyMetricsCard({ result }: { result: BikeResult }) {
     { label: "VO₂max relativ", value: result.vo2rel.toFixed(1), unit: "ml/kg/min", caption: `${(result.vo2abs / 1000).toFixed(2)} L/min absolut` },
     { label: "MAP / PPO", value: String(Math.round(result.ppo)), unit: "W", caption: `PVO₂ ${Math.round(result.pvo2)} W` },
     { label: "VLamax-Proxy", value: result.vlamaxProxy.toFixed(2), unit: "mmol/l/s", caption: "aus glykolytischer Dominanz" },
-    { label: "FatMax", value: String(Math.round(result.fatMaxWatt)), unit: "W", caption: `${Math.round(result.fatMaxPctFtp * 100)} % der FTP` },
+    { label: "FatMax-Proxy", value: String(Math.round(result.fatMaxWatt)), unit: "W", caption: `${Math.round(result.fatMaxPctFtp * 100)} % der FTP` },
   ];
 
   return (
@@ -141,11 +141,11 @@ function FatCurveCard({ result }: { result: BikeResult }) {
         <Flame size={18} className="text-[var(--accent)]" />
         <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--subtle)]">Stoffwechsel & Laktat</p>
       </div>
-      <h2 className="text-2xl font-semibold">Substrate & Laktat über die Leistung</h2>
+      <h2 className="text-2xl font-semibold">Substratnutzung & Laktatmodell über die Leistung</h2>
       <p className="muted mt-2 max-w-2xl leading-7">
-        Kohlenhydrat- und Fettanteil sowie das modellierte Laktat über die Leistung. FatMax liegt bei{" "}
-        {Math.round(result.fatMaxWatt)} W ({Math.round(result.fatMaxPctFtp * 100)} % FTP). Fahre über die Kurve, um
-        Werte abzulesen.
+        Absolute modellierte Oxidationsraten und relative Energieanteile werden getrennt dargestellt. Der
+        FatMax-Proxy liegt bei {Math.round(result.fatMaxWatt)} W ({Math.round(result.fatMaxPctFtp * 100)} % FTP)
+        und markiert das Maximum der absoluten Fettkurve. Das Laktat ist ein schematischer Modellverlauf.
       </p>
       <div className="mt-5">
         <BikeMetabolicChart curve={result.fatCurve} ftp={result.ftpWatt} fatMaxWatt={result.fatMaxWatt} />
@@ -245,7 +245,7 @@ function ExpertDetails({ input, result }: { input: BikeInput; result: BikeResult
             <DetailItem label="Laktatäquivalent" value={`${result.laeq.toFixed(2)} mmol/l`} />
             <DetailItem label="Profilfaktor" value={result.profileFactor.toFixed(3)} />
             <DetailItem label="k-Faktor" value={result.kFactor.toFixed(4)} />
-            <DetailItem label="FatMax" value={`${Math.round(result.fatMaxWatt)} W (${Math.round(result.fatMaxPctFtp * 100)} %)`} />
+            <DetailItem label="FatMax-Proxy" value={`${Math.round(result.fatMaxWatt)} W (${Math.round(result.fatMaxPctFtp * 100)} %)`} />
             <DetailItem label="FTP" value={`${result.ftpWatt.toFixed(1)} W`} />
           </div>
         </div>

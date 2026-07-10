@@ -32,12 +32,19 @@ Drei Wattwerte vom Powermeter:
 | VLamax-Proxy | lineare Zuordnung aus der D→VLamax-Tabelle |
 | FTP | `PVO₂ × Profilfaktor(VLamax)` |
 | Fett/KH | `KH = FTP×3.82 × e^(−k×(FTP−P))`, `Fat = P×3.82 − KH` |
-| FatMax | Leistung mit maximaler Fettverbrennung (Sweep 0…FTP) |
-| Laktat (Kurve) | `1.0 × e^(ln4 × P/FTP)` (Ruhe 1, Schwelle 4 mmol/l) |
+| FatMax-Proxy | Leistung mit maximaler absoluter Fett-Modellgröße (Sweep 0…FTP) |
+| Oxidationsraten | `metabolische kJ/h × Anteil / 37.7` (Fett) bzw. `/ 17.1` (KH) in g/h |
+| Laktat (Kurve) | schematischer Verlauf `1.0 × e^(ln4 × P/FTP)` (Ruhe 1, bei FTP 4 mmol/l) |
 | KH-Bedarf | `(P/0.225 × 3.6 × KH-Anteil) / 17.1` g/h |
 
 Profilfaktor und `k` stammen aus den VLamax-Lookup-Tabellen (linear
 interpoliert, an den Rändern geclamped). Zonen: Coggan 7-Zonen-Modell (% FTP).
+
+Der Report trennt zwei Darstellungen: Die absolute Modellkurve zeigt Fett- und
+Kohlenhydratoxidation in g/h; nur ihr Fettmaximum definiert den FatMax-Proxy.
+Die Prozentkurve zeigt dagegen ausschließlich die relativen Energieanteile.
+Der Laktatverlauf ist ausdrücklich schematisch und weder eine individuelle
+Messung noch eine validierte Vorhersage der Laktatkonzentration.
 
 Die VLamax-Zuordnung nutzt die folgenden Anker:
 

@@ -23,7 +23,7 @@ export function BikeCarbCalculator({
   const fueling = useMemo(() => estimateFueling(ftp, kFactor, watt), [ftp, kFactor, watt]);
 
   const presets = [
-    { label: "FatMax", value: Math.round(fatMaxWatt) },
+    { label: "FatMax-Proxy", value: Math.round(fatMaxWatt) },
     { label: "GA1 (65 %)", value: Math.round(ftp * 0.65) },
     { label: "Schwelle", value: Math.round(ftp) },
   ];

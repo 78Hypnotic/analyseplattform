@@ -8,6 +8,7 @@ import {
   computeGlycolytic,
   computeLactateEquivalent,
   computePvo2,
+  computeSubstrateOxidation,
   computeVlamaxProxy,
   computeVo2,
   estimateFueling,
@@ -96,6 +97,19 @@ describe("bike diagnostics calculations", () => {
     expect(fatMax.watt).toBeLessThan(220);
     expect(fatMax.pctFtp).toBeGreaterThan(0.5);
     expect(fatMax.pctFtp).toBeLessThan(0.8);
+  });
+
+  it("places the FatMax proxy at the peak of the absolute fat oxidation curve", () => {
+    const ftp = 305;
+    const curve = buildFatCurve(ftp, 0.023);
+    const fatMax = computeFatMax(ftp, 0.023, curve);
+    const oxidationPeak = curve
+      .map((point) => ({ watt: point.watt, rate: computeSubstrateOxidation(point).fatGramsPerHour }))
+      .reduce((best, point) => point.rate > best.rate ? point : best);
+
+    expect(oxidationPeak.watt).toBe(fatMax.watt);
+    expect(computeSubstrateOxidation(curve[0]).fatFraction).toBeGreaterThan(0.8);
+    expect(oxidationPeak.rate).toBeGreaterThan(computeSubstrateOxidation(curve[0]).fatGramsPerHour);
   });
 
   it("builds seven Coggan training zones", () => {

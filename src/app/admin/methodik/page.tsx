@@ -72,7 +72,7 @@ export default async function MethodikPage() {
         <section className="surface mt-8 p-5">
           <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--subtle)]">Wichtiger Hinweis</p>
           <p className="muted mt-3 leading-7">
-            Alle physiologischen Werte (VO₂max, VLamax, CSS, CS, FTP, FatMax) sind reproduzierbare
+            Alle physiologischen Werte (VO₂max, VLamax, CSS, CS, FTP, FatMax-Proxy) sind reproduzierbare
             Schätz- bzw. Proxy-Werte aus Feldtests. Es handelt sich ausdrücklich nicht um Labormessungen.
             Sie dienen der Trainingssteuerung, Profilierung und dem Vergleich von Retests.
           </p>
@@ -237,15 +237,17 @@ function BikeSection() {
         />
       </Block>
 
-      <Block title="Fettstoffwechsel & FatMax">
+      <Block title="Fettstoffwechsel & FatMax-Proxy">
         <Formula formula={`Gesamtenergie(P) = P × ${ENERGY_PER_WATT}`} desc="Relativer Energiebedarf pro Leistung P." />
         <Formula formula="KH(P) = (FTP × 3,82) × e^(−k × (FTP − P))" desc="Kohlenhydrat-Energie; k aus untenstehender Tabelle." />
-        <Formula formula="Fat(P) = Gesamtenergie(P) − KH(P)" desc="FatMax = Leistung P mit maximaler Fettverbrennung (Sweep 0…FTP)." />
+        <Formula formula="Fat(P) = Gesamtenergie(P) − KH(P)" desc="FatMax-Proxy = Leistung P mit maximaler absoluter Fett-Modellgröße (Sweep 0…FTP)." />
+        <Formula formula="Anteil Fett/KH = Fat(P) bzw. KH(P) / Gesamtenergie(P)" desc="Relative Energieanteile in Prozent; ihr Maximum definiert nicht den FatMax-Proxy." />
+        <Formula formula="Oxidation [g/h] = metabol. kJ/h × Anteil / 37,7 (Fett) bzw. 17,1 (KH)" desc="Absolute modellierte Oxidationsraten für die Reportkurve; keine indirekte Kalorimetrie." />
         <LookupTable title="VLamax → k-Faktor" rows={K_FACTOR_TABLE} />
       </Block>
 
-      <Block title="Laktat-Modell (für die Kurve)">
-        <Formula formula="Laktat(P) [mmol/l] = 1,0 × e^(ln(4) × (P / FTP))" desc="FTP-verankertes Modell: 1,0 mmol/l in Ruhe, 4,0 mmol/l an der Schwelle (P = FTP)." />
+      <Block title="Schematisches Laktat-Modell (für die Kurve)">
+        <Formula formula="Laktat(P) [mmol/l] = 1,0 × e^(ln(4) × (P / FTP))" desc="Nur schematischer FTP-verankerter Verlauf: 1,0 mmol/l in Ruhe, 4,0 mmol/l bei P = FTP; keine individuelle Laktatmessung." />
       </Block>
 
       <Block title="Kohlenhydrat-Rechner">

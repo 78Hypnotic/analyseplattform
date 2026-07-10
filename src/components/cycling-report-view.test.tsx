@@ -12,6 +12,10 @@ describe("CyclingReportView", () => {
 
     expect(screen.getByText("Dominanz D")).toBeTruthy();
     expect(screen.getByText(result.glycolyticDominance.toFixed(3))).toBeTruthy();
+    expect(screen.getByText("Absolute Oxidationsraten (Modell)")).toBeTruthy();
+    expect(screen.getByRole("img", { name: "Modellierte absolute Fett- und Kohlenhydratoxidation über die Leistung" })).toBeTruthy();
+    expect(screen.getByRole("img", { name: "Relative Energieanteile und schematisches Laktat über die Leistung" })).toBeTruthy();
+    expect(screen.getByText("Laktat (schematisches Modell)")).toBeTruthy();
     expect(screen.queryByText("Alte Modellversion")).toBeNull();
   });
 
