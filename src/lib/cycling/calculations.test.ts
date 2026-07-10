@@ -1,16 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_BIKE_INPUT, PROFILE_FACTOR_TABLE } from "./constants";
+import { DEFAULT_BIKE_INPUT, PROFILE_FACTOR_TABLE, VLAMAX_DOMINANCE_TABLE } from "./constants";
 import {
   buildFatCurve,
   buildTrainingZones,
   computeFatMax,
   computeFtp,
   computeGlycolytic,
+  computeLactateEquivalent,
   computePvo2,
   computeVlamaxProxy,
   computeVo2,
   estimateFueling,
   interpolateTable,
+  interpolateDominanceTable,
+  isVlamaxInCalibratedRange,
   kFactorFor,
   profileFactorFor,
   runBikeAnalysis,
@@ -34,13 +37,45 @@ describe("bike diagnostics calculations", () => {
     expect(glyco.pgly).toBe(650);
   });
 
-  it("computes the VLamax proxy chain (efficiency 0.225)", () => {
-    const chain = computeVlamaxProxy(10400, 75);
+  it("keeps the energy chain through Laeq unchanged", () => {
+    const chain = computeLactateEquivalent(10400, 75);
     expect(chain.emetKj).toBeCloseTo(46.2222, 3);
     expect(chain.o2eq).toBeCloseTo(2.2116, 3);
     expect(chain.o2eqRel).toBeCloseTo(29.488, 2);
     expect(chain.laeq).toBeCloseTo(9.829, 2);
-    expect(chain.vlamaxProxy).toBeCloseTo(0.6143, 3);
+  });
+
+  it("maps every dominance anchor and interpolates between anchors", () => {
+    for (const anchor of VLAMAX_DOMINANCE_TABLE) {
+      expect(interpolateDominanceTable(anchor.dominance)).toBeCloseTo(anchor.vlamax, 8);
+    }
+    expect(interpolateDominanceTable(2.1)).toBeCloseTo(0.425, 8);
+    expect(interpolateDominanceTable(2.04)).toBeCloseTo(0.41, 8);
+  });
+
+  it("extrapolates at the edges and enforces the calibrated range", () => {
+    expect(interpolateDominanceTable(1.7)).toBeCloseTo(0.25, 8);
+    expect(interpolateDominanceTable(1.69)).toBeCloseTo(0.245, 8);
+    expect(interpolateDominanceTable(4.0)).toBeCloseTo(0.9, 8);
+    expect(interpolateDominanceTable(4.04)).toBeCloseTo(0.91, 8);
+    expect(isVlamaxInCalibratedRange(0.25)).toBe(true);
+    expect(isVlamaxInCalibratedRange(0.245)).toBe(false);
+    expect(isVlamaxInCalibratedRange(0.9)).toBe(true);
+    expect(isVlamaxInCalibratedRange(0.91)).toBe(false);
+  });
+
+  it("matches the Marc Kloter dominance reference", () => {
+    const pvo2 = computePvo2(447);
+    const { wgly, pgly } = computeGlycolytic(1053, 850);
+    const proxy = computeVlamaxProxy(pgly, pvo2);
+    const profileFactor = profileFactorFor(proxy.vlamaxProxy);
+
+    expect(wgly).toBe(12788);
+    expect(pgly).toBeCloseTo(799.25, 8);
+    expect(pvo2).toBeCloseTo(391.125, 8);
+    expect(proxy.glycolyticDominance).toBeCloseTo(2.043464, 6);
+    expect(proxy.vlamaxProxy).toBeCloseTo(0.410866, 6);
+    expect(computeFtp(pvo2, profileFactor)).toBeCloseTo(315.96125, 5);
   });
 
   it("interpolates and clamps the lookup tables", () => {
@@ -71,15 +106,17 @@ describe("bike diagnostics calculations", () => {
   });
 
   it("produces the full diagnostic for the worked example", () => {
-    const result = runBikeAnalysis({ ...DEFAULT_BIKE_INPUT, sprintPeakWatt: 900, sprintAvg20sWatt: 700, oneMinPowerWatt: 438, weight: 75 });
+    const result = runBikeAnalysis({ ...DEFAULT_BIKE_INPUT, sprintPeakWatt: 900, sprintAvg20sWatt: 700, oneMinPowerWatt: 420, weight: 75 });
     expect(result).not.toBeNull();
-    expect(result?.ppo).toBe(438);
-    expect(result?.vo2rel).toBeCloseTo(61.32, 1);
-    expect(result?.vlamaxProxy).toBeCloseTo(0.6143, 3);
-    expect(result?.ftpWatt).toBeCloseTo(294, 0);
-    expect(result?.ftpPerKg).toBeCloseTo(3.92, 1);
+    expect(result?.modelVersion).toBe("vlamax-dominance-v1");
+    expect(result?.ppo).toBe(420);
+    expect(result?.vo2rel).toBeCloseTo(58.8, 1);
+    expect(result?.glycolyticDominance).toBeCloseTo(1.7687, 3);
+    expect(result?.vlamaxProxy).toBeCloseTo(0.2844, 3);
+    expect(result?.ftpWatt).toBeCloseTo(305, 0);
+    expect(result?.ftpPerKg).toBeCloseTo(4.07, 1);
     expect(result?.fatMaxWatt).toBeGreaterThan(170);
-    expect(result?.fatMaxWatt).toBeLessThan(220);
+    expect(result?.fatMaxWatt).toBeLessThan(240);
     expect(result?.fatCurve.length).toBeGreaterThan(50);
   });
 

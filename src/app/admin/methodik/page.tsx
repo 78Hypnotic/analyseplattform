@@ -16,6 +16,7 @@ import {
 } from "@/lib/running/constants";
 import {
   BIKE_ZONES,
+  BIKE_MODEL_VERSION,
   ENERGY_PER_WATT,
   K_FACTOR_TABLE,
   KJ_PER_LITER_O2,
@@ -27,13 +28,17 @@ import {
   PROFILE_FACTOR_TABLE,
   PVO2_FACTOR,
   VLAMAX_MAX,
+  VLAMAX_DOMINANCE_TABLE,
   VLAMAX_MIN,
 } from "@/lib/cycling/constants";
+import { getBikeModelMigrationPreview } from "./actions";
+import { BikeModelMigrationPanel } from "./bike-model-migration-panel";
 
 export const dynamic = "force-dynamic";
 
 export default async function MethodikPage() {
   await requireAdmin();
+  const bikeMigrationPreview = await getBikeModelMigrationPreview();
 
   return (
     <>
@@ -62,6 +67,7 @@ export default async function MethodikPage() {
         <SwimSection />
         <RunSection />
         <BikeSection />
+        <BikeModelMigrationPanel preview={bikeMigrationPreview} />
 
         <section className="surface mt-8 p-5">
           <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--subtle)]">Wichtiger Hinweis</p>
@@ -210,10 +216,13 @@ function BikeSection() {
 
       <Block title="Sprinttest → VLamax-Proxy">
         <Formula formula="Wgly [J] = (Ø20s × 20) − (Peak × 4)" desc="Glykolytische mechanische Arbeit (alaktazider Anteil der ersten 4 s abgezogen)." />
+        <Formula formula="Pgly [W] = Wgly / 16" desc="Mittlere glykolytische Leistung während der verbleibenden 16 Sprintsekunden." />
         <Formula formula={`Emet [kJ] = Wgly / ${MECH_EFFICIENCY} / 1000`} desc={`Metabolische Energie bei ${Math.round(MECH_EFFICIENCY * 100)} % Wirkungsgrad.`} />
         <Formula formula={`O₂eq [L] = Emet / ${KJ_PER_LITER_O2}`} desc={`1 L O₂ ≈ ${KJ_PER_LITER_O2} kJ. Relativ = O₂eq × 1000 / Gewicht.`} />
         <Formula formula={`Laeq [mmol/l] = O₂eq_rel / ${O2_PER_LACTATE}`} desc={`1 mmol/l Laktat ≈ ${O2_PER_LACTATE} ml/kg O₂-Äquivalent.`} />
-        <Formula formula="VLamax-Proxy [mmol/l/s] = Laeq / 16" desc={`Plausibler Bereich ${VLAMAX_MIN}–${VLAMAX_MAX}; außerhalb → kein belastbares Profil.`} />
+        <Formula formula="D = Pgly / PVO₂" desc="Dimensionslose glykolytische Dominanz im Verhältnis zur aeroben Leistungsfähigkeit." />
+        <Formula formula="VLamax-Proxy = Interpolation(D)" desc={`Modell ${BIKE_MODEL_VERSION}; linear interpoliert bzw. an den äußeren Segmenten extrapoliert. Kalibrierter Bereich ${VLAMAX_MIN}–${VLAMAX_MAX}.`} />
+        <DominanceLookupTable />
       </Block>
 
       <Block title="Schwelle / FTP">
@@ -332,6 +341,25 @@ function LookupTable({ title, rows }: { title: string; rows: ReadonlyArray<{ vla
             <span className="text-[var(--muted)]">{row.vlamax.toFixed(2)}</span>
             <span className="mx-1 text-[var(--subtle)]">→</span>
             <span className="font-medium text-[var(--accent)]">{row.value}</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DominanceLookupTable() {
+  return (
+    <div className="rounded-lg border border-[var(--line)] p-4">
+      <p className="mono mb-3 text-[10px] uppercase tracking-[0.12em] text-[var(--subtle)]">
+        Dominanz D → VLamax
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {VLAMAX_DOMINANCE_TABLE.map((row) => (
+          <span key={row.dominance} className="rounded border border-[var(--line)] bg-[var(--raised-bg)] px-2 py-1 text-xs">
+            <span className="text-[var(--muted)]">{row.dominance.toFixed(1)}</span>
+            <span className="mx-1 text-[var(--subtle)]">→</span>
+            <span className="font-medium text-[var(--accent)]">{row.vlamax.toFixed(2)}</span>
           </span>
         ))}
       </div>

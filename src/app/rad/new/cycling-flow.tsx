@@ -511,7 +511,7 @@ function DataStep({
         <div className="mt-4 grid gap-4 md:grid-cols-3">
           <Field label="Peak-Leistung 1 s (W)" fieldKey="sprintPeakWatt" error={validation.fieldErrors.sprintPeakWatt} type="number" value={input.sprintPeakWatt} placeholder="z. B. 900" onChange={(value) => update({ sprintPeakWatt: optionalNumber(value) })} />
           <Field label="20 s Ø (W)" fieldKey="sprintAvg20sWatt" error={validation.fieldErrors.sprintAvg20sWatt} type="number" value={input.sprintAvg20sWatt} placeholder="z. B. 700" onChange={(value) => update({ sprintAvg20sWatt: optionalNumber(value) })} />
-          <Field label="1 min Ø (W)" fieldKey="oneMinPowerWatt" error={validation.fieldErrors.oneMinPowerWatt} type="number" value={input.oneMinPowerWatt} placeholder="z. B. 438" onChange={(value) => update({ oneMinPowerWatt: optionalNumber(value) })} />
+          <Field label="1 min Ø (W)" fieldKey="oneMinPowerWatt" error={validation.fieldErrors.oneMinPowerWatt} type="number" value={input.oneMinPowerWatt} placeholder="z. B. 420" onChange={(value) => update({ oneMinPowerWatt: optionalNumber(value) })} />
         </div>
       </div>
 

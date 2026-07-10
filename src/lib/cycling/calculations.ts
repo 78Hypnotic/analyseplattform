@@ -1,5 +1,6 @@
 import {
   ALACTIC_SECONDS,
+  BIKE_MODEL_VERSION,
   BIKE_ZONES,
   ENERGY_PER_WATT,
   GLYCOLYTIC_SECONDS,
@@ -18,13 +19,14 @@ import {
   PVO2_FACTOR,
   SPRINT_SECONDS,
   VLAMAX_MAX,
+  VLAMAX_DOMINANCE_TABLE,
   VLAMAX_MIN,
 } from "./constants";
 import type {
   BikeInput,
+  CurrentBikeResult,
   BikeMetabolicProfile,
   BikePlausibility,
-  BikeResult,
   BikeZone,
   FatCurvePoint,
 } from "./types";
@@ -50,14 +52,52 @@ export function computeGlycolytic(peakWatt: number, avg20sWatt: number) {
   return { w20, walakt, wgly, pgly };
 }
 
-/** Full glycolytic energy chain → VLamax proxy (mmol/l/s). */
-export function computeVlamaxProxy(wgly: number, weight: number) {
+/** Glycolytic energy chain through the lactate equivalent. */
+export function computeLactateEquivalent(wgly: number, weight: number) {
   const emetKj = wgly / MECH_EFFICIENCY / 1000;
   const o2eq = emetKj / KJ_PER_LITER_O2;
   const o2eqRel = weight > 0 ? (o2eq * 1000) / weight : Number.NaN;
   const laeq = o2eqRel / O2_PER_LACTATE;
-  const vlamaxProxy = laeq / GLYCOLYTIC_SECONDS;
-  return { emetKj, o2eq, o2eqRel, laeq, vlamaxProxy };
+  return { emetKj, o2eq, o2eqRel, laeq };
+}
+
+/** Maps glycolytic dominance to VLamax, extrapolating with the edge segments. */
+export function computeVlamaxProxy(pgly: number, pvo2: number) {
+  const glycolyticDominance = pvo2 > 0 ? pgly / pvo2 : Number.NaN;
+  const vlamaxProxy = interpolateDominanceTable(glycolyticDominance);
+  return { glycolyticDominance, vlamaxProxy };
+}
+
+export function interpolateDominanceTable(dominance: number): number {
+  if (!Number.isFinite(dominance)) return Number.NaN;
+
+  const table: ReadonlyArray<{ dominance: number; vlamax: number }> = VLAMAX_DOMINANCE_TABLE;
+  const first = table[0];
+  const last = table[table.length - 1];
+  let lower = first;
+  let upper = table[1];
+
+  if (dominance >= last.dominance) {
+    lower = table[table.length - 2];
+    upper = last;
+  } else if (dominance > first.dominance) {
+    for (let index = 0; index < table.length - 1; index += 1) {
+      const candidateLower = table[index];
+      const candidateUpper = table[index + 1];
+      if (dominance >= candidateLower.dominance && dominance <= candidateUpper.dominance) {
+        lower = candidateLower;
+        upper = candidateUpper;
+        break;
+      }
+    }
+  }
+
+  const fraction = (dominance - lower.dominance) / (upper.dominance - lower.dominance);
+  return lower.vlamax + fraction * (upper.vlamax - lower.vlamax);
+}
+
+export function isVlamaxInCalibratedRange(vlamax: number): boolean {
+  return Number.isFinite(vlamax) && vlamax >= VLAMAX_MIN && vlamax <= VLAMAX_MAX;
 }
 
 /** Linear interpolation over a sorted {vlamax, value} table, clamped at the edges. */
@@ -201,7 +241,7 @@ export function estimateFueling(ftp: number, k: number, watt: number) {
  * form a plausible model (no glycolytic work, sprint average above peak, or a
  * VLamax proxy outside the calibrated band).
  */
-export function runBikeAnalysis(input: BikeInput): BikeResult | null {
+export function runBikeAnalysis(input: BikeInput): CurrentBikeResult | null {
   if (!Number.isFinite(input.weight) || input.weight <= 0) return null;
   if (input.sprintAvg20sWatt > input.sprintPeakWatt) return null;
 
@@ -214,8 +254,9 @@ export function runBikeAnalysis(input: BikeInput): BikeResult | null {
   const { w20, walakt, wgly, pgly } = computeGlycolytic(input.sprintPeakWatt, input.sprintAvg20sWatt);
   if (!Number.isFinite(wgly) || wgly <= 0) return null;
 
-  const { emetKj, o2eq, o2eqRel, laeq, vlamaxProxy } = computeVlamaxProxy(wgly, input.weight);
-  if (!Number.isFinite(vlamaxProxy) || vlamaxProxy < VLAMAX_MIN || vlamaxProxy > VLAMAX_MAX) {
+  const { emetKj, o2eq, o2eqRel, laeq } = computeLactateEquivalent(wgly, input.weight);
+  const { glycolyticDominance, vlamaxProxy } = computeVlamaxProxy(pgly, pvo2);
+  if (!isVlamaxInCalibratedRange(vlamaxProxy)) {
     return null;
   }
 
@@ -226,6 +267,8 @@ export function runBikeAnalysis(input: BikeInput): BikeResult | null {
   const fatMax = computeFatMax(ftpWatt, kFactor, fatCurve);
 
   return {
+    modelVersion: BIKE_MODEL_VERSION,
+    glycolyticDominance,
     ppo,
     pvo2,
     vo2abs,

@@ -1,5 +1,10 @@
 import { bikeInputSchema } from "./schema";
-import { computeGlycolytic, computeVlamaxProxy } from "./calculations";
+import {
+  computeGlycolytic,
+  computePvo2,
+  computeVlamaxProxy,
+  isVlamaxInCalibratedRange,
+} from "./calculations";
 import { VLAMAX_MAX, VLAMAX_MIN } from "./constants";
 import type { BikeInput } from "./types";
 
@@ -73,7 +78,7 @@ function getCalculationValidationResult(input: BikeInput): BikeValidationResult 
   const messages: string[] = [];
   const fieldErrors: Partial<Record<BikeFieldKey, string>> = {};
 
-  const { wgly } = computeGlycolytic(input.sprintPeakWatt, input.sprintAvg20sWatt);
+  const { wgly, pgly } = computeGlycolytic(input.sprintPeakWatt, input.sprintAvg20sWatt);
   if (wgly <= 0) {
     const fieldMessage = "ergibt keine glykolytische Arbeit. Bitte Sprintwerte prüfen.";
     messages.push(`Sprint Ø 20 s: ${fieldMessage}`);
@@ -81,11 +86,16 @@ function getCalculationValidationResult(input: BikeInput): BikeValidationResult 
     return { messages, fieldErrors };
   }
 
-  const { vlamaxProxy } = computeVlamaxProxy(wgly, input.weight);
-  if (!Number.isFinite(vlamaxProxy) || vlamaxProxy < VLAMAX_MIN || vlamaxProxy > VLAMAX_MAX) {
-    const fieldMessage = `ergibt einen VLamax-Proxy außerhalb des plausiblen Bereichs (${VLAMAX_MIN}–${VLAMAX_MAX}). Bitte Sprintwerte prüfen.`;
-    messages.push(`Sprint Ø 20 s: ${fieldMessage}`);
+  const pvo2 = computePvo2(input.oneMinPowerWatt);
+  const { glycolyticDominance, vlamaxProxy } = computeVlamaxProxy(pgly, pvo2);
+  if (!isVlamaxInCalibratedRange(vlamaxProxy)) {
+    const dominanceLabel = Number.isFinite(glycolyticDominance)
+      ? glycolyticDominance.toFixed(2).replace(".", ",")
+      : "nicht berechenbar";
+    const fieldMessage = `ergibt eine glykolytische Dominanz von ${dominanceLabel} und damit einen VLamax-Proxy außerhalb des kalibrierten Bereichs (${VLAMAX_MIN}–${VLAMAX_MAX}). Bitte Sprint- und 1-Minuten-Leistung prüfen.`;
+    messages.push(`Leistungsverhältnis: ${fieldMessage}`);
     fieldErrors.sprintAvg20sWatt = fieldMessage;
+    fieldErrors.oneMinPowerWatt = fieldMessage;
   }
 
   return { messages, fieldErrors };
