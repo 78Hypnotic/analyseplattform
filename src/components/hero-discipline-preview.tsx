@@ -59,12 +59,12 @@ const SLIDES: Slide[] = [
     metrics: [
       { label: "FTP", value: "294", hint: "W", active: true },
       { label: "VO₂max", value: "61", hint: "ml/kg/min" },
-      { label: "FatMax", value: "194", hint: "W" },
+      { label: "FatMax-Proxy", value: "194", hint: "W" },
     ],
     box: {
       tag: "Trainingsbereiche",
       heading: "Wattbereiche direkt aus deiner FTP",
-      text: "Z1 bis Z7 – plus FatMax als Ankerpunkt für den Fettstoffwechsel.",
+      text: "Z1 bis Z7 – plus FatMax-Proxy als Ankerpunkt für den Fettstoffwechsel.",
     },
   },
 ];

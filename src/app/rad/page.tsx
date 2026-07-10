@@ -6,6 +6,7 @@ import { ButtonLink } from "@/components/button";
 import { getUserBikeAnalyses } from "@/lib/bike-analyses";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { DeleteBikeAnalysisForm } from "./delete-analysis-form";
+import { BIKE_MODEL_VERSION } from "@/lib/cycling/constants";
 
 export const dynamic = "force-dynamic";
 
@@ -49,7 +50,14 @@ export default async function BikeAnalysesPage() {
                 className="surface grid gap-4 p-4 md:grid-cols-[minmax(0,1fr)_110px_110px_90px_auto]"
               >
                 <div className="min-w-0">
-                  <h2 className="truncate font-medium">{analysis.title}</h2>
+                  <div className="flex min-w-0 items-center gap-2">
+                    <h2 className="truncate font-medium">{analysis.title}</h2>
+                    {analysis.result.modelVersion !== BIKE_MODEL_VERSION ? (
+                      <span className="shrink-0 rounded-full border border-[var(--warn)] px-2 py-0.5 text-[10px] uppercase tracking-[0.1em] text-[var(--warn)]">
+                        Legacy
+                      </span>
+                    ) : null}
+                  </div>
                   <p className="muted mt-1 text-sm">
                     {new Date(analysis.created_at).toLocaleDateString("de-DE")} | {analysis.result.metabolicProfile.label}
                   </p>

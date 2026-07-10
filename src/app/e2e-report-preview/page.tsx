@@ -1,7 +1,10 @@
 import { notFound } from "next/navigation";
+import { CyclingReportView } from "@/components/cycling-report-view";
 import { ReportView } from "@/components/report-view";
 import { runAnalysis } from "@/lib/analysis/calculations";
 import type { AnalysisInput } from "@/lib/analysis/types";
+import { runBikeAnalysis } from "@/lib/cycling/calculations";
+import { DEFAULT_BIKE_INPUT } from "@/lib/cycling/constants";
 
 export const dynamic = "force-dynamic";
 
@@ -34,11 +37,22 @@ const STANDARD_REPORT_INPUT: AnalysisInput = {
 export default async function ReportPreviewPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ mode?: string | string[] }>;
+  searchParams?: Promise<{ discipline?: string | string[]; mode?: string | string[] }>;
 }) {
   if (process.env.NODE_ENV === "production") notFound();
 
   const params = await searchParams;
+  const discipline = Array.isArray(params?.discipline) ? params.discipline[0] : params?.discipline;
+  if (discipline === "bike") {
+    const bikeResult = runBikeAnalysis(DEFAULT_BIKE_INPUT);
+    if (!bikeResult) notFound();
+    return (
+      <main className="mx-auto w-full max-w-6xl px-5 py-10">
+        <CyclingReportView input={DEFAULT_BIKE_INPUT} result={bikeResult} />
+      </main>
+    );
+  }
+
   const mode = Array.isArray(params?.mode) ? params.mode[0] : params?.mode;
   const input = mode === "technique" ? buildTechniqueOnlyInput() : STANDARD_REPORT_INPUT;
   const result = runAnalysis(input);

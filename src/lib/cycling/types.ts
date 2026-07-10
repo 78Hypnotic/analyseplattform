@@ -64,7 +64,14 @@ export type BikePlausibility = {
   message: string | null;
 };
 
-export type BikeResult = {
+export type BikeModelVersion = "vlamax-dominance-v1" | "legacy-laeq-v1";
+
+export type BikeMigrationReason =
+  | "vlamax_out_of_range"
+  | "invalid_input"
+  | "calculation_failed";
+
+export type BikeResultMetrics = {
   ppo: number;
   pvo2: number;
   vo2abs: number;
@@ -90,6 +97,25 @@ export type BikeResult = {
   zones: BikeZone[];
   plausibility: BikePlausibility;
 };
+
+export type CurrentBikeResult = BikeResultMetrics & {
+  modelVersion: "vlamax-dominance-v1";
+  /** Dimensionless ratio Pgly/PVO2. */
+  glycolyticDominance: number;
+  /** Original result retained once when a persisted analysis is migrated. */
+  legacySnapshot?: Record<string, unknown>;
+};
+
+export type LegacyBikeResult = BikeResultMetrics & {
+  modelVersion?: "legacy-laeq-v1";
+  glycolyticDominance?: number;
+  migrationStatus?: "legacy_unmigratable";
+  migrationTargetVersion?: "vlamax-dominance-v1";
+  projectedVlamax?: number;
+  migrationReason?: BikeMigrationReason;
+};
+
+export type BikeResult = CurrentBikeResult | LegacyBikeResult;
 
 export type StoredBikeAnalysis = {
   id: string;

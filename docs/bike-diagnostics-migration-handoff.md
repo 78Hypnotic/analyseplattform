@@ -112,8 +112,8 @@ end $$;
 
 Kurz zurückmelden (neu angewendet vs. bereits vorhanden + Verifikationsergebnis).
 Danach manueller End-to-End-Test: `/rad/new` mit Beispieldaten (Peak 1 s 900 W,
-20 s Ø 700 W, 1 min Ø 438 W, 75 kg) → FTP ≈ 294 W, VO₂max ≈ 61 ml/kg/min,
-VLamax-Proxy ≈ 0,61, FatMax ≈ 194 W; speichern → erscheint unter `/rad` und in
+20 s Ø 700 W, 1 min Ø 420 W, 75 kg) → Dominanz ≈ 1,77,
+VLamax-Proxy ≈ 0,28, FTP ≈ 305 W und VO₂max ≈ 59 ml/kg/min; speichern → erscheint unter `/rad` und in
 der Profil-Zusammenfassung.
 
 ## 6. Rollback (nur falls nötig)
@@ -132,3 +132,26 @@ alter table public.profiles
   drop column if exists latest_bike_vo2max_rel,
   drop column if exists latest_bike_vlamax_proxy;
 ```
+
+## 7. Formelkorrektur und JSONB-Backfill
+
+Die Korrektur aus `Korrektur VLamax Bestimmung.docx` benötigt keine weitere
+DDL-Migration. Neue Analysen verwenden `vlamax-dominance-v1` mit
+`D = Pgly / PVO₂`; die Energiekette bis `Laeq` bleibt erhalten.
+
+Der Datenbackfill wird ausschließlich unter `/admin/methodik` ausgeführt:
+
+1. Read-only-Vorschau prüfen. Stand 10.07.2026: 12 Analysen, davon 8
+   migrierbar und 4 nach neuem Modell außerhalb `[0.25, 0.90]`.
+2. Checkbox bestätigen und den Batch starten. Maximal 50 Analysen werden in
+   einem Lauf verarbeitet; erneute Aufrufe sind idempotent.
+3. Erwarteter Endzustand: 8 Resultate mit `modelVersion =
+   'vlamax-dominance-v1'`, 4 Resultate mit `modelVersion = 'legacy-laeq-v1'`
+   und `migrationTargetVersion = 'vlamax-dominance-v1'`, 0 offene Resultate.
+4. Der Backfill aktualisiert danach nur `latest_bike_*`. Die allgemeinen
+   Profilfelder `ftp_rad`, `vo2max` und `vlamax` bleiben unverändert.
+
+Für ein Rollback enthält jedes erfolgreich migrierte Resultat den vorherigen
+JSONB-Stand einmalig unter `legacySnapshot`. Nicht migrierbare Analysen behalten
+ihre historischen Kennzahlen und werden im Report deutlich als Legacy
+gekennzeichnet.

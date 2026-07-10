@@ -30,6 +30,26 @@ export const KJ_PER_GRAM_FAT = 37.7;
 export const VLAMAX_MIN = 0.25;
 export const VLAMAX_MAX = 0.9;
 
+/** Identifier stored with every result created by the dominance-based model. */
+export const BIKE_MODEL_VERSION = "vlamax-dominance-v1";
+export const LEGACY_BIKE_MODEL_VERSION = "legacy-laeq-v1";
+
+/** Glycolytic dominance (Pgly/PVO2) mapped to the VLamax proxy. */
+export const VLAMAX_DOMINANCE_TABLE = [
+  { dominance: 1.8, vlamax: 0.3 },
+  { dominance: 2.0, vlamax: 0.4 },
+  { dominance: 2.2, vlamax: 0.45 },
+  { dominance: 2.4, vlamax: 0.5 },
+  { dominance: 2.6, vlamax: 0.55 },
+  { dominance: 2.8, vlamax: 0.6 },
+  { dominance: 3.0, vlamax: 0.65 },
+  { dominance: 3.2, vlamax: 0.7 },
+  { dominance: 3.4, vlamax: 0.75 },
+  { dominance: 3.6, vlamax: 0.8 },
+  { dominance: 3.8, vlamax: 0.85 },
+  { dominance: 4.0, vlamax: 0.9 },
+] as const;
+
 /** Deviation beyond which the optional 12-min test flags the sprint. */
 export const PLAUSIBILITY_TOLERANCE = 0.1;
 
@@ -107,7 +127,7 @@ export const DEFAULT_BIKE_INPUT: BikeInput = {
   fitnessLevel: 3,
   sprintPeakWatt: 900,
   sprintAvg20sWatt: 700,
-  oneMinPowerWatt: 438,
+  oneMinPowerWatt: 420,
   goal: "Strasse",
   raceDate: "",
   bikeSessionsPerWeek: 4,
