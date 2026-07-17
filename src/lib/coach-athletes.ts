@@ -1,7 +1,6 @@
 import "server-only";
 
 import { requireCoachAccess } from "@/lib/auth/roles";
-import type { AnalysisInput, AnalysisResult, StoredAnalysis } from "@/lib/analysis/types";
 
 export type CoachAthleteSummary = {
   id: string;
@@ -22,8 +21,24 @@ export type CoachAthleteDetail = CoachAthleteSummary & {
   weightKg: number | null;
   bodyFatPercentage: number | null;
   fitnessLevel: number | null;
+  vo2max: number | null;
+  vlamax: number | null;
+  ftpRad: number | null;
+  muscleMassKg: number | null;
   disciplines: string[];
-  analyses: StoredAnalysis[];
+  analyses: CoachAnalysisSummary[];
+};
+
+export type CoachAnalysisSummary = {
+  id: string;
+  title: string;
+  discipline: "swim" | "run" | "bike";
+  createdAt: string;
+  createdBy: string | null;
+  createdByName: string | null;
+  updatedBy: string | null;
+  updatedByName: string | null;
+  updatedAt: string;
 };
 
 type CoachAssignmentRow = {
@@ -41,6 +56,10 @@ type ProfileRow = {
   weight_kg?: number | string | null;
   body_fat_percentage?: number | string | null;
   fitness_level?: number | null;
+  vo2max?: number | string | null;
+  vlamax?: number | string | null;
+  ftp_rad?: number | null;
+  muscle_mass_kg?: number | string | null;
   disciplines?: string[] | null;
   latest_swim_analyzed_at?: string | null;
   latest_swim_technique_status?: "rot" | "gelb" | "gruen" | null;
@@ -52,10 +71,13 @@ type ProfileRow = {
 type AnalysisRow = {
   id: string;
   title: string;
-  input: AnalysisInput;
-  result: AnalysisResult;
   created_at: string;
-  discipline?: "swim" | "run" | "bike" | null;
+  discipline: "swim" | "run" | "bike";
+  created_by?: string | null;
+  created_by_name?: string | null;
+  updated_by?: string | null;
+  updated_by_name?: string | null;
+  updated_at: string;
 };
 
 export async function getAssignedCoachAthletes(limit = 50): Promise<CoachAthleteSummary[]> {
@@ -115,17 +137,16 @@ export async function getCoachAthleteDetail(athleteId: string): Promise<CoachAth
     supabase
       .from("profiles")
       .select(
-        "id,email,full_name,city,age,gender,height_cm,weight_kg,body_fat_percentage,fitness_level,disciplines,latest_swim_analyzed_at,latest_swim_technique_status,latest_swim_css_pace_sec,latest_swim_vo2_proxy,latest_swim_vla_profile",
+        "id,email,full_name,city,age,gender,height_cm,weight_kg,body_fat_percentage,fitness_level,vo2max,vlamax,ftp_rad,muscle_mass_kg,disciplines,latest_swim_analyzed_at,latest_swim_technique_status,latest_swim_css_pace_sec,latest_swim_vo2_proxy,latest_swim_vla_profile",
       )
       .eq("id", athleteId)
       .maybeSingle(),
     supabase
       .from("analyses")
-      .select("id,title,input,result,created_at,discipline")
+      .select("id,title,created_at,discipline,created_by,created_by_name,updated_by,updated_by_name,updated_at")
       .eq("user_id", athleteId)
-      .eq("discipline", "swim")
       .order("created_at", { ascending: false })
-      .limit(20),
+      .limit(50),
   ]);
 
   if (profileError) throw new Error(profileError.message);
@@ -140,13 +161,21 @@ export async function getCoachAthleteDetail(athleteId: string): Promise<CoachAth
     weightKg: toNullableNumber((profile as ProfileRow).weight_kg),
     bodyFatPercentage: toNullableNumber((profile as ProfileRow).body_fat_percentage),
     fitnessLevel: (profile as ProfileRow).fitness_level ?? null,
+    vo2max: toNullableNumber((profile as ProfileRow).vo2max),
+    vlamax: toNullableNumber((profile as ProfileRow).vlamax),
+    ftpRad: (profile as ProfileRow).ftp_rad ?? null,
+    muscleMassKg: toNullableNumber((profile as ProfileRow).muscle_mass_kg),
     disciplines: (profile as ProfileRow).disciplines ?? [],
     analyses: ((analyses ?? []) as AnalysisRow[]).map((analysis) => ({
       id: analysis.id,
       title: analysis.title,
-      input: analysis.input,
-      result: analysis.result,
-      created_at: analysis.created_at,
+      discipline: analysis.discipline,
+      createdAt: analysis.created_at,
+      createdBy: analysis.created_by ?? null,
+      createdByName: analysis.created_by_name ?? null,
+      updatedBy: analysis.updated_by ?? null,
+      updatedByName: analysis.updated_by_name ?? null,
+      updatedAt: analysis.updated_at,
     })),
   };
 }

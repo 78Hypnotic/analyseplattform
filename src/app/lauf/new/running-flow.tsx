@@ -97,10 +97,14 @@ export function RunningFlow({
   initialInput,
   isAuthenticated,
   resumePendingAnalysis = false,
+  athleteId,
+  analysisId,
 }: {
   initialInput?: InitialRunInput;
   isAuthenticated: boolean;
   resumePendingAnalysis?: boolean;
+  athleteId?: string;
+  analysisId?: string;
 }) {
   const router = useRouter();
   const [step, setStep] = useState(0);
@@ -151,7 +155,7 @@ export function RunningFlow({
     if (!pendingInput) return;
 
     startTransition(async () => {
-      const state = await createRunAnalysis(pendingInput);
+      const state = await createRunAnalysis(pendingInput, { athleteId, analysisId });
       if (state.ok) {
         clearPendingRunInput();
         router.replace(`/lauf/${state.id}`);
@@ -163,7 +167,7 @@ export function RunningFlow({
       }
       setMessage(state.message);
     });
-  }, [resumePendingAnalysis, router, startTransition]);
+  }, [analysisId, athleteId, resumePendingAnalysis, router, startTransition]);
 
   function save() {
     setMessage(null);
@@ -183,7 +187,7 @@ export function RunningFlow({
     if (!parsed.success) return;
 
     startTransition(async () => {
-      const state = await createRunAnalysis(parsed.data);
+      const state = await createRunAnalysis(parsed.data, { athleteId, analysisId });
       if (state.ok) {
         clearPendingRunInput();
         router.push(`/lauf/${state.id}`);
@@ -203,7 +207,7 @@ export function RunningFlow({
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--accent)]">
-            Neue Laufanalyse
+            {analysisId ? "Laufanalyse bearbeiten" : athleteId ? "Neue Athleten-Laufanalyse" : "Neue Laufanalyse"}
           </p>
           <h1 className="mt-2 text-3xl font-semibold">{["Testdaten", "Kontext"][step]}</h1>
         </div>

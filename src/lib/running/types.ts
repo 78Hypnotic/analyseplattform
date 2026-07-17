@@ -1,4 +1,4 @@
-import type { Gender } from "@/lib/analysis/types";
+import type { AnalysisAudit, Gender } from "@/lib/analysis/types";
 
 export type { Gender };
 
@@ -93,7 +93,7 @@ export type RunResult = {
   plausibility: RunPlausibility;
 };
 
-export type StoredRunAnalysis = {
+export type StoredRunAnalysis = AnalysisAudit & {
   id: string;
   title: string;
   input: RunInput;

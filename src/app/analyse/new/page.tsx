@@ -1,4 +1,8 @@
+import { notFound, redirect } from "next/navigation";
+import { z } from "zod";
 import { AppHeader } from "@/components/app-header";
+import type { AnalysisInput } from "@/lib/analysis/types";
+import { getAthleteMutationContext, getEditableAnalysis } from "@/lib/coach-mutations";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { InitialAnalysisInput } from "./analysis-flow";
 import { AnalysisFlow } from "./analysis-flow";
@@ -15,61 +19,111 @@ type ProfileData = {
   fitness_level?: number | null;
 };
 
+type AnalysisSearchParams = {
+  resume?: string | string[];
+  athlete?: string | string[];
+  edit?: string | string[];
+};
+
 export default async function NewAnalysisPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ resume?: string | string[] }>;
+  searchParams?: Promise<AnalysisSearchParams>;
 }) {
   const params = await searchParams;
-  const resume = Array.isArray(params?.resume) ? params.resume[0] === "1" : params?.resume === "1";
-  const { initialInput, isAuthenticated } = await getInitialAnalysisContext();
+  const resume = getSingleParam(params?.resume) === "1";
+  const athleteId = parseOptionalUuid(getSingleParam(params?.athlete));
+  const analysisId = parseOptionalUuid(getSingleParam(params?.edit));
+  const context = await getInitialAnalysisContext(athleteId, analysisId);
 
   return (
     <>
       <AppHeader />
       <main className="mx-auto w-full max-w-6xl px-5 py-10">
         <AnalysisFlow
-          initialInput={initialInput}
-          isAuthenticated={isAuthenticated}
+          initialInput={context.initialInput}
+          isAuthenticated={context.isAuthenticated}
           resumePendingAnalysis={resume}
+          athleteId={context.athleteId}
+          analysisId={context.analysisId}
         />
       </main>
     </>
   );
 }
 
-async function getInitialAnalysisContext(): Promise<{
+/**
+ * Resolves self, assigned-athlete and edit contexts without trusting URL parameters.
+ */
+async function getInitialAnalysisContext(
+  athleteId?: string,
+  analysisId?: string,
+): Promise<{
   initialInput?: InitialAnalysisInput;
   isAuthenticated: boolean;
+  athleteId?: string;
+  analysisId?: string;
 }> {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) return { isAuthenticated: false };
+  if (!user) {
+    if (athleteId || analysisId) redirect("/login");
+    return { isAuthenticated: false };
+  }
 
-  const { data } = await supabase
+  if (analysisId) {
+    const editable = await getEditableAnalysis<AnalysisInput>(analysisId, "swim");
+    if (!editable || (athleteId && editable.userId !== athleteId)) notFound();
+    return {
+      isAuthenticated: true,
+      initialInput: editable.input,
+      athleteId: editable.userId === user.id ? undefined : editable.userId,
+      analysisId: editable.id,
+    };
+  }
+
+  const target = await getAthleteMutationContext(athleteId);
+  if (!target) redirect("/login");
+
+  const { data, error } = await target.supabase
     .from("profiles")
     .select("full_name,age,gender,height_cm,weight_kg,body_fat_percentage,fitness_level")
-    .eq("id", user.id)
+    .eq("id", target.athleteId)
     .maybeSingle();
+  if (error) throw new Error(error.message);
 
   const profile = data as ProfileData | null;
-  if (!profile) return { isAuthenticated: true };
-
   return {
     isAuthenticated: true,
-    initialInput: {
-      name: profile.full_name ?? "",
-      age: toOptionalInteger(profile.age),
-      gender: profile.gender ?? "",
-      height: toOptionalInteger(profile.height_cm),
-      weight: toOptionalInteger(profile.weight_kg),
-      bodyFatPercentage: toOptionalNumber(profile.body_fat_percentage),
-      fitnessLevel: toOptionalFitnessLevel(profile.fitness_level),
-    },
+    athleteId: target.isActingForAthlete ? target.athleteId : undefined,
+    initialInput: profile ? toInitialInput(profile) : undefined,
   };
+}
+
+function toInitialInput(profile: ProfileData): InitialAnalysisInput {
+  return {
+    name: profile.full_name ?? "",
+    age: toOptionalInteger(profile.age),
+    gender: profile.gender ?? "",
+    height: toOptionalInteger(profile.height_cm),
+    weight: toOptionalInteger(profile.weight_kg),
+    bodyFatPercentage: toOptionalNumber(profile.body_fat_percentage),
+    fitnessLevel: toOptionalFitnessLevel(profile.fitness_level),
+  };
+}
+
+function getSingleParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function parseOptionalUuid(value: string | undefined) {
+  if (!value) return undefined;
+  const parsed = z.string().uuid().safeParse(value);
+  if (!parsed.success) notFound();
+  return parsed.data;
 }
 
 function toOptionalInteger(value: number | null | undefined): number | "" {

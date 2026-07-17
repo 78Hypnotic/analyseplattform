@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { useActionState, useState } from "react";
 import { Check, Circle, RotateCcw, Save } from "lucide-react";
+import { updateCoachAthleteProfile } from "@/app/coach/actions";
 import { BodyFatVisualSelector } from "@/components/body-fat-visual-selector";
 import { Button } from "@/components/button";
 import { updateProfile, type ProfileActionState } from "./actions";
@@ -27,7 +28,9 @@ type ProfileFormProps = {
   ftpRad: number | null;
   muscleMassKg: number | null;
   disciplines: string[];
-  profileVisibility: ProfileVisibility;
+  profileVisibility?: ProfileVisibility;
+  athleteId?: string;
+  coachMode?: boolean;
 };
 
 const DISCIPLINE_OPTIONS = [
@@ -89,7 +92,9 @@ export function ProfileForm({
   ftpRad,
   muscleMassKg,
   disciplines,
-  profileVisibility,
+  profileVisibility = "private",
+  athleteId,
+  coachMode = false,
 }: ProfileFormProps) {
   const initialName = splitName(fullName);
   const initialFitnessLevel = normalizeFitnessLevel(fitnessLevel);
@@ -163,7 +168,9 @@ export function ProfileForm({
   }
 
   async function submitProfile(previousState: ProfileActionState, formData: FormData) {
-    const result = await updateProfile(previousState, formData);
+    const result = coachMode
+      ? await updateCoachAthleteProfile(previousState, formData)
+      : await updateProfile(previousState, formData);
     if (result.message === "Profil gespeichert.") {
       clearChanges();
     }
@@ -177,12 +184,13 @@ export function ProfileForm({
       className="space-y-6 pb-4"
     >
       <input type="hidden" name="fullName" value={fullNameValue} />
-      <input type="hidden" name="profileVisibility" value={selectedVisibility} />
+      {athleteId ? <input type="hidden" name="athleteId" value={athleteId} /> : null}
+      {!coachMode ? <input type="hidden" name="profileVisibility" value={selectedVisibility} /> : null}
       {[...selectedDisciplines].map((discipline) => (
         <input key={discipline} type="hidden" name="disciplines" value={discipline} />
       ))}
 
-      <ProfileTabs activeTab={activeTab} onSelect={setActiveTab} />
+      {!coachMode ? <ProfileTabs activeTab={activeTab} onSelect={setActiveTab} /> : null}
 
       <div className={activeTab === "profile" ? "space-y-6" : "hidden"}>
       <ProfileSection title="Stammdaten" eyebrow="01 · Wer bist du" description="Wir nutzen Alter, Größe und Gewicht, um deine Tests im richtigen Kontext einzuordnen.">
@@ -375,7 +383,7 @@ export function ProfileForm({
       </ProfileSection>
       </div>
 
-      <div className={activeTab === "privacy" ? "space-y-6" : "hidden"}>
+      <div className={!coachMode && activeTab === "privacy" ? "space-y-6" : "hidden"}>
         <PrivacyPanel
           selectedVisibility={selectedVisibility}
           onSelect={(value) => {

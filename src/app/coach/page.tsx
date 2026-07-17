@@ -2,15 +2,20 @@ import Link from "next/link";
 import { Activity, ArrowRight, UsersRound } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
 import { formatPace } from "@/lib/analysis/calculations";
+import { getCurrentUserRole } from "@/lib/auth/roles";
 import { getAssignedCoachAthletes } from "@/lib/coach-athletes";
+import { CreateCoachAthleteForm } from "./create-athlete-form";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Shows the current coach a read-only overview of assigned athletes.
+ * Shows the current coach an overview of assigned athletes and management actions.
  */
 export default async function CoachPage() {
-  const athletes = await getAssignedCoachAthletes(50);
+  const [athletes, currentUser] = await Promise.all([
+    getAssignedCoachAthletes(50),
+    getCurrentUserRole(),
+  ]);
 
   return (
     <>
@@ -24,10 +29,22 @@ export default async function CoachPage() {
             </p>
             <h1 className="mt-2 text-3xl font-semibold">Meine Athleten</h1>
             <p className="muted mt-3 max-w-2xl">
-              Read-only Zugriff auf Profile, Schwimm-Diagnostik und gespeicherte Reports.
+              Profile pflegen, Diagnostiken erfassen und gespeicherte Reports verwalten.
             </p>
           </div>
         </div>
+
+        {currentUser.isCoach ? (
+          <section className="mb-8 space-y-3">
+            <div>
+              <h2 className="text-xl font-semibold">Athletenkonto anlegen</h2>
+              <p className="muted mt-1 text-sm">
+                Der Athlet erhält eine E-Mail und legt sein Passwort selbst fest.
+              </p>
+            </div>
+            <CreateCoachAthleteForm />
+          </section>
+        ) : null}
 
         {athletes.length === 0 ? (
           <section className="surface p-8">

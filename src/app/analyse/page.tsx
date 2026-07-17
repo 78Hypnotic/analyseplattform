@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Plus } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
+import { AnalysisAttribution } from "@/components/analysis-attribution";
 import { ButtonLink } from "@/components/button";
 import { formatPace, isTechniqueOnlyResult } from "@/lib/analysis/calculations";
 import { getUserAnalyses } from "@/lib/analyses";
@@ -57,6 +58,7 @@ export default async function AnalysesPage() {
                       {new Date(analysis.created_at).toLocaleDateString("de-DE")} | {analysis.input.goal}
                       {analysis.input.targetDistance ? ` | ${analysis.input.targetDistance}` : ""}
                     </p>
+                    <AnalysisAttribution audit={analysis} className="mt-1" />
                   </div>
                   <SmallMetric label="CSS" value={techniqueOnly ? "Technik" : formatPace(analysis.result.cssPace)} />
                   <SmallMetric label="DPS 400" value={analysis.result.test400 ? analysis.result.test400.dps.toFixed(2) : "-"} />
