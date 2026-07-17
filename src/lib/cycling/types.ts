@@ -1,4 +1,4 @@
-import type { Gender } from "@/lib/analysis/types";
+import type { AnalysisAudit, Gender } from "@/lib/analysis/types";
 
 export type { Gender };
 
@@ -117,7 +117,7 @@ export type LegacyBikeResult = BikeResultMetrics & {
 
 export type BikeResult = CurrentBikeResult | LegacyBikeResult;
 
-export type StoredBikeAnalysis = {
+export type StoredBikeAnalysis = AnalysisAudit & {
   id: string;
   title: string;
   input: BikeInput;

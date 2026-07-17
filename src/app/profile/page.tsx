@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { AnalysisAttribution } from "@/components/analysis-attribution";
 import { AppHeader } from "@/components/app-header";
 import { Button } from "@/components/button";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -39,6 +41,19 @@ type ProfileData = {
   latest_bike_vlamax_proxy?: number | string | null;
 };
 
+type ProfileAnalysisRow = {
+  id: string;
+  title: string;
+  discipline: "swim" | "run" | "bike";
+  user_id: string;
+  created_at: string;
+  created_by: string | null;
+  created_by_name: string | null;
+  updated_by: string | null;
+  updated_by_name: string | null;
+  updated_at: string;
+};
+
 export const dynamic = "force-dynamic";
 
 /**
@@ -52,13 +67,23 @@ export default async function ProfilePage() {
 
   if (!user) redirect("/login");
 
-  const { data } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .maybeSingle();
+  const [{ data }, { data: recentAnalysisData, error: recentAnalysisError }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("analyses")
+      .select("id,title,discipline,user_id,created_at,created_by,created_by_name,updated_by,updated_by_name,updated_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(12),
+  ]);
+  if (recentAnalysisError) throw new Error(recentAnalysisError.message);
 
   const profile = data as ProfileData | null;
+  const recentAnalyses = (recentAnalysisData ?? []) as ProfileAnalysisRow[];
   const metadataName =
     typeof user.user_metadata?.full_name === "string"
       ? user.user_metadata.full_name
@@ -147,6 +172,7 @@ export default async function ProfilePage() {
         <LatestSwimSummary profile={profile} />
         <LatestRunSummary profile={profile} />
         <LatestBikeSummary profile={profile} />
+        <RecentAnalyses analyses={recentAnalyses} />
 
         <ProfileForm
           email={user.email ?? ""}
@@ -168,6 +194,58 @@ export default async function ProfilePage() {
       </main>
     </>
   );
+}
+
+function RecentAnalyses({ analyses }: { analyses: ProfileAnalysisRow[] }) {
+  return (
+    <section className="surface p-6 sm:p-7">
+      <div className="mb-5">
+        <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--subtle)]">
+          Testverlauf
+        </p>
+        <h2 className="display-serif mt-2 text-3xl text-[var(--foreground)]">
+          Deine letzten Analysen
+        </h2>
+      </div>
+      {analyses.length === 0 ? (
+        <p className="text-sm text-[var(--muted)]">Noch keine Analyse gespeichert.</p>
+      ) : (
+        <div className="grid gap-3">
+          {analyses.map((analysis) => (
+            <Link
+              key={analysis.id}
+              href={getProfileAnalysisPath(analysis.discipline, analysis.id)}
+              className="rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-4 transition hover:border-[var(--accent)]"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h3 className="font-medium">{analysis.title}</h3>
+                  <p className="mt-1 text-sm text-[var(--muted)]">
+                    {formatProfileDiscipline(analysis.discipline)} ·{" "}
+                    {new Date(analysis.created_at).toLocaleDateString("de-DE")}
+                  </p>
+                  <AnalysisAttribution audit={analysis} className="mt-1" />
+                </div>
+                <span className="text-sm font-medium text-[var(--accent)]">Report öffnen</span>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function getProfileAnalysisPath(discipline: ProfileAnalysisRow["discipline"], id: string) {
+  if (discipline === "run") return `/lauf/${id}`;
+  if (discipline === "bike") return `/rad/${id}`;
+  return `/analyse/${id}`;
+}
+
+function formatProfileDiscipline(discipline: ProfileAnalysisRow["discipline"]) {
+  if (discipline === "run") return "Laufen";
+  if (discipline === "bike") return "Rad";
+  return "Schwimmen";
 }
 
 function LatestSwimSummary({ profile }: { profile: ProfileData | null }) {

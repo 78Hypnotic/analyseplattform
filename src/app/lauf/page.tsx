@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Plus } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
+import { AnalysisAttribution } from "@/components/analysis-attribution";
 import { ButtonLink } from "@/components/button";
 import { formatPace } from "@/lib/running/calculations";
 import { getUserRunAnalyses } from "@/lib/run-analyses";
@@ -54,6 +55,7 @@ export default async function RunAnalysesPage() {
                   <p className="muted mt-1 text-sm">
                     {new Date(analysis.created_at).toLocaleDateString("de-DE")} | {analysis.input.goal}
                   </p>
+                  <AnalysisAttribution audit={analysis} className="mt-1" />
                 </div>
                 <SmallMetric label="CS" value={`${formatPace(analysis.result.csPaceSecPerKm)} /km`} />
                 <SmallMetric label="API" value={analysis.result.api.score.toFixed(1)} />

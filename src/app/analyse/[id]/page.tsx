@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { AppHeader } from "@/components/app-header";
+import { AnalysisAttribution } from "@/components/analysis-attribution";
 import { PdfExportButton } from "@/components/pdf-export-button";
 import { ReportView } from "@/components/report-view";
 import { getAnalysisById } from "@/lib/analyses";
@@ -33,6 +34,7 @@ export default async function AnalysisDetailPage({
               Report
             </p>
             <h1 className="mt-2 text-2xl font-semibold">{analysis.title}</h1>
+            <AnalysisAttribution audit={analysis} className="mt-2" />
           </div>
           <PdfExportButton />
         </div>

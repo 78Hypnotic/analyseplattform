@@ -158,10 +158,14 @@ export function AnalysisFlow({
   initialInput,
   isAuthenticated,
   resumePendingAnalysis = false,
+  athleteId,
+  analysisId,
 }: {
   initialInput?: InitialAnalysisInput;
   isAuthenticated: boolean;
   resumePendingAnalysis?: boolean;
+  athleteId?: string;
+  analysisId?: string;
 }) {
   const router = useRouter();
   const [step, setStep] = useState(0);
@@ -212,7 +216,7 @@ export function AnalysisFlow({
     if (!pendingInput) return;
 
     startTransition(async () => {
-      const state = await createAnalysis(pendingInput);
+      const state = await createAnalysis(pendingInput, { athleteId, analysisId });
       if (state.ok) {
         clearPendingAnalysisInput();
         router.replace(`/analyse/${state.id}`);
@@ -226,7 +230,7 @@ export function AnalysisFlow({
 
       setMessage(state.message);
     });
-  }, [resumePendingAnalysis, router, startTransition]);
+  }, [analysisId, athleteId, resumePendingAnalysis, router, startTransition]);
 
   function save() {
     setMessage(null);
@@ -246,7 +250,7 @@ export function AnalysisFlow({
     if (!parsed.success) return;
 
     startTransition(async () => {
-      const state = await createAnalysis(parsed.data);
+      const state = await createAnalysis(parsed.data, { athleteId, analysisId });
       if (state.ok) {
         clearPendingAnalysisInput();
         router.push(`/analyse/${state.id}`);
@@ -266,7 +270,7 @@ export function AnalysisFlow({
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--accent)]">
-            Neue Analyse
+            {analysisId ? "Analyse bearbeiten" : athleteId ? "Neue Athletenanalyse" : "Neue Analyse"}
           </p>
           <h1 className="mt-2 text-3xl font-semibold">
             {["Testdaten", "Kontext"][step]}

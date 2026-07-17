@@ -9,6 +9,12 @@ type RunAnalysisRow = {
   input: RunInput;
   result: RunResult;
   created_at: string;
+  user_id: string;
+  created_by: string | null;
+  created_by_name: string | null;
+  updated_by: string | null;
+  updated_by_name: string | null;
+  updated_at: string;
 };
 
 export async function getUserRunAnalyses(limit = 20): Promise<StoredRunAnalysis[]> {
@@ -21,7 +27,7 @@ export async function getUserRunAnalyses(limit = 20): Promise<StoredRunAnalysis[
 
   const { data, error } = await supabase
     .from("analyses")
-    .select("id,title,input,result,created_at")
+    .select("id,title,input,result,created_at,user_id,created_by,created_by_name,updated_by,updated_by_name,updated_at")
     .eq("user_id", user.id)
     .eq("discipline", "run")
     .order("created_at", { ascending: false })
@@ -41,7 +47,7 @@ export async function getRunAnalysisById(id: string): Promise<StoredRunAnalysis 
 
   const { data, error } = await supabase
     .from("analyses")
-    .select("id,title,input,result,created_at")
+    .select("id,title,input,result,created_at,user_id,created_by,created_by_name,updated_by,updated_by_name,updated_at")
     .eq("id", id)
     .eq("discipline", "run")
     .single();

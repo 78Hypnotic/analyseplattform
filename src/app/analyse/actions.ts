@@ -2,21 +2,39 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { assertRateLimit } from "@/lib/rate-limit/server";
 import { analysisInputSchema } from "@/lib/analysis/schema";
 import { runAnalysis } from "@/lib/analysis/calculations";
 import type { AnalysisInput, AnalysisResult } from "@/lib/analysis/types";
 import { getAnalysisValidationMessages } from "@/lib/analysis/validation";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { shouldRefreshLatestAnalysis } from "@/lib/analysis-mutation-policy";
+import { getAthleteMutationContext, getEditableAnalysis } from "@/lib/coach-mutations";
+import { assertRateLimit } from "@/lib/rate-limit/server";
 
 export type CreateAnalysisState =
   | { ok: true; id: string }
   | { ok: false; message: string; reason?: "unauthenticated" | "validation" | "error" };
 
-export async function createAnalysis(input: AnalysisInput): Promise<CreateAnalysisState> {
+export type AnalysisMutationOptions = {
+  athleteId?: string;
+  analysisId?: string;
+};
+
+const mutationOptionsSchema = z.object({
+  athleteId: z.string().uuid().optional(),
+  analysisId: z.string().uuid().optional(),
+});
+
+/**
+ * Creates or recalculates a swim analysis for the current user or an assigned athlete.
+ */
+export async function createAnalysis(
+  input: AnalysisInput,
+  options: AnalysisMutationOptions = {},
+): Promise<CreateAnalysisState> {
   try {
     await assertRateLimit("create-analysis", 10, 60_000);
     const parsed = analysisInputSchema.parse(input);
+    const parsedOptions = mutationOptionsSchema.parse(options);
     const result = runAnalysis(parsed);
 
     if (!result) {
@@ -28,12 +46,8 @@ export async function createAnalysis(input: AnalysisInput): Promise<CreateAnalys
       };
     }
 
-    const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
+    const context = await getAthleteMutationContext(parsedOptions.athleteId);
+    if (!context) {
       return {
         ok: false,
         reason: "unauthenticated",
@@ -41,43 +55,90 @@ export async function createAnalysis(input: AnalysisInput): Promise<CreateAnalys
       };
     }
 
-    const title = `${parsed.name} · ${new Date().toLocaleDateString("de-DE")}`;
-    const { error: profileError } = await supabase.from("profiles").upsert({
-      id: user.id,
-      email: user.email,
-      full_name: parsed.name,
-      age: parsed.age,
-      gender: parsed.gender,
-      height_cm: parsed.height,
-      weight_kg: parsed.weight,
-      body_fat_percentage: parsed.bodyFatPercentage ?? null,
-      fitness_level: parsed.fitnessLevel ?? null,
-    });
+    const { data: profile, error: profileReadError } = await context.supabase
+      .from("profiles")
+      .select("latest_swim_analysis_id")
+      .eq("id", context.athleteId)
+      .maybeSingle();
+    if (profileReadError) return { ok: false, reason: "error", message: profileReadError.message };
 
-    if (profileError) return { ok: false, reason: "error", message: profileError.message };
+    let analysisDate = new Date();
+    if (parsedOptions.analysisId) {
+      const { data: existing, error: existingError } = await context.supabase
+        .from("analyses")
+        .select("user_id,discipline,created_at")
+        .eq("id", parsedOptions.analysisId)
+        .maybeSingle();
+      if (existingError) return { ok: false, reason: "error", message: existingError.message };
+      if (!existing || existing.user_id !== context.athleteId || existing.discipline !== "swim") {
+        return {
+          ok: false,
+          reason: "error",
+          message: "Analyse wurde nicht gefunden oder darf nicht bearbeitet werden.",
+        };
+      }
+      analysisDate = new Date(existing.created_at as string);
+    }
 
-    const { data, error } = await supabase
-      .from("analyses")
-      .insert({
-        user_id: user.id,
-        title,
-        input: parsed,
-        result,
+    const title = `${parsed.name} · ${analysisDate.toLocaleDateString("de-DE")}`;
+    const { data: updatedProfile, error: profileError } = await context.supabase
+      .from("profiles")
+      .update({
+        full_name: parsed.name,
+        age: parsed.age,
+        gender: parsed.gender,
+        height_cm: parsed.height,
+        weight_kg: parsed.weight,
+        body_fat_percentage: parsed.bodyFatPercentage ?? null,
+        fitness_level: parsed.fitnessLevel ?? null,
       })
+      .eq("id", context.athleteId)
       .select("id")
       .single();
 
-    if (error) return { ok: false, reason: "error", message: error.message };
+    if (profileError || !updatedProfile) {
+      return {
+        ok: false,
+        reason: "error",
+        message: profileError?.message ?? "Athletenprofil wurde nicht gefunden.",
+      };
+    }
 
-    const { error: latestProfileError } = await supabase
-      .from("profiles")
-      .update(buildLatestSwimProfileUpdate(data.id as string, result))
-      .eq("id", user.id);
+    const analysisQuery = context.supabase.from("analyses");
+    const { data, error } = parsedOptions.analysisId
+      ? await analysisQuery
+          .update({ title, input: parsed, result })
+          .eq("id", parsedOptions.analysisId)
+          .eq("user_id", context.athleteId)
+          .eq("discipline", "swim")
+          .select("id")
+          .single()
+      : await analysisQuery
+          .insert({
+            user_id: context.athleteId,
+            discipline: "swim",
+            title,
+            input: parsed,
+            result,
+          })
+          .select("id")
+          .single();
 
-    if (latestProfileError) return { ok: false, reason: "error", message: latestProfileError.message };
+    if (error || !data) return { ok: false, reason: "error", message: error?.message ?? "Analyse konnte nicht gespeichert werden." };
 
-    revalidatePath("/profile");
-    revalidatePath("/analyse");
+    const shouldRefreshLatest = shouldRefreshLatestAnalysis({
+      analysisId: parsedOptions.analysisId,
+      latestAnalysisId: profile?.latest_swim_analysis_id as string | null | undefined,
+    });
+    if (shouldRefreshLatest) {
+      const { error: latestProfileError } = await context.supabase
+        .from("profiles")
+        .update(buildLatestSwimProfileUpdate(data.id as string, result))
+        .eq("id", context.athleteId);
+      if (latestProfileError) return { ok: false, reason: "error", message: latestProfileError.message };
+    }
+
+    revalidateAnalysisPaths(context.athleteId, data.id as string);
     return { ok: true, id: data.id as string };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Analyse konnte nicht gespeichert werden.";
@@ -88,36 +149,35 @@ export async function createAnalysis(input: AnalysisInput): Promise<CreateAnalys
 export async function deleteAnalysis(formData: FormData) {
   await assertRateLimit("delete-analysis", 10, 60_000);
   const id = z.string().uuid().parse(formData.get("id"));
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const editable = await getEditableAnalysis<AnalysisInput>(id, "swim");
+  if (!editable) return;
 
-  if (!user) return;
+  const context = await getAthleteMutationContext(editable.userId);
+  if (!context) return;
 
-  const { data: profile } = await supabase
+  const { data: profile } = await context.supabase
     .from("profiles")
     .select("latest_swim_analysis_id")
-    .eq("id", user.id)
+    .eq("id", context.athleteId)
     .maybeSingle();
 
-  const { error } = await supabase
+  const { error } = await context.supabase
     .from("analyses")
     .delete()
     .eq("id", id)
-    .eq("user_id", user.id);
-
+    .eq("user_id", context.athleteId)
+    .eq("discipline", "swim");
   if (error) throw new Error(error.message);
 
   if (profile?.latest_swim_analysis_id === id) {
-    const { data: latestAnalysis, error: latestError } = await supabase
+    const { data: latestAnalysis, error: latestError } = await context.supabase
       .from("analyses")
       .select("id,result,created_at")
-      .eq("user_id", user.id)
+      .eq("user_id", context.athleteId)
+      .eq("discipline", "swim")
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-
     if (latestError) throw new Error(latestError.message);
 
     const latestProfileUpdate = latestAnalysis
@@ -128,17 +188,14 @@ export async function deleteAnalysis(formData: FormData) {
         )
       : buildEmptyLatestSwimProfileUpdate();
 
-    const { error: profileError } = await supabase
+    const { error: profileError } = await context.supabase
       .from("profiles")
       .update(latestProfileUpdate)
-      .eq("id", user.id);
-
+      .eq("id", context.athleteId);
     if (profileError) throw new Error(profileError.message);
   }
 
-  revalidatePath("/analyse");
-  revalidatePath(`/analyse/${id}`);
-  revalidatePath("/profile");
+  revalidateAnalysisPaths(context.athleteId, id);
 }
 
 function buildLatestSwimProfileUpdate(
@@ -165,4 +222,12 @@ function buildEmptyLatestSwimProfileUpdate() {
     latest_swim_vo2_proxy: null,
     latest_swim_vla_profile: null,
   };
+}
+
+function revalidateAnalysisPaths(athleteId: string, analysisId: string) {
+  revalidatePath("/analyse");
+  revalidatePath(`/analyse/${analysisId}`);
+  revalidatePath("/profile");
+  revalidatePath("/coach");
+  revalidatePath(`/coach/athletes/${athleteId}`);
 }

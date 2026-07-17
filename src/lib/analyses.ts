@@ -9,6 +9,12 @@ type AnalysisRow = {
   input: AnalysisInput;
   result: AnalysisResult;
   created_at: string;
+  user_id: string;
+  created_by: string | null;
+  created_by_name: string | null;
+  updated_by: string | null;
+  updated_by_name: string | null;
+  updated_at: string;
 };
 
 export async function getUserAnalyses(limit = 20): Promise<StoredAnalysis[]> {
@@ -21,7 +27,7 @@ export async function getUserAnalyses(limit = 20): Promise<StoredAnalysis[]> {
 
   const { data, error } = await supabase
     .from("analyses")
-    .select("id,title,input,result,created_at")
+    .select("id,title,input,result,created_at,user_id,created_by,created_by_name,updated_by,updated_by_name,updated_at")
     .eq("user_id", user.id)
     .eq("discipline", "swim")
     .order("created_at", { ascending: false })
@@ -41,7 +47,7 @@ export async function getAnalysisById(id: string): Promise<StoredAnalysis | null
 
   const { data, error } = await supabase
     .from("analyses")
-    .select("id,title,input,result,created_at")
+    .select("id,title,input,result,created_at,user_id,created_by,created_by_name,updated_by,updated_by_name,updated_at")
     .eq("id", id)
     .eq("discipline", "swim")
     .single();

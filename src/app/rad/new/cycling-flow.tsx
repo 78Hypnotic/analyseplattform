@@ -104,10 +104,14 @@ export function CyclingFlow({
   initialInput,
   isAuthenticated,
   resumePendingAnalysis = false,
+  athleteId,
+  analysisId,
 }: {
   initialInput?: InitialBikeInput;
   isAuthenticated: boolean;
   resumePendingAnalysis?: boolean;
+  athleteId?: string;
+  analysisId?: string;
 }) {
   const router = useRouter();
   const [step, setStep] = useState(0);
@@ -158,7 +162,7 @@ export function CyclingFlow({
     if (!pendingInput) return;
 
     startTransition(async () => {
-      const state = await createBikeAnalysis(pendingInput);
+      const state = await createBikeAnalysis(pendingInput, { athleteId, analysisId });
       if (state.ok) {
         clearPendingBikeInput();
         router.replace(`/rad/${state.id}`);
@@ -170,7 +174,7 @@ export function CyclingFlow({
       }
       setMessage(state.message);
     });
-  }, [resumePendingAnalysis, router, startTransition]);
+  }, [analysisId, athleteId, resumePendingAnalysis, router, startTransition]);
 
   function save() {
     setMessage(null);
@@ -190,7 +194,7 @@ export function CyclingFlow({
     if (!parsed.success) return;
 
     startTransition(async () => {
-      const state = await createBikeAnalysis(parsed.data);
+      const state = await createBikeAnalysis(parsed.data, { athleteId, analysisId });
       if (state.ok) {
         clearPendingBikeInput();
         router.push(`/rad/${state.id}`);
@@ -210,7 +214,7 @@ export function CyclingFlow({
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--accent)]">
-            Neue Rad-Analyse
+            {analysisId ? "Rad-Analyse bearbeiten" : athleteId ? "Neue Athleten-Radanalyse" : "Neue Rad-Analyse"}
           </p>
           <h1 className="mt-2 text-3xl font-semibold">{["Testdaten", "Kontext"][step]}</h1>
         </div>

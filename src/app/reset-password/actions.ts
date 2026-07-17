@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { getAuthRedirectOrigin } from "@/lib/auth/redirect-url";
 import { assertRateLimit } from "@/lib/rate-limit/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -105,20 +106,4 @@ function mapResetError(message: string) {
   }
 
   return message;
-}
-
-function getAuthRedirectOrigin() {
-  if (process.env.NEXT_PUBLIC_SITE_URL) {
-    return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
-  }
-
-  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
-    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
-  }
-
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
-  }
-
-  return "http://localhost:3000";
 }

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Plus } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
+import { AnalysisAttribution } from "@/components/analysis-attribution";
 import { ButtonLink } from "@/components/button";
 import { getUserBikeAnalyses } from "@/lib/bike-analyses";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -61,6 +62,7 @@ export default async function BikeAnalysesPage() {
                   <p className="muted mt-1 text-sm">
                     {new Date(analysis.created_at).toLocaleDateString("de-DE")} | {analysis.result.metabolicProfile.label}
                   </p>
+                  <AnalysisAttribution audit={analysis} className="mt-1" />
                 </div>
                 <SmallMetric label="FTP" value={`${Math.round(analysis.result.ftpWatt)} W`} />
                 <SmallMetric label="VO₂max" value={`${analysis.result.vo2rel.toFixed(1)}`} />

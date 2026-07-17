@@ -230,7 +230,17 @@ export type TechniqueOnlyAnalysisResult = AnalysisBaseResult & {
 
 export type AnalysisResult = StandardAnalysisResult | TechniqueOnlyAnalysisResult;
 
-export type StoredAnalysis = {
+export type AnalysisAudit = {
+  user_id: string;
+  created_at: string;
+  created_by: string | null;
+  created_by_name: string | null;
+  updated_by: string | null;
+  updated_by_name: string | null;
+  updated_at: string;
+};
+
+export type StoredAnalysis = AnalysisAudit & {
   id: string;
   title: string;
   input: AnalysisInput;

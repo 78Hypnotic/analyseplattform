@@ -2,21 +2,39 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { assertRateLimit } from "@/lib/rate-limit/server";
-import { bikeInputSchema } from "@/lib/cycling/schema";
+import { shouldRefreshLatestAnalysis } from "@/lib/analysis-mutation-policy";
+import { getAthleteMutationContext, getEditableAnalysis } from "@/lib/coach-mutations";
 import { runBikeAnalysis } from "@/lib/cycling/calculations";
+import { bikeInputSchema } from "@/lib/cycling/schema";
 import type { BikeInput, BikeResult } from "@/lib/cycling/types";
 import { getBikeValidationMessages } from "@/lib/cycling/validation";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { assertRateLimit } from "@/lib/rate-limit/server";
 
 export type CreateBikeAnalysisState =
   | { ok: true; id: string }
   | { ok: false; message: string; reason?: "unauthenticated" | "validation" | "error" };
 
-export async function createBikeAnalysis(input: BikeInput): Promise<CreateBikeAnalysisState> {
+export type BikeAnalysisMutationOptions = {
+  athleteId?: string;
+  analysisId?: string;
+};
+
+const mutationOptionsSchema = z.object({
+  athleteId: z.string().uuid().optional(),
+  analysisId: z.string().uuid().optional(),
+});
+
+/**
+ * Creates or recalculates a bike analysis for the current user or an assigned athlete.
+ */
+export async function createBikeAnalysis(
+  input: BikeInput,
+  options: BikeAnalysisMutationOptions = {},
+): Promise<CreateBikeAnalysisState> {
   try {
     await assertRateLimit("create-bike-analysis", 10, 60_000);
     const parsed = bikeInputSchema.parse(input);
+    const parsedOptions = mutationOptionsSchema.parse(options);
     const result = runBikeAnalysis(parsed);
 
     if (!result) {
@@ -28,12 +46,8 @@ export async function createBikeAnalysis(input: BikeInput): Promise<CreateBikeAn
       };
     }
 
-    const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
+    const context = await getAthleteMutationContext(parsedOptions.athleteId);
+    if (!context) {
       return {
         ok: false,
         reason: "unauthenticated",
@@ -41,52 +55,89 @@ export async function createBikeAnalysis(input: BikeInput): Promise<CreateBikeAn
       };
     }
 
-    const { data: existingProfile } = await supabase
+    const { data: profile, error: profileReadError } = await context.supabase
       .from("profiles")
-      .select("ftp_rad,vo2max,vlamax")
-      .eq("id", user.id)
+      .select("ftp_rad,vo2max,vlamax,latest_bike_analysis_id")
+      .eq("id", context.athleteId)
       .maybeSingle();
+    if (profileReadError) return { ok: false, reason: "error", message: profileReadError.message };
 
-    const title = `${parsed.name} · Rad · ${new Date().toLocaleDateString("de-DE")}`;
-    const { error: profileError } = await supabase.from("profiles").upsert({
-      id: user.id,
-      email: user.email,
-      full_name: parsed.name,
-      age: parsed.age,
-      gender: parsed.gender,
-      height_cm: parsed.height,
-      weight_kg: parsed.weight,
-      body_fat_percentage: parsed.bodyFatPercentage ?? null,
-      fitness_level: parsed.fitnessLevel ?? null,
-      // Auto-suggest derived performance fields only when not already set.
-      ...buildProfileSuggestion(existingProfile, result),
-    });
+    let analysisDate = new Date();
+    if (parsedOptions.analysisId) {
+      const { data: existing, error: existingError } = await context.supabase
+        .from("analyses")
+        .select("user_id,discipline,created_at")
+        .eq("id", parsedOptions.analysisId)
+        .maybeSingle();
+      if (existingError) return { ok: false, reason: "error", message: existingError.message };
+      if (!existing || existing.user_id !== context.athleteId || existing.discipline !== "bike") {
+        return {
+          ok: false,
+          reason: "error",
+          message: "Analyse wurde nicht gefunden oder darf nicht bearbeitet werden.",
+        };
+      }
+      analysisDate = new Date(existing.created_at as string);
+    }
 
-    if (profileError) return { ok: false, reason: "error", message: profileError.message };
-
-    const { data, error } = await supabase
-      .from("analyses")
-      .insert({
-        user_id: user.id,
-        discipline: "bike",
-        title,
-        input: parsed,
-        result,
+    const title = `${parsed.name} · Rad · ${analysisDate.toLocaleDateString("de-DE")}`;
+    const { data: updatedProfile, error: profileError } = await context.supabase
+      .from("profiles")
+      .update({
+        full_name: parsed.name,
+        age: parsed.age,
+        gender: parsed.gender,
+        height_cm: parsed.height,
+        weight_kg: parsed.weight,
+        body_fat_percentage: parsed.bodyFatPercentage ?? null,
+        fitness_level: parsed.fitnessLevel ?? null,
+        ...buildProfileSuggestion(profile, result),
       })
+      .eq("id", context.athleteId)
       .select("id")
       .single();
+    if (profileError || !updatedProfile) {
+      return {
+        ok: false,
+        reason: "error",
+        message: profileError?.message ?? "Athletenprofil wurde nicht gefunden.",
+      };
+    }
 
-    if (error) return { ok: false, reason: "error", message: error.message };
+    const analysisQuery = context.supabase.from("analyses");
+    const { data, error } = parsedOptions.analysisId
+      ? await analysisQuery
+          .update({ title, input: parsed, result })
+          .eq("id", parsedOptions.analysisId)
+          .eq("user_id", context.athleteId)
+          .eq("discipline", "bike")
+          .select("id")
+          .single()
+      : await analysisQuery
+          .insert({
+            user_id: context.athleteId,
+            discipline: "bike",
+            title,
+            input: parsed,
+            result,
+          })
+          .select("id")
+          .single();
+    if (error || !data) return { ok: false, reason: "error", message: error?.message ?? "Analyse konnte nicht gespeichert werden." };
 
-    const { error: latestProfileError } = await supabase
-      .from("profiles")
-      .update(buildLatestBikeProfileUpdate(data.id as string, result))
-      .eq("id", user.id);
+    const shouldRefreshLatest = shouldRefreshLatestAnalysis({
+      analysisId: parsedOptions.analysisId,
+      latestAnalysisId: profile?.latest_bike_analysis_id as string | null | undefined,
+    });
+    if (shouldRefreshLatest) {
+      const { error: latestProfileError } = await context.supabase
+        .from("profiles")
+        .update(buildLatestBikeProfileUpdate(data.id as string, result))
+        .eq("id", context.athleteId);
+      if (latestProfileError) return { ok: false, reason: "error", message: latestProfileError.message };
+    }
 
-    if (latestProfileError) return { ok: false, reason: "error", message: latestProfileError.message };
-
-    revalidatePath("/profile");
-    revalidatePath("/rad");
+    revalidateAnalysisPaths(context.athleteId, data.id as string);
     return { ok: true, id: data.id as string };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Analyse konnte nicht gespeichert werden.";
@@ -97,38 +148,35 @@ export async function createBikeAnalysis(input: BikeInput): Promise<CreateBikeAn
 export async function deleteBikeAnalysis(formData: FormData) {
   await assertRateLimit("delete-bike-analysis", 10, 60_000);
   const id = z.string().uuid().parse(formData.get("id"));
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const editable = await getEditableAnalysis<BikeInput>(id, "bike");
+  if (!editable) return;
 
-  if (!user) return;
+  const context = await getAthleteMutationContext(editable.userId);
+  if (!context) return;
 
-  const { data: profile } = await supabase
+  const { data: profile } = await context.supabase
     .from("profiles")
     .select("latest_bike_analysis_id")
-    .eq("id", user.id)
+    .eq("id", context.athleteId)
     .maybeSingle();
 
-  const { error } = await supabase
+  const { error } = await context.supabase
     .from("analyses")
     .delete()
     .eq("id", id)
-    .eq("user_id", user.id)
+    .eq("user_id", context.athleteId)
     .eq("discipline", "bike");
-
   if (error) throw new Error(error.message);
 
   if (profile?.latest_bike_analysis_id === id) {
-    const { data: latestAnalysis, error: latestError } = await supabase
+    const { data: latestAnalysis, error: latestError } = await context.supabase
       .from("analyses")
       .select("id,result,created_at")
-      .eq("user_id", user.id)
+      .eq("user_id", context.athleteId)
       .eq("discipline", "bike")
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-
     if (latestError) throw new Error(latestError.message);
 
     const latestProfileUpdate = latestAnalysis
@@ -139,17 +187,14 @@ export async function deleteBikeAnalysis(formData: FormData) {
         )
       : buildEmptyLatestBikeProfileUpdate();
 
-    const { error: profileError } = await supabase
+    const { error: profileError } = await context.supabase
       .from("profiles")
       .update(latestProfileUpdate)
-      .eq("id", user.id);
-
+      .eq("id", context.athleteId);
     if (profileError) throw new Error(profileError.message);
   }
 
-  revalidatePath("/rad");
-  revalidatePath(`/rad/${id}`);
-  revalidatePath("/profile");
+  revalidateAnalysisPaths(context.athleteId, id);
 }
 
 type ExistingProfileFields = {
@@ -192,4 +237,12 @@ function buildEmptyLatestBikeProfileUpdate() {
     latest_bike_vo2max_rel: null,
     latest_bike_vlamax_proxy: null,
   };
+}
+
+function revalidateAnalysisPaths(athleteId: string, analysisId: string) {
+  revalidatePath("/rad");
+  revalidatePath(`/rad/${analysisId}`);
+  revalidatePath("/profile");
+  revalidatePath("/coach");
+  revalidatePath(`/coach/athletes/${athleteId}`);
 }
