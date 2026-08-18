@@ -31,7 +31,14 @@ const STANDARD_REPORT_INPUT: AnalysisInput = {
   targetDistance: "MD",
   raceDate: "",
   swimSessionsPerWeek: 3,
-  challenges: [],
+  challenges: [
+    "Ich liege stabil im Wasser",
+    "Ich habe Probleme mit dem frühen Wasserfassen",
+    "Meine Rückführung fühlt sich locker an",
+    "Ich rotiere zu wenig",
+    "Meine Atmung fühlt sich ruhig an",
+    "Meine Beine ermüden schnell",
+  ],
 };
 
 export default async function ReportPreviewPage({

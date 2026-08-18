@@ -3,11 +3,14 @@ import { CHALLENGE_GROUPS, DEFAULT_ANALYSIS_INPUT } from "./constants";
 import { analysisInputSchema } from "./schema";
 import {
   buildSprintReservePlausibility,
+  buildSwimZones,
+  buildTechniqueProfile,
   classifySprintReserve,
   classifyTechniqueClass,
   computeCSS,
   computeCssPace,
   computeSprintTest,
+  computeSwolf,
   computeTest,
   derivePlanLength,
   getReferenceAgeBucket,
@@ -85,6 +88,50 @@ describe("swim analysis calculations", () => {
 
   it("uses the document CSS pace formula", () => {
     expect(computeCssPace(218, 468)).toBe(125);
+  });
+
+  it("derives swim zones as percentages of the CSS pace", () => {
+    const zones = buildSwimZones(105);
+
+    expect(zones.map((zone) => zone.id)).toEqual(["Z1", "Z2", "Z3", "Z4", "Z5"]);
+    expect(zones[0]?.fastestPace).toBeCloseTo(126);
+    expect(zones[0]?.slowestPace).toBeCloseTo(141.75);
+    expect(zones[2]?.fastestPace).toBeCloseTo(101.85);
+    expect(zones[2]?.slowestPace).toBeCloseTo(115.5);
+    expect(zones[4]?.fastestPace).toBeCloseTo(78.75);
+    expect(zones[4]?.slowestPace).toBeCloseTo(94.5);
+    expect(buildSwimZones(Number.NaN)).toEqual([]);
+  });
+
+  it("keeps swim zones contiguous and scaled to the athlete", () => {
+    const slow = buildSwimZones(180);
+    const fast = buildSwimZones(70);
+
+    expect(slow[1]?.fastestPace).toBeCloseTo(slow[2]?.slowestPace ?? 0);
+    expect(slow[3]?.slowestPace).toBeCloseTo(slow[2]?.fastestPace ?? 0);
+    expect(slow[2]!.slowestPace - slow[2]!.fastestPace).toBeGreaterThan(
+      fast[2]!.slowestPace - fast[2]!.fastestPace,
+    );
+  });
+
+  it("computes SWOLF from time and strokes per length", () => {
+    const test = computeTest(200, 218, 21, 25);
+    if (!test) throw new Error("Expected test metrics");
+
+    expect(computeSwolf(test)).toBeCloseTo(test.timePerLength + 21);
+  });
+
+  it("derives a technique profile from the context statements", () => {
+    const profile = buildTechniqueProfile([
+      "Ich liege stabil im Wasser",
+      "Ich habe Probleme mit dem frühen Wasserfassen",
+    ]);
+
+    expect(profile).toHaveLength(7);
+    expect(profile[0]).toMatchObject({ group: "Wasserlage", status: "stark", score: 85 });
+    expect(profile[1]).toMatchObject({ group: "Armzug", status: "fokus", score: 30 });
+    expect(profile[2]).toMatchObject({ group: "Rückführung", status: "offen" });
+    expect(buildTechniqueProfile().every((axis) => axis.status === "offen")).toBe(true);
   });
 
   it("classifies sprint reserve from the briefing thresholds", () => {

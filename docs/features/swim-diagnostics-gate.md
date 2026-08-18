@@ -55,6 +55,21 @@ Die zusätzliche Technikklasse wird aus der 400-m-Pace abgeleitet:
 VO2-Proxy wird nur berechnet, wenn für Alter und Geschlecht Referenzwerte
 vorliegen. Für `divers` bleiben Referenzindex und VO2-Proxy nicht ermittelbar.
 
+## Trainingszonen
+
+Die Zonen sind Prozentwerte der CSS-Pace nach Swim-Smooth-Methodik, nicht feste
+Sekunden-Offsets. Dadurch skalieren sie mit dem Leistungsniveau und bleiben für
+Einsteiger wie für schnelle Schwimmer sinnvoll.
+
+- Z5 Sprint: 75-90 % der CSS-Pace
+- Z4 VO2max: 90-97 %
+- Z3 Schwelle: 97-110 %
+- Z2 Grundlage: 110-120 %
+- Z1 Recovery: 120-135 %
+
+Die CSS liegt damit bewusst am schnellen Ende von Z3, nicht in dessen Mitte.
+Z1 ist die breiteste, Z4 die schmalste Zone.
+
 ## Report-Ausgabe
 
 Standardberichte zeigen CSS als Hauptbotschaft. VO2- und VLa-Proxies werden in

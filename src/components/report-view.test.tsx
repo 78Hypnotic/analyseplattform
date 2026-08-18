@@ -40,10 +40,18 @@ describe("ReportView", () => {
     render(<ReportView input={STANDARD_INPUT} result={result} />);
 
     expect(screen.getByRole("heading", { name: /Deine CSS beträgt/i })).toBeTruthy();
-    expect(screen.getByText("Physiologisches Profil")).toBeTruthy();
-    expect(screen.getByText("Aerobe Kapazität")).toBeTruthy();
-    expect(screen.getByText("Anaerobe Kapazität")).toBeTruthy();
+    expect(screen.queryByText("Physiologisches Profil")).toBeNull();
+    expect(screen.queryByText("Aerobe Kapazität")).toBeNull();
+    expect(screen.queryByText("Anaerobe Kapazität")).toBeNull();
     expect(screen.getByText("Schwimm-Mechanik")).toBeTruthy();
+    expect(screen.getByText("SWOLF")).toBeTruthy();
+    expect(screen.getByText("Technikprofil")).toBeTruthy();
+    expect(screen.getByRole("img", { name: /Technikprofil:/i })).toBeTruthy();
+    expect(screen.getByText("Dein größter Hebel")).toBeTruthy();
+    expect(screen.getByText("Trainingszonen")).toBeTruthy();
+    expect(screen.getByText("Z3 Schwelle")).toBeTruthy();
+    expect(screen.getByText("Empfohlener Trainingsplan")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Trainingsplan freischalten" })).toBeTruthy();
     expect(screen.queryByText("Dein aktuelles Schwimmmuster")).toBeNull();
     expect(screen.queryByText("Trainingshebel")).toBeNull();
     expect(screen.getByText("Expertenmodus / Details")).toBeTruthy();
@@ -123,7 +131,6 @@ describe("ReportView", () => {
     render(<ReportView input={STANDARD_INPUT} result={legacyResult as never} />);
 
     expect(screen.getByRole("heading", { name: /Deine CSS beträgt/i })).toBeTruthy();
-    expect(screen.getByText("Physiologisches Profil")).toBeTruthy();
     expect(screen.getByText("Schwimm-Mechanik")).toBeTruthy();
     expect(screen.getByText("Expertenmodus / Details")).toBeTruthy();
   });

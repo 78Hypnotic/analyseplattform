@@ -124,6 +124,14 @@ export type TechniqueProfileAxis = {
   statement: string;
 };
 
+export type SwimZone = {
+  id: "Z1" | "Z2" | "Z3" | "Z4" | "Z5";
+  name: string;
+  fastestPace: number;
+  slowestPace: number;
+  purpose: string;
+};
+
 export type ReferenceComparison = {
   ageBucket: number | null;
   sex: "maennlich" | "weiblich" | null;

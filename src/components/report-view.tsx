@@ -1,18 +1,23 @@
 import { CalendarCheck2, RefreshCcw, Waves } from "lucide-react";
 import { ButtonLink } from "@/components/button";
-import { formatPace, isTechniqueOnlyResult } from "@/lib/analysis/calculations";
+import { TechniqueSpiderChart } from "@/components/technique-spider-chart";
+import { SwimZoneScale } from "@/components/swim-zone-scale";
+import { buildSwimZones, buildTechniqueProfile, computeSwolf, formatPace, isTechniqueOnlyResult } from "@/lib/analysis/calculations";
 import type {
   AnalysisInput,
   AnalysisResult,
   ReferenceIndex,
   StandardAnalysisResult,
   TechniqueOnlyAnalysisResult,
+  TechniqueProfileAxis,
   TestMetrics,
 } from "@/lib/analysis/types";
+import { getBodyTypeLabel } from "@/lib/body-type";
 import type { TrainingPlanPreview } from "@/lib/training-plans/types";
 
 const BEGINNER_PLAN_PRICE = "29,99";
 const BEGINNER_PLAN_WEEKS = 8;
+const TRAINING_PLAN_PRICE = "29,99";
 
 export function ReportView({
   input,
@@ -184,9 +189,9 @@ function StandardReportView({
   result: StandardAnalysisResult;
 }) {
   const targetDistance = input.targetDistance ?? result.plan.targetDistance ?? "Becken";
-  const sessionsPerWeek = input.swimSessionsPerWeek ?? result.plan.swimSessionsPerWeek ?? 3;
-  const techniqueGate = getTechniqueGate(result);
   const focus = getPublicTrainingFocus(result.plan.slug, result.plan.name);
+  const techniqueProfile = buildTechniqueProfile(input.challenges);
+  const focusAxis = techniqueProfile.find((axis) => axis.status === "fokus") ?? null;
 
   return (
     <div className="space-y-6">
@@ -194,36 +199,43 @@ function StandardReportView({
         <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--accent)]">
           Analyse-Ergebnis
         </p>
+        {result.styleProfile ? (
+          <p className="mt-4 inline-flex rounded-full border border-[var(--accent)] bg-[var(--panel-2)] px-3 py-1 text-xs font-medium text-[var(--accent)]">
+            Dein Profil: {result.styleProfile.name}
+          </p>
+        ) : null}
         <h1 className="mt-4 max-w-3xl text-3xl font-semibold tracking-tight sm:text-5xl">
           Deine CSS beträgt {formatPace(result.cssPace)} /100 m.
         </h1>
-        <p className="muted mt-4 max-w-2xl leading-7">
-          Das ist aktuell deine Schwellenpace im Schwimmen.
-        </p>
+        <p className="muted mt-4 max-w-2xl leading-7">{buildHeadlineInsight(result, focusAxis)}</p>
         <p className="mt-4 max-w-3xl text-sm leading-6 text-[var(--muted)]">
           Profil: {input.level} · Ziel: {input.goal} {targetDistance !== "Becken" ? targetDistance : ""} · Fokus: {focus}
         </p>
-        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <MiniFact label="Technikklasse" value={techniqueGate.techniqueClass ?? techniqueGate.status.toUpperCase()} />
-          <MiniFact label="Einheiten/Woche" value={String(sessionsPerWeek)} />
-          <MiniFact label="Zeitrahmen" value={result.plan.timeframeLabel ?? `${result.plan.weeks} Wochen`} />
-          <MiniFact label="ReTest" value={`${result.plan.weeks} Wo.`} />
-        </div>
       </section>
 
-      {techniqueGate.status === "gelb" ? (
-        <section className="surface border-[var(--warn)] p-4 text-sm text-[var(--warn)]">
-          {techniqueGate.message}
-        </section>
-      ) : null}
+      <SwimMechanicsCard result={result} techniqueProfile={techniqueProfile} poolLength={input.poolLength} />
 
-      <PhysiologicalProfileCard result={result} />
-      <SwimMechanicsCard result={result} />
-
-      <RetestCard result={result} />
+      <BiggestLeverCard result={result} focusAxis={focusAxis} />
+      <SwimZonesCard result={result} />
+      <PlanRecommendationCard input={input} result={result} focusAxis={focusAxis} />
       <ExpertDetails input={input} result={result} />
     </div>
   );
+}
+
+/** Verbindet die Referenzeinordnung der Schwelle mit dem größten Technikhebel. */
+function buildHeadlineInsight(result: StandardAnalysisResult, focusAxis: TechniqueProfileAxis | null) {
+  const cssLabel = result.reference.css?.label;
+  const base =
+    cssLabel && cssLabel !== "Keine Referenz verfügbar"
+      ? `Das ist deine Schwellenpace. Im Vergleich zu deiner Altersgruppe: ${cssLabel}.`
+      : "Das ist aktuell deine Schwellenpace im Schwimmen.";
+
+  if (focusAxis) {
+    return `${base} Der größte Hebel liegt aktuell nicht im Umfang, sondern im Bereich ${focusAxis.group}.`;
+  }
+
+  return `${base} Der nächste Schritt ist, dieses Tempo unter Belastung stabil zu halten.`;
 }
 
 function TechniqueOnlyReportView({
@@ -265,67 +277,19 @@ function TechniqueOnlyReportView({
   );
 }
 
-function PhysiologicalProfileCard({ result }: { result: StandardAnalysisResult }) {
-  const cssScore = result.spiderScores?.css ?? scoreReferenceForBar(result.reference.css);
-  const bars = [
-    {
-      label: "Aerobe Kapazität",
-      score: Math.round(result.vo2.score * 100),
-      value: capacityLabel(result.vo2.score * 100, "aerobic"),
-      text: aerobicCapacityText(result.vo2.score),
-    },
-    {
-      label: "Anaerobe Kapazität",
-      score: Math.round(result.vla.score * 100),
-      value: capacityLabel(result.vla.score * 100, "anaerobic"),
-      text: anaerobicCapacityText(result.vla.score),
-    },
-    {
-      label: "Schwellenleistung / CSS",
-      score: cssScore,
-      value: capacityLabel(cssScore, "css"),
-      text: cssCapacityText(cssScore),
-    },
-  ];
-
-  return (
-    <section className="surface p-5">
-      <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--subtle)]">
-        Physiologisches Profil
-      </p>
-      <h2 className="mt-2 text-2xl font-semibold">Leistungsindizes für dein Schwimmen</h2>
-      <p className="muted mt-2 max-w-2xl leading-7">
-        Die Einordnung basiert auf deinem Schwimmtest und bleibt bewusst qualitativ, keine Labordiagnostik.
-      </p>
-      <div className="mt-5 grid gap-3 lg:grid-cols-3">
-        {bars.map((bar) => (
-          <CapacityBar key={bar.label} label={bar.label} score={bar.score} value={bar.value} text={bar.text} />
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function CapacityBar({ label, score, value, text }: { label: string; score: number; value: string; text: string }) {
-  const safeScore = Math.max(0, Math.min(100, score));
-
-  return (
-    <div className="rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-4">
-      <div className="flex items-center justify-between gap-3">
-        <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--subtle)]">{label}</p>
-        <p className="text-sm font-medium text-[var(--accent)]">{value}</p>
-      </div>
-      <div className="mt-4 h-2 rounded-full bg-[var(--line)]">
-        <div className="h-full rounded-full bg-[var(--accent)]" style={{ width: `${safeScore}%` }} />
-      </div>
-      <p className="muted mt-3 text-sm leading-6">{text}</p>
-    </div>
-  );
-}
-
-function SwimMechanicsCard({ result }: { result: AnalysisResult }) {
+function SwimMechanicsCard({
+  result,
+  techniqueProfile,
+  poolLength,
+}: {
+  result: AnalysisResult;
+  techniqueProfile?: TechniqueProfileAxis[];
+  poolLength?: number;
+}) {
   const metrics = getPrimaryMechanics(result);
   if (!metrics) return null;
+
+  const swolf = computeSwolf(metrics.raw);
 
   return (
     <section className="surface p-5">
@@ -333,13 +297,55 @@ function SwimMechanicsCard({ result }: { result: AnalysisResult }) {
         Schwimm-Mechanik
       </p>
       <h2 className="mt-2 text-2xl font-semibold">So entsteht deine Geschwindigkeit</h2>
-      <div className="mt-5 grid gap-3 md:grid-cols-3">
+      <div className="mt-5 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
         <MechanicMetric label="DPS" value={metrics.dps} detail="m/Zug" />
         <MechanicMetric label="SR" value={metrics.sr} detail="Züge/min" />
         <MechanicMetric label="Zugzahl" value={metrics.strokes} detail="Züge pro Bahn" />
+        <MechanicMetric
+          label="SWOLF"
+          value={swolf.toFixed(0)}
+          detail={poolLength ? `Zeit + Züge je ${poolLength} m` : "Zeit + Züge pro Bahn"}
+        />
       </div>
       <p className="muted mt-5 max-w-3xl leading-7">{mechanicsSummary(metrics.raw)}</p>
+      {techniqueProfile ? <TechniqueProfileBlock axes={techniqueProfile} /> : null}
     </section>
+  );
+}
+
+function TechniqueProfileBlock({ axes }: { axes: TechniqueProfileAxis[] }) {
+  const focusAxes = axes.filter((axis) => axis.status === "fokus");
+  const strongAxes = axes.filter((axis) => axis.status === "stark");
+
+  return (
+    <div className="mt-6 border-t border-[var(--line)] pt-6">
+      <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--subtle)]">Technikprofil</p>
+      <h3 className="mt-2 text-xl font-semibold">Deine Ausprägungen je Technikbereich</h3>
+      <p className="muted mt-2 max-w-3xl leading-7">
+        Abgeleitet aus deinen Angaben im Kontext. Beim ReTest siehst du, welche Bereiche sich verändert haben.
+      </p>
+      <div className="mt-5 grid items-center gap-6 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
+        <TechniqueSpiderChart axes={axes} />
+        <ul className="grid gap-2">
+          {axes.map((axis) => (
+            <li
+              key={axis.group}
+              className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] px-4 py-3"
+            >
+              <span className="text-sm font-medium">{axis.group}</span>
+              <span className="muted text-sm">{axis.statement}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <p className="muted mt-5 max-w-3xl text-sm leading-6">
+        {focusAxes.length > 0
+          ? `Aktuell größter Hebel: ${focusAxes.map((axis) => axis.group).join(", ")}.`
+          : strongAxes.length > 0
+            ? "Keine offenen Baustellen gemeldet. Halte die Qualität unter Tempo stabil."
+            : "Noch keine Kontextangaben. Beim nächsten Test lohnt sich die Selbsteinschätzung."}
+      </p>
+    </div>
   );
 }
 
@@ -383,6 +389,104 @@ function RetestMetric({ label, value }: { label: string; value: string }) {
   );
 }
 
+function BiggestLeverCard({
+  result,
+  focusAxis,
+}: {
+  result: StandardAnalysisResult;
+  focusAxis: TechniqueProfileAxis | null;
+}) {
+  const topIssue = result.issues[0];
+  const title = focusAxis
+    ? `${focusAxis.group}: ${focusAxis.statement}`
+    : (topIssue?.title ?? getPublicTrainingFocus(result.plan.slug, result.plan.name));
+
+  return (
+    <section className="surface border-[color-mix(in_oklab,var(--accent)_42%,var(--line))] p-6">
+      <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--accent)]">Dein größter Hebel</p>
+      <h2 className="mt-3 text-2xl font-semibold sm:text-3xl">{title}</h2>
+      <p className="muted mt-3 max-w-3xl leading-7">
+        {topIssue?.cause ?? "Mehr Umfang bringt wenig, solange Zuglänge und Frequenz unter Tempo auseinanderlaufen."}
+      </p>
+      <p className="mt-5 max-w-3xl border-l-2 border-[var(--accent)] pl-4 text-lg leading-8">
+        {topIssue?.cue ?? "Halte Zuglänge und Frequenz unter Tempo stabil, statt nur härter zu schwimmen."}
+      </p>
+      <p className="muted mt-5 max-w-3xl text-sm leading-6">
+        Realistisch erreichbar bis zum ReTest: {result.potential.paceGain}.
+      </p>
+    </section>
+  );
+}
+
+function SwimZonesCard({ result }: { result: StandardAnalysisResult }) {
+  const zones = buildSwimZones(result.cssPace);
+  if (zones.length === 0) return null;
+
+  return (
+    <section className="surface p-5">
+      <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--subtle)]">Trainingszonen</p>
+      <h2 className="mt-2 text-2xl font-semibold">Deine Pace-Bereiche pro 100 m</h2>
+      <p className="muted mt-2 max-w-3xl leading-7">
+        Abgeleitet aus deiner CSS von {formatPace(result.cssPace)} /100 m. Damit steuerst du jede Einheit im Becken,
+        ohne Laborwerte zu brauchen.
+      </p>
+      <div className="mt-5">
+        <SwimZoneScale zones={zones} cssPace={result.cssPace} />
+      </div>
+    </section>
+  );
+}
+
+function PlanRecommendationCard({
+  input,
+  result,
+  focusAxis,
+}: {
+  input: AnalysisInput;
+  result: StandardAnalysisResult;
+  focusAxis: TechniqueProfileAxis | null;
+}) {
+  const sessionsPerWeek = input.swimSessionsPerWeek ?? result.plan.swimSessionsPerWeek ?? 3;
+  const reason = focusAxis
+    ? `Weil deine Schwelle bereits trägt, der Bereich ${focusAxis.group} sie aber ausbremst, setzt dieser Plan genau dort an und übersetzt deine Zonen in konkrete Einheiten.`
+    : `Dieser Plan übersetzt deine Zonen in konkrete Einheiten und hält den Fokus auf ${getPublicTrainingFocus(result.plan.slug, result.plan.name).toLowerCase()}.`;
+
+  return (
+    <section className="surface border-[color-mix(in_oklab,var(--accent)_42%,var(--line))] p-6">
+      <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--accent)]">Empfohlener Trainingsplan</p>
+      <h2 className="mt-3 text-2xl font-semibold sm:text-3xl">{result.plan.name}</h2>
+      <p className="muted mt-3 max-w-3xl leading-7">{reason}</p>
+      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+        <MiniFact label="Phase" value={result.plan.phase} />
+        <MiniFact label="Umfang" value={`${result.plan.weeks} Wochen · ${sessionsPerWeek}x/Woche`} />
+        <MiniFact label="ReTest" value={`nach ${result.plan.weeks} Wochen`} />
+      </div>
+      <p className="muted mt-4 max-w-3xl text-sm leading-6">
+        {result.plan.retestHint ?? "Gleicher Pool, gleiche Testfolge, gleiche Pausen. Nur so ist der Vergleich belastbar."}
+      </p>
+
+      <div className="mt-6 flex flex-col gap-4 border-t border-[var(--line)] pt-6 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--subtle)]">Preis</p>
+          <p className="mt-2 text-4xl font-semibold tracking-tight">
+            {TRAINING_PLAN_PRICE}<span className="ml-1 text-base text-[var(--subtle)]">EUR</span>
+          </p>
+          <p className="muted mt-1 text-sm">Einmalig für {result.plan.weeks} Wochen inklusive ReTest</p>
+        </div>
+        <div className="no-print flex flex-wrap items-center gap-3">
+          <ButtonLink href="/#preise" variant="primary">
+            Trainingsplan freischalten
+          </ButtonLink>
+          <ButtonLink href="/analyse/new" variant="ghost">
+            <RefreshCcw size={16} />
+            ReTest starten
+          </ButtonLink>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /**
  * Keeps diagnostic internals available without making them part of the coaching-first reading path.
  */
@@ -415,6 +519,7 @@ function ExpertDetails({ input, result }: { input: AnalysisInput; result: Analys
             <DetailItem label="Züge 200 m" value={input.s200 ? String(input.s200) : "nicht erfasst"} />
             <DetailItem label="Züge 400 m" value={input.s400 ? String(input.s400) : "nicht erfasst"} />
             <DetailItem label="KFA" value={input.bodyFatPercentage ? `${input.bodyFatPercentage} %` : "nicht erfasst"} />
+            <DetailItem label="Körperbautyp" value={input.bodyType ? getBodyTypeLabel(input.bodyType) : "nicht erfasst"} />
             <DetailItem label="Fitnesslevel" value={fitnessLevel ? `${fitnessLevel}/5` : "nicht erfasst"} />
             <DetailItem label="Becken" value={`${input.poolLength} m`} />
             <DetailItem label="Technik-Gate" value={techniqueGate.status.toUpperCase()} />
@@ -560,44 +665,6 @@ function mechanicsSummary(test: TestMetrics) {
   return "Dein Tempo entsteht aktuell über einen soliden Grundrhythmus; Zuglänge und Frequenz können noch stabiler zusammenfinden.";
 }
 
-function capacityLabel(score: number, type: "aerobic" | "anaerobic" | "css") {
-  if (type === "anaerobic") {
-    if (score >= 70) return "ausgeprägt";
-    if (score >= 45) return "ausgeglichen";
-    return "ruhig";
-  }
-
-  if (type === "css") {
-    if (score >= 75) return "stark";
-    if (score >= 50) return "solide";
-    if (score >= 25) return "entwickelbar";
-    return "viel Potenzial";
-  }
-
-  if (score >= 70) return "stark";
-  if (score >= 50) return "solide";
-  if (score >= 25) return "entwickelbar";
-  return "viel Potenzial";
-}
-
-function aerobicCapacityText(score: number) {
-  if (score >= 0.7) return "Gute aerobe Basis; der nächste Schritt ist saubere Umsetzung im Wettkampftempo.";
-  if (score >= 0.5) return "Solide aerobe Basis mit weiterem Entwicklungspotenzial.";
-  return "Die aerobe Basis ist aktuell der wichtigste Entwicklungshebel.";
-}
-
-function anaerobicCapacityText(score: number) {
-  if (score >= 0.7) return "Viel Kurztempo ist vorhanden; wichtig ist jetzt die kontrollierte Dosierung.";
-  if (score >= 0.5) return "Deine Kurztempo-Reserve wirkt ausgeglichen und gut trainierbar.";
-  return "Dein Profil ist ruhig; der Fokus liegt eher auf stabiler Geschwindigkeit.";
-}
-
-function cssCapacityText(score: number) {
-  if (score >= 75) return "Deine Schwellenleistung ist im Verhältnis stark.";
-  if (score >= 50) return "Deine Schwellenleistung ist solide und gut steuerbar.";
-  return "Bei der Schwellenleistung liegt noch klares Potenzial.";
-}
-
 function getPublicTrainingFocus(slug: string | undefined, name: string) {
   if (slug === "vo2max-builder") return "Aerobe Kapazität aufbauen";
   if (slug === "vlamax-senker") return "Anaerobe Kapazität dosieren";
@@ -634,16 +701,6 @@ function formatReferenceValue(value: number, kind: "time" | "pace") {
 function formatReferenceDelta(index: number) {
   if (index <= 0) return `${Math.abs(Math.round(index * 100))} % schneller`;
   return `${Math.round(index * 100)} % über Referenz`;
-}
-
-function scoreReferenceForBar(reference: ReferenceIndex | null) {
-  if (!reference) return 50;
-  if (reference.index <= 0) return 100;
-  if (reference.index <= 0.1) return Math.round(100 - (reference.index / 0.1) * 25);
-  if (reference.index <= 0.25) return Math.round(75 - ((reference.index - 0.1) / 0.15) * 25);
-  if (reference.index <= 0.5) return Math.round(50 - ((reference.index - 0.25) / 0.25) * 25);
-  if (reference.index <= 0.7) return Math.round(25 - ((reference.index - 0.5) / 0.2) * 25);
-  return 0;
 }
 
 function fallbackSpiderScores(result: StandardAnalysisResult) {

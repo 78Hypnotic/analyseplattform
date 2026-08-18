@@ -1,4 +1,4 @@
-import { SWIM_REFERENCE_AGES, SWIM_REFERENCES } from "./constants";
+import { CHALLENGE_GROUPS, SWIM_REFERENCE_AGES, SWIM_REFERENCES } from "./constants";
 import type {
   AnalysisInput,
   AnalysisResult,
@@ -11,10 +11,12 @@ import type {
   SprintMetrics,
   SprintReserveCategory,
   StandardAnalysisResult,
+  SwimZone,
   TargetDistance,
   TechniqueClass,
   TechniqueGateResult,
   TechniqueOnlyAnalysisResult,
+  TechniqueProfileAxis,
   TestMetrics,
   VLaPerformanceBand,
   VLaProfile,
@@ -119,8 +121,63 @@ export function computeCssPace(t200: number, t400: number): number {
   return (t400 - t200) / 2;
 }
 
+/** Zonen als Prozentwerte der CSS-Pace nach Swim-Smooth-Methodik; Z1 ist bewusst am breitesten, Z4 am schmalsten. */
+const SWIM_ZONE_FACTORS = [
+  { id: "Z1", name: "Recovery", fastest: 1.2, slowest: 1.35, purpose: "Lockeres Ein- und Ausschwimmen" },
+  { id: "Z2", name: "Grundlage", fastest: 1.1, slowest: 1.2, purpose: "Hauptanteil im Grundlagentraining" },
+  { id: "Z3", name: "Schwelle", fastest: 0.97, slowest: 1.1, purpose: "Schwellen- und Tempointervalle" },
+  { id: "Z4", name: "VO2max", fastest: 0.9, slowest: 0.97, purpose: "Kurze harte Intervalle" },
+  { id: "Z5", name: "Sprint", fastest: 0.75, slowest: 0.9, purpose: "Neuromuskuläres Sprinttraining" },
+] as const;
+
+export function buildSwimZones(cssPace: number): SwimZone[] {
+  if (!Number.isFinite(cssPace) || cssPace <= 0) return [];
+
+  return SWIM_ZONE_FACTORS.map((zone) => ({
+    id: zone.id,
+    name: zone.name,
+    fastestPace: cssPace * zone.fastest,
+    slowestPace: cssPace * zone.slowest,
+    purpose: zone.purpose,
+  }));
+}
+
+/** SWOLF = Zeit pro Bahn plus Züge pro Bahn; niedriger ist effizienter. */
+export function computeSwolf(test: TestMetrics): number {
+  return test.timePerLength + test.strokesPerLength;
+}
+
 export function isTechniqueOnlyResult(result: AnalysisResult): result is TechniqueOnlyAnalysisResult {
   return result.mode === "technique_only";
+}
+
+const TECHNIQUE_SCORE_STRENGTH = 85;
+const TECHNIQUE_SCORE_OPEN = 55;
+const TECHNIQUE_SCORE_FOCUS = 30;
+
+/** Leitet je Technikgruppe eine Ausprägung aus den Kontextaussagen ab, damit ReTests vergleichbar bleiben. */
+export function buildTechniqueProfile(challenges: string[] = []): TechniqueProfileAxis[] {
+  return CHALLENGE_GROUPS.map((group) => {
+    const selected = group.items.find((item) => challenges.includes(item));
+
+    if (!selected) {
+      return {
+        group: group.group,
+        score: TECHNIQUE_SCORE_OPEN,
+        status: "offen" as const,
+        statement: "Keine Angabe im Kontext",
+      };
+    }
+
+    const isStrength = selected === group.items[0];
+
+    return {
+      group: group.group,
+      score: isStrength ? TECHNIQUE_SCORE_STRENGTH : TECHNIQUE_SCORE_FOCUS,
+      status: isStrength ? ("stark" as const) : ("fokus" as const),
+      statement: selected,
+    };
+  });
 }
 
 /**
