@@ -85,6 +85,7 @@ export default async function CoachAthleteDetailPage({
             heightCm={athlete.heightCm}
             weightKg={athlete.weightKg}
             bodyFatPercentage={athlete.bodyFatPercentage}
+            bodyType={athlete.bodyType}
             fitnessLevel={athlete.fitnessLevel}
             vo2max={athlete.vo2max}
             vlamax={athlete.vlamax}

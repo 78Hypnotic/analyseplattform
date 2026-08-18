@@ -32,6 +32,10 @@ export const analysisInputSchema = z.object({
     (value) => (value === "" || value === null ? undefined : value),
     z.coerce.number().min(3).max(60).optional(),
   ),
+  bodyType: z.preprocess(
+    (value) => (value === "" || value === null ? undefined : value),
+    z.enum(["ektomorph", "mesomorph", "endomorph"]).optional(),
+  ),
   fitnessLevel: z.preprocess(
     (value) => (value === "" || value === null ? undefined : value),
     z.coerce.number().int().min(1).max(5).optional(),

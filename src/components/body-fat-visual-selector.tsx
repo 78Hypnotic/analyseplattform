@@ -1,25 +1,39 @@
 "use client";
 
 import Image from "next/image";
-import { BODY_FAT_PRESETS, getBodyFatPresetForValue, getBodyFatStatus, type BodyFatSex } from "@/lib/body-fat";
+import { useState } from "react";
+import {
+  BODY_FAT_PRESETS,
+  getBodyFatFallbackImageSrc,
+  getBodyFatImageSrc,
+  getBodyFatStatus,
+  type BodyFatSex,
+} from "@/lib/body-fat";
+import type { BodyType } from "@/lib/body-type";
 
 export function BodyFatVisualSelector({
   sex,
   value,
+  bodyType,
   onSexChange,
   onValueChange,
   compact = false,
 }: {
   sex: BodyFatSex;
   value: number | null | "";
+  bodyType?: BodyType | null;
   onSexChange: (sex: BodyFatSex) => void;
   onValueChange: (value: number) => void;
   compact?: boolean;
 }) {
+  const [failedImageSrc, setFailedImageSrc] = useState<string | null>(null);
   const sliderValue = clamp(typeof value === "number" ? value : sex === "female" ? 26 : 20, 8, 42);
   const status = getBodyFatStatus(sex, value);
   const presets = BODY_FAT_PRESETS[sex];
-  const selectedPreset = getBodyFatPresetForValue(sex, value);
+  const preferredImageSrc = getBodyFatImageSrc(sex, value, bodyType);
+  // Fallback auf den rein geschlechtsspezifischen Bildsatz, solange keine körperbautyp-spezifischen Bilder vorliegen.
+  const imageSrc =
+    failedImageSrc === preferredImageSrc ? getBodyFatFallbackImageSrc(sex, value) : preferredImageSrc;
 
   return (
     <div className={compact ? "grid gap-5" : "grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px]"}>
@@ -67,7 +81,7 @@ export function BodyFatVisualSelector({
       <div className={compact ? "hidden" : "flex flex-col items-center justify-between rounded-lg border border-[var(--line)] bg-[color-mix(in_oklab,var(--panel)_70%,transparent)] p-4"}>
         <div className="flex min-h-80 w-full items-end justify-center overflow-hidden">
           <Image
-            src={selectedPreset.imageSrc}
+            src={imageSrc}
             alt=""
             width={230}
             height={670}
@@ -75,6 +89,7 @@ export function BodyFatVisualSelector({
             className="max-h-80 w-auto select-none object-contain"
             priority={false}
             aria-hidden="true"
+            onError={() => setFailedImageSrc(preferredImageSrc)}
           />
         </div>
         <div className="mt-4 w-full text-right">

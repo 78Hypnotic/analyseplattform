@@ -1,3 +1,5 @@
+import type { BodyType } from "@/lib/body-type";
+
 export type Gender = "weiblich" | "maennlich" | "divers";
 export type PoolLength = 25 | 50;
 export type SwimTestType = "water_start" | "dive_start" | "wall_push";
@@ -85,6 +87,7 @@ export type AnalysisInput = {
   height: number;
   weight: number;
   bodyFatPercentage?: number;
+  bodyType?: BodyType;
   fitnessLevel?: number;
   poolLength: PoolLength;
   canSwim400m: boolean;
@@ -110,6 +113,15 @@ export type TechniqueGateResult = {
   techniqueClass?: TechniqueClass | null;
   title: string;
   message: string;
+};
+
+export type TechniqueProfileStatus = "stark" | "offen" | "fokus";
+
+export type TechniqueProfileAxis = {
+  group: string;
+  score: number;
+  status: TechniqueProfileStatus;
+  statement: string;
 };
 
 export type ReferenceComparison = {

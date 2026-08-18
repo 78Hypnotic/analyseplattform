@@ -1,19 +1,21 @@
+import type { BodyType } from "./body-type";
+
 export type BodyFatSex = "female" | "male";
 
 export const BODY_FAT_PRESETS = {
   female: [
-    { value: 14, label: "Athletisch", range: "10-16%", imageSrc: "/bodyfat/bodyfat-female-1.png" },
-    { value: 20, label: "Fit", range: "17-22%", imageSrc: "/bodyfat/bodyfat-female-2.png" },
-    { value: 26, label: "Normal", range: "23-28%", imageSrc: "/bodyfat/bodyfat-female-3.png" },
-    { value: 32, label: "Erhöht", range: "29-34%", imageSrc: "/bodyfat/bodyfat-female-4.png" },
-    { value: 38, label: "Hoch", range: "35%+", imageSrc: "/bodyfat/bodyfat-female-5.png" },
+    { level: 1, value: 14, label: "Athletisch", range: "10-16%", imageSrc: "/bodyfat/bodyfat-female-1.png" },
+    { level: 2, value: 20, label: "Fit", range: "17-22%", imageSrc: "/bodyfat/bodyfat-female-2.png" },
+    { level: 3, value: 26, label: "Normal", range: "23-28%", imageSrc: "/bodyfat/bodyfat-female-3.png" },
+    { level: 4, value: 32, label: "Erhöht", range: "29-34%", imageSrc: "/bodyfat/bodyfat-female-4.png" },
+    { level: 5, value: 38, label: "Hoch", range: "35%+", imageSrc: "/bodyfat/bodyfat-female-5.png" },
   ],
   male: [
-    { value: 8, label: "Athletisch", range: "6-10%", imageSrc: "/bodyfat/bodyfat-male-1.png" },
-    { value: 14, label: "Fit", range: "11-17%", imageSrc: "/bodyfat/bodyfat-male-2.png" },
-    { value: 20, label: "Normal", range: "18-24%", imageSrc: "/bodyfat/bodyfat-male-3.png" },
-    { value: 26, label: "Erhöht", range: "25-29%", imageSrc: "/bodyfat/bodyfat-male-4.png" },
-    { value: 32, label: "Hoch", range: "30%+", imageSrc: "/bodyfat/bodyfat-male-5.png" },
+    { level: 1, value: 8, label: "Athletisch", range: "6-10%", imageSrc: "/bodyfat/bodyfat-male-1.png" },
+    { level: 2, value: 14, label: "Fit", range: "11-17%", imageSrc: "/bodyfat/bodyfat-male-2.png" },
+    { level: 3, value: 20, label: "Normal", range: "18-24%", imageSrc: "/bodyfat/bodyfat-male-3.png" },
+    { level: 4, value: 26, label: "Erhöht", range: "25-29%", imageSrc: "/bodyfat/bodyfat-male-4.png" },
+    { level: 5, value: 32, label: "Hoch", range: "30%+", imageSrc: "/bodyfat/bodyfat-male-5.png" },
   ],
 } as const;
 
@@ -33,9 +35,13 @@ export function getBodyFatStatus(sex: BodyFatSex, value: number | null | "") {
   return "Hoch";
 }
 
-export function getBodyFatImageSrc(sex: BodyFatSex, value: number) {
-  const preset = BODY_FAT_PRESETS[sex].find((item) => item.value === value);
-  return preset?.imageSrc ?? getBodyFatPresetForValue(sex, value).imageSrc;
+export function getBodyFatImageSrc(sex: BodyFatSex, value: number | null | "", bodyType?: BodyType | null) {
+  const preset = getBodyFatPresetForValue(sex, value);
+  return bodyType ? `/bodyfat/bodyfat-${sex}-${bodyType}-${preset.level}.png` : preset.imageSrc;
+}
+
+export function getBodyFatFallbackImageSrc(sex: BodyFatSex, value: number | null | "") {
+  return getBodyFatPresetForValue(sex, value).imageSrc;
 }
 
 export function getBodyFatPresetForValue(sex: BodyFatSex, value: number | null | "") {

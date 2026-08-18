@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 import { AppHeader } from "@/components/app-header";
 import type { AnalysisInput } from "@/lib/analysis/types";
+import { parseBodyType } from "@/lib/body-type";
 import { getAthleteMutationContext, getEditableAnalysis } from "@/lib/coach-mutations";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { InitialAnalysisInput } from "./analysis-flow";
@@ -16,6 +17,7 @@ type ProfileData = {
   height_cm?: number | null;
   weight_kg?: number | null;
   body_fat_percentage?: number | string | null;
+  body_type?: string | null;
   fitness_level?: number | null;
 };
 
@@ -90,7 +92,7 @@ async function getInitialAnalysisContext(
 
   const { data, error } = await target.supabase
     .from("profiles")
-    .select("full_name,age,gender,height_cm,weight_kg,body_fat_percentage,fitness_level")
+    .select("full_name,age,gender,height_cm,weight_kg,body_fat_percentage,body_type,fitness_level")
     .eq("id", target.athleteId)
     .maybeSingle();
   if (error) throw new Error(error.message);
@@ -111,6 +113,7 @@ function toInitialInput(profile: ProfileData): InitialAnalysisInput {
     height: toOptionalInteger(profile.height_cm),
     weight: toOptionalInteger(profile.weight_kg),
     bodyFatPercentage: toOptionalNumber(profile.body_fat_percentage),
+    bodyType: parseBodyType(profile.body_type) ?? "",
     fitnessLevel: toOptionalFitnessLevel(profile.fitness_level),
   };
 }

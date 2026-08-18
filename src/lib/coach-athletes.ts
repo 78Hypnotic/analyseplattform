@@ -1,6 +1,7 @@
 import "server-only";
 
 import { requireCoachAccess } from "@/lib/auth/roles";
+import { parseBodyType, type BodyType } from "@/lib/body-type";
 
 export type CoachAthleteSummary = {
   id: string;
@@ -20,6 +21,7 @@ export type CoachAthleteDetail = CoachAthleteSummary & {
   heightCm: number | null;
   weightKg: number | null;
   bodyFatPercentage: number | null;
+  bodyType: BodyType | null;
   fitnessLevel: number | null;
   vo2max: number | null;
   vlamax: number | null;
@@ -55,6 +57,7 @@ type ProfileRow = {
   height_cm?: number | null;
   weight_kg?: number | string | null;
   body_fat_percentage?: number | string | null;
+  body_type?: string | null;
   fitness_level?: number | null;
   vo2max?: number | string | null;
   vlamax?: number | string | null;
@@ -137,7 +140,7 @@ export async function getCoachAthleteDetail(athleteId: string): Promise<CoachAth
     supabase
       .from("profiles")
       .select(
-        "id,email,full_name,city,age,gender,height_cm,weight_kg,body_fat_percentage,fitness_level,vo2max,vlamax,ftp_rad,muscle_mass_kg,disciplines,latest_swim_analyzed_at,latest_swim_technique_status,latest_swim_css_pace_sec,latest_swim_vo2_proxy,latest_swim_vla_profile",
+        "id,email,full_name,city,age,gender,height_cm,weight_kg,body_fat_percentage,body_type,fitness_level,vo2max,vlamax,ftp_rad,muscle_mass_kg,disciplines,latest_swim_analyzed_at,latest_swim_technique_status,latest_swim_css_pace_sec,latest_swim_vo2_proxy,latest_swim_vla_profile",
       )
       .eq("id", athleteId)
       .maybeSingle(),
@@ -160,6 +163,7 @@ export async function getCoachAthleteDetail(athleteId: string): Promise<CoachAth
     heightCm: (profile as ProfileRow).height_cm ?? null,
     weightKg: toNullableNumber((profile as ProfileRow).weight_kg),
     bodyFatPercentage: toNullableNumber((profile as ProfileRow).body_fat_percentage),
+    bodyType: parseBodyType((profile as ProfileRow).body_type) ?? null,
     fitnessLevel: (profile as ProfileRow).fitness_level ?? null,
     vo2max: toNullableNumber((profile as ProfileRow).vo2max),
     vlamax: toNullableNumber((profile as ProfileRow).vlamax),

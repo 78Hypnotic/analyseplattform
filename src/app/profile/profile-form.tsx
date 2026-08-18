@@ -5,7 +5,9 @@ import { useActionState, useState } from "react";
 import { Check, Circle, RotateCcw, Save } from "lucide-react";
 import { updateCoachAthleteProfile } from "@/app/coach/actions";
 import { BodyFatVisualSelector } from "@/components/body-fat-visual-selector";
+import { BodyTypeSelector } from "@/components/body-type-selector";
 import { Button } from "@/components/button";
+import type { BodyType } from "@/lib/body-type";
 import { updateProfile, type ProfileActionState } from "./actions";
 
 type Gender = "weiblich" | "maennlich" | "divers";
@@ -22,6 +24,7 @@ type ProfileFormProps = {
   heightCm: number | null;
   weightKg: number | null;
   bodyFatPercentage: number | null;
+  bodyType: BodyType | null;
   fitnessLevel: number | null;
   vo2max: number | null;
   vlamax: number | null;
@@ -86,6 +89,7 @@ export function ProfileForm({
   heightCm,
   weightKg,
   bodyFatPercentage,
+  bodyType,
   fitnessLevel,
   vo2max,
   vlamax,
@@ -105,6 +109,7 @@ export function ProfileForm({
   const [selectedGender, setSelectedGender] = useState<Gender | null>(gender);
   const [selectedFitnessLevel, setSelectedFitnessLevel] = useState<number | null>(initialFitnessLevel);
   const [bodyFatValue, setBodyFatValue] = useState<number | null>(bodyFatPercentage);
+  const [selectedBodyType, setSelectedBodyType] = useState<BodyType | null>(bodyType);
   const [visualSex, setVisualSex] = useState<BodyFatSex>(initialVisualSex);
   const [selectedDisciplines, setSelectedDisciplines] = useState(() => new Set(initialDisciplines));
   const [selectedVisibility, setSelectedVisibility] = useState<ProfileVisibility>(profileVisibility);
@@ -131,6 +136,7 @@ export function ProfileForm({
     setSelectedGender(gender);
     setSelectedFitnessLevel(initialFitnessLevel);
     setBodyFatValue(bodyFatPercentage);
+    setSelectedBodyType(bodyType);
     setVisualSex(initialVisualSex);
     setSelectedDisciplines(new Set(initialDisciplines));
     setSelectedVisibility(profileVisibility);
@@ -151,6 +157,11 @@ export function ProfileForm({
 
   function setVisualBodyFat(nextValue: number | null) {
     setBodyFatValue(nextValue);
+    markChanged();
+  }
+
+  function setBodyType(nextBodyType: BodyType) {
+    setSelectedBodyType(nextBodyType);
     markChanged();
   }
 
@@ -184,6 +195,7 @@ export function ProfileForm({
       className="space-y-6 pb-4"
     >
       <input type="hidden" name="fullName" value={fullNameValue} />
+      <input type="hidden" name="bodyType" value={selectedBodyType ?? ""} />
       {athleteId ? <input type="hidden" name="athleteId" value={athleteId} /> : null}
       {!coachMode ? <input type="hidden" name="profileVisibility" value={selectedVisibility} /> : null}
       {[...selectedDisciplines].map((discipline) => (
@@ -370,12 +382,22 @@ export function ProfileForm({
           <BodyFatVisualSelector
             sex={visualSex}
             value={bodyFatValue}
+            bodyType={selectedBodyType}
             onSexChange={(nextSex) => {
               setVisualSex(nextSex);
               markChanged();
             }}
             onValueChange={setVisualBodyFat}
           />
+          <div className="mt-6 border-t border-[var(--line)] pt-5">
+            <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--subtle)]">Körperbautyp</p>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--muted)]">
+              Der Bau passt die visuelle Darstellung an deinen Körper an.
+            </p>
+            <div className="mt-4">
+              <BodyTypeSelector sex={visualSex} value={selectedBodyType} onChange={setBodyType} />
+            </div>
+          </div>
           <p className="mt-4 text-xs text-[var(--subtle)]">
             Visuelle Schätzungen sind ungenauer als Messungen - wir kennzeichnen den Wert intern als geschätzt.
           </p>

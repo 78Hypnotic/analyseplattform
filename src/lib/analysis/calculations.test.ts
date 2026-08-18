@@ -264,6 +264,24 @@ describe("swim analysis calculations", () => {
     expect(
       analysisInputSchema.safeParse({
         ...DEFAULT_ANALYSIS_INPUT,
+        bodyType: "",
+      }).success,
+    ).toBe(true);
+    expect(
+      analysisInputSchema.safeParse({
+        ...DEFAULT_ANALYSIS_INPUT,
+        bodyType: "mesomorph",
+      }).success,
+    ).toBe(true);
+    expect(
+      analysisInputSchema.safeParse({
+        ...DEFAULT_ANALYSIS_INPUT,
+        bodyType: "unbekannt",
+      }).success,
+    ).toBe(false);
+    expect(
+      analysisInputSchema.safeParse({
+        ...DEFAULT_ANALYSIS_INPUT,
         fitnessLevel: 5,
       }).success,
     ).toBe(true);

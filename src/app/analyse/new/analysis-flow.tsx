@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { AlertTriangle, ArrowRight, Check, Loader2, Lock, UserRound } from "lucide-react";
 import { BodyFatVisualSelector } from "@/components/body-fat-visual-selector";
+import { BodyTypeSelector } from "@/components/body-type-selector";
 import { Button } from "@/components/button";
 import { DatePicker } from "@/components/date-picker";
 import { ReportView } from "@/components/report-view";
 import { getBodyFatSexFromGender } from "@/lib/body-fat";
+import type { BodyType } from "@/lib/body-type";
 import { CHALLENGE_GROUPS, GOALS, TARGET_DISTANCES } from "@/lib/analysis/constants";
 import { runAnalysis } from "@/lib/analysis/calculations";
 import { analysisInputSchema } from "@/lib/analysis/schema";
@@ -23,7 +25,7 @@ import { createAnalysis } from "../actions";
 
 type AnalysisDraft = Omit<
   AnalysisInput,
-  "age" | "gender" | "height" | "weight" | "bodyFatPercentage" | "fitnessLevel" | "poolLength" | "canSwim400m" | "testType" | "equipment" | "s50" | "s200" | "s400" | "goal" | "level"
+  "age" | "gender" | "height" | "weight" | "bodyFatPercentage" | "bodyType" | "fitnessLevel" | "poolLength" | "canSwim400m" | "testType" | "equipment" | "s50" | "s200" | "s400" | "goal" | "level"
   | "targetDistance" | "swimSessionsPerWeek"
 > & {
   age: number | "";
@@ -31,6 +33,7 @@ type AnalysisDraft = Omit<
   height: number | "";
   weight: number | "";
   bodyFatPercentage: number | "";
+  bodyType: BodyType | "";
   fitnessLevel: number | "";
   poolLength: AnalysisInput["poolLength"] | "";
   canSwim400m: boolean;
@@ -54,6 +57,7 @@ const EMPTY_ANALYSIS_INPUT: AnalysisDraft = {
   height: "",
   weight: "",
   bodyFatPercentage: "",
+  bodyType: "",
   fitnessLevel: "",
   poolLength: "",
   canSwim400m: true,
@@ -104,7 +108,7 @@ const FITNESS_LEVEL_OPTIONS = [
 ] as const;
 
 export type InitialAnalysisInput = Partial<
-  Pick<AnalysisDraft, "name" | "age" | "gender" | "height" | "weight" | "bodyFatPercentage" | "fitnessLevel">
+  Pick<AnalysisDraft, "name" | "age" | "gender" | "height" | "weight" | "bodyFatPercentage" | "bodyType" | "fitnessLevel">
 >;
 
 const PENDING_ANALYSIS_STORAGE_KEY = "pending-analysis-input";
@@ -117,6 +121,7 @@ const DATA_STEP_FIELDS = [
   "height",
   "weight",
   "bodyFatPercentage",
+  "bodyType",
   "fitnessLevel",
   "poolLength",
   "canSwim400m",
@@ -137,6 +142,7 @@ const FIELD_LABELS = {
   height: "Größe",
   weight: "Gewicht",
   bodyFatPercentage: "KFA",
+  bodyType: "Körperbautyp",
   fitnessLevel: "Fitnesslevel",
   poolLength: "Becken",
   canSwim400m: "400 m am Stück",
@@ -175,7 +181,7 @@ export function AnalysisFlow({
     ...EMPTY_ANALYSIS_INPUT,
     ...initialInput,
   }));
-  const [bodyFatInputMode, setBodyFatInputMode] = useState<BodyFatInputMode>(initialInput?.bodyFatPercentage ? "manual" : "visual");
+  const [bodyFatInputMode, setBodyFatInputMode] = useState<BodyFatInputMode>("visual");
   const [message, setMessage] = useState<string | null>(null);
   const [validationScope, setValidationScope] = useState<"data" | "all" | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -764,14 +770,14 @@ function DataStep({
             </div>
             <div className="grid grid-cols-2 gap-1 rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-1 text-sm">
               <SegmentButton
-                label="Eingeben"
-                active={bodyFatInputMode === "manual"}
-                onClick={() => setBodyFatInputMode("manual")}
-              />
-              <SegmentButton
                 label="Visuell"
                 active={bodyFatInputMode === "visual"}
                 onClick={() => setBodyFatInputMode("visual")}
+              />
+              <SegmentButton
+                label="Eingeben"
+                active={bodyFatInputMode === "manual"}
+                onClick={() => setBodyFatInputMode("manual")}
               />
             </div>
           </div>
@@ -784,10 +790,26 @@ function DataStep({
             <BodyFatVisualSelector
               sex={bodyFatSex}
               value={input.bodyFatPercentage}
+              bodyType={input.bodyType || null}
               onSexChange={(nextSex) => update({ gender: nextSex === "male" ? "maennlich" : "weiblich" })}
               onValueChange={(value) => update({ bodyFatPercentage: value })}
             />
           )}
+
+          <div className="mt-6 border-t border-[var(--line)] pt-5">
+            <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--subtle)]">Körperbautyp</p>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--muted)]">
+              Wähle den Bau, der deinem Körper am nächsten kommt. Er passt die visuelle Darstellung an.
+            </p>
+            <div className="mt-4">
+              <BodyTypeSelector
+                sex={bodyFatSex}
+                value={input.bodyType}
+                onChange={(bodyType) => update({ bodyType })}
+              />
+            </div>
+            <FieldErrorMessage message={validation.fieldErrors.bodyType} />
+          </div>
         </div>
       </div>
 

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { AnalysisAttribution } from "@/components/analysis-attribution";
 import { AppHeader } from "@/components/app-header";
 import { Button } from "@/components/button";
+import { parseBodyType } from "@/lib/body-type";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { AvatarUploader } from "./avatar-uploader";
 import { ProfileForm } from "./profile-form";
@@ -16,6 +17,7 @@ type ProfileData = {
   height_cm?: number | null;
   weight_kg?: number | null;
   body_fat_percentage?: number | string | null;
+  body_type?: string | null;
   fitness_level?: number | null;
   vo2max?: number | string | null;
   vlamax?: number | string | null;
@@ -183,6 +185,7 @@ export default async function ProfilePage() {
           heightCm={profile?.height_cm ?? null}
           weightKg={profile?.weight_kg ?? null}
           bodyFatPercentage={toNullableNumber(profile?.body_fat_percentage)}
+          bodyType={parseBodyType(profile?.body_type) ?? null}
           fitnessLevel={profile?.fitness_level ?? null}
           vo2max={toNullableNumber(profile?.vo2max)}
           vlamax={toNullableNumber(profile?.vlamax)}

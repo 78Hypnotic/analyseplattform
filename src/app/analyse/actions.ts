@@ -90,6 +90,7 @@ export async function createAnalysis(
         height_cm: parsed.height,
         weight_kg: parsed.weight,
         body_fat_percentage: parsed.bodyFatPercentage ?? null,
+        body_type: parsed.bodyType ?? null,
         fitness_level: parsed.fitnessLevel ?? null,
       })
       .eq("id", context.athleteId)
