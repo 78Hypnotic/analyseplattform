@@ -1,4 +1,5 @@
-import { CalendarCheck2, RefreshCcw } from "lucide-react";
+import { CalendarCheck2, RefreshCcw, Sparkles, Waves } from "lucide-react";
+import { ButtonLink } from "@/components/button";
 import { formatPace, isTechniqueOnlyResult } from "@/lib/analysis/calculations";
 import type {
   AnalysisInput,
@@ -8,19 +9,120 @@ import type {
   TechniqueOnlyAnalysisResult,
   TestMetrics,
 } from "@/lib/analysis/types";
+import type { TrainingPlanPreview } from "@/lib/training-plans/types";
 
 export function ReportView({
   input,
   result,
+  trainingPlanPreview,
 }: {
   input: AnalysisInput;
   result: AnalysisResult;
+  trainingPlanPreview?: TrainingPlanPreview | null;
 }) {
   if (isTechniqueOnlyResult(result)) {
+    if (!result.test50 && !result.test200) {
+      return <BeginnerReportView input={input} result={result} trainingPlanPreview={trainingPlanPreview} />;
+    }
+
     return <TechniqueOnlyReportView input={input} result={result} />;
   }
 
   return <StandardReportView input={input} result={result} />;
+}
+
+/**
+ * Ohne Testzeiten gibt es keine belastbaren Metriken, deshalb führt der Report direkt zum Anfängerplan.
+ */
+function BeginnerReportView({
+  input,
+  result,
+  trainingPlanPreview,
+}: {
+  input: AnalysisInput;
+  result: TechniqueOnlyAnalysisResult;
+  trainingPlanPreview?: TrainingPlanPreview | null;
+}) {
+  const firstName = input.name.trim().split(" ")[0] ?? input.name;
+  const sessionsPerWeek = input.swimSessionsPerWeek ?? result.plan.swimSessionsPerWeek ?? 3;
+  const planTitle = trainingPlanPreview?.title ?? result.plan.name;
+  const planFocus = trainingPlanPreview?.focus ?? getPublicTrainingFocus(result.plan.slug, result.plan.name);
+  const planWeeks = trainingPlanPreview?.weeks ?? result.plan.weeks;
+  const planSummary =
+    trainingPlanPreview?.summary ??
+    "Wasserlage, Atmung und ruhige Wiederholungen. Der Plan führt dich Schritt für Schritt zu 400 m am Stück.";
+  const firstSteps = result.issues[0];
+
+  return (
+    <div className="space-y-6">
+      <section className="surface p-6">
+        <p className="mono flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-[var(--accent)]">
+          <Waves size={14} aria-hidden="true" />
+          Willkommen
+        </p>
+        <h1 className="mt-4 max-w-3xl text-3xl font-semibold tracking-tight sm:text-5xl">
+          Schön, dass du mit dem Schwimmen anfängst, {firstName}.
+        </h1>
+        <p className="muted mt-4 max-w-2xl leading-7">
+          Zahlen wie CSS oder Pace bringen dir jetzt noch nichts. Zuerst geht es um Wasserlage, Atmung und
+          Sicherheit im Becken. Genau dafür ist dein Einstiegsplan gemacht.
+        </p>
+        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+          <MiniFact label="Dein Plan" value={planTitle} />
+          <MiniFact label="Dauer" value={`${planWeeks} Wochen`} />
+          <MiniFact label="Einheiten/Woche" value={String(sessionsPerWeek)} />
+        </div>
+      </section>
+
+      {firstSteps ? (
+        <section className="surface p-5">
+          <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--subtle)]">Dein erster Schritt</p>
+          <h2 className="mt-2 text-2xl font-semibold">{firstSteps.title}</h2>
+          <p className="muted mt-3 max-w-3xl leading-7">{firstSteps.cause}</p>
+          <div className="mt-5 grid gap-3 md:grid-cols-2">
+            <BeginnerStep label="Fokus" value={firstSteps.cue} />
+            <BeginnerStep label="Übung" value={firstSteps.drill} />
+          </div>
+        </section>
+      ) : null}
+
+      <section className="surface border-[color-mix(in_oklab,var(--accent)_42%,var(--line))] p-6">
+        <p className="mono flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-[var(--accent)]">
+          <Sparkles size={14} aria-hidden="true" />
+          Trainingsplan
+        </p>
+        <h2 className="mt-3 text-2xl font-semibold sm:text-3xl">{planTitle}</h2>
+        <p className="muted mt-3 max-w-3xl leading-7">{planSummary}</p>
+        {trainingPlanPreview?.preview ? (
+          <p className="mt-4 max-w-3xl rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-4 text-sm leading-6 text-[var(--muted)]">
+            {trainingPlanPreview.preview}
+          </p>
+        ) : null}
+        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+          <MiniFact label="Fokus" value={planFocus} />
+          <MiniFact label="Umfang" value={`${planWeeks} Wochen · ${sessionsPerWeek}x/Woche`} />
+          <MiniFact label="Ziel" value="400 m am Stück" />
+        </div>
+        <div className="no-print mt-6 flex flex-wrap items-center gap-3">
+          <ButtonLink href="/#preise" variant="primary">
+            Anfängerplan freischalten
+          </ButtonLink>
+          <ButtonLink href="/analyse/new" variant="ghost">
+            Später erneut testen
+          </ButtonLink>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function BeginnerStep({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-4">
+      <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--subtle)]">{label}</p>
+      <p className="mt-2 text-sm leading-6">{value}</p>
+    </div>
+  );
 }
 
 function StandardReportView({

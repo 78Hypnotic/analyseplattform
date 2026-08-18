@@ -94,9 +94,11 @@ describe("ReportView", () => {
 
     render(<ReportView input={input} result={result} />);
 
-    expect(screen.getByRole("heading", { name: "Erst Technik stabilisieren, dann physiologisch auswerten." })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: /Schön, dass du mit dem Schwimmen anfängst/i })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Anfängerplan freischalten" })).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: /Deine CSS beträgt/i })).toBeNull();
     expect(screen.queryByText("Schwimm-Mechanik")).toBeNull();
-    expect(screen.getByText("Expertenmodus / Details")).toBeTruthy();
+    expect(screen.queryByText("Expertenmodus / Details")).toBeNull();
   });
 
   it("renders stored legacy standard reports without newer optional fields", () => {
