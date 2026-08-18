@@ -1,4 +1,4 @@
-import { CalendarCheck2, RefreshCcw, Sparkles, Waves } from "lucide-react";
+import { CalendarCheck2, RefreshCcw, Waves } from "lucide-react";
 import { ButtonLink } from "@/components/button";
 import { formatPace, isTechniqueOnlyResult } from "@/lib/analysis/calculations";
 import type {
@@ -10,6 +10,9 @@ import type {
   TestMetrics,
 } from "@/lib/analysis/types";
 import type { TrainingPlanPreview } from "@/lib/training-plans/types";
+
+const BEGINNER_PLAN_PRICE = "29,99";
+const BEGINNER_PLAN_WEEKS = 8;
 
 export function ReportView({
   input,
@@ -47,7 +50,6 @@ function BeginnerReportView({
   const sessionsPerWeek = input.swimSessionsPerWeek ?? result.plan.swimSessionsPerWeek ?? 3;
   const planTitle = trainingPlanPreview?.title ?? result.plan.name;
   const planFocus = trainingPlanPreview?.focus ?? getPublicTrainingFocus(result.plan.slug, result.plan.name);
-  const planWeeks = trainingPlanPreview?.weeks ?? result.plan.weeks;
   const planSummary =
     trainingPlanPreview?.summary ??
     "Wasserlage, Atmung und ruhige Wiederholungen. Der Plan führt dich Schritt für Schritt zu 400 m am Stück.";
@@ -67,11 +69,6 @@ function BeginnerReportView({
           Zahlen wie CSS oder Pace bringen dir jetzt noch nichts. Zuerst geht es um Wasserlage, Atmung und
           Sicherheit im Becken. Genau dafür ist dein Einstiegsplan gemacht.
         </p>
-        <div className="mt-5 grid gap-3 sm:grid-cols-3">
-          <MiniFact label="Dein Plan" value={planTitle} />
-          <MiniFact label="Dauer" value={`${planWeeks} Wochen`} />
-          <MiniFact label="Einheiten/Woche" value={String(sessionsPerWeek)} />
-        </div>
       </section>
 
       {firstSteps ? (
@@ -79,18 +76,14 @@ function BeginnerReportView({
           <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--subtle)]">Dein erster Schritt</p>
           <h2 className="mt-2 text-2xl font-semibold">{firstSteps.title}</h2>
           <p className="muted mt-3 max-w-3xl leading-7">{firstSteps.cause}</p>
-          <div className="mt-5 grid gap-3 md:grid-cols-2">
-            <BeginnerStep label="Fokus" value={firstSteps.cue} />
-            <BeginnerStep label="Übung" value={firstSteps.drill} />
-          </div>
+          <p className="mt-5 max-w-3xl border-l-2 border-[var(--accent)] pl-4 text-lg leading-8">
+            {firstSteps.cue}
+          </p>
         </section>
       ) : null}
 
       <section className="surface border-[color-mix(in_oklab,var(--accent)_42%,var(--line))] p-6">
-        <p className="mono flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-[var(--accent)]">
-          <Sparkles size={14} aria-hidden="true" />
-          Trainingsplan
-        </p>
+        <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--accent)]">Trainingsplan</p>
         <h2 className="mt-3 text-2xl font-semibold sm:text-3xl">{planTitle}</h2>
         <p className="muted mt-3 max-w-3xl leading-7">{planSummary}</p>
         {trainingPlanPreview?.preview ? (
@@ -100,27 +93,27 @@ function BeginnerReportView({
         ) : null}
         <div className="mt-5 grid gap-3 sm:grid-cols-3">
           <MiniFact label="Fokus" value={planFocus} />
-          <MiniFact label="Umfang" value={`${planWeeks} Wochen · ${sessionsPerWeek}x/Woche`} />
+          <MiniFact label="Umfang" value={`${BEGINNER_PLAN_WEEKS} Wochen · ${sessionsPerWeek}x/Woche`} />
           <MiniFact label="Ziel" value="400 m am Stück" />
         </div>
-        <div className="no-print mt-6 flex flex-wrap items-center gap-3">
-          <ButtonLink href="/#preise" variant="primary">
-            Anfängerplan freischalten
-          </ButtonLink>
-          <ButtonLink href="/analyse/new" variant="ghost">
-            Später erneut testen
-          </ButtonLink>
+        <div className="mt-6 flex flex-col gap-4 border-t border-[var(--line)] pt-6 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--subtle)]">Preis</p>
+            <p className="mt-2 text-4xl font-semibold tracking-tight">
+              {BEGINNER_PLAN_PRICE}<span className="ml-1 text-base text-[var(--subtle)]">EUR</span>
+            </p>
+            <p className="muted mt-1 text-sm">Einmalig für {BEGINNER_PLAN_WEEKS} Wochen Einstiegsplan</p>
+          </div>
+          <div className="no-print flex flex-wrap items-center gap-3">
+            <ButtonLink href="/#preise" variant="primary">
+              Anfängerplan freischalten
+            </ButtonLink>
+            <ButtonLink href="/analyse/new" variant="ghost">
+              Später erneut testen
+            </ButtonLink>
+          </div>
         </div>
       </section>
-    </div>
-  );
-}
-
-function BeginnerStep({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-4">
-      <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--subtle)]">{label}</p>
-      <p className="mt-2 text-sm leading-6">{value}</p>
     </div>
   );
 }
