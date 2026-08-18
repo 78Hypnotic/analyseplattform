@@ -54,7 +54,12 @@ export default async function ReportPreviewPage({
   }
 
   const mode = Array.isArray(params?.mode) ? params.mode[0] : params?.mode;
-  const input = mode === "technique" ? buildTechniqueOnlyInput() : STANDARD_REPORT_INPUT;
+  const input =
+    mode === "beginner"
+      ? buildBeginnerInput()
+      : mode === "technique"
+        ? buildTechniqueOnlyInput()
+        : STANDARD_REPORT_INPUT;
   const result = runAnalysis(input);
 
   if (!result) notFound();
@@ -70,6 +75,22 @@ function buildTechniqueOnlyInput(): AnalysisInput {
   return {
     ...STANDARD_REPORT_INPUT,
     canSwim400m: false,
+    t400: "",
+    s400: undefined,
+  };
+}
+
+function buildBeginnerInput(): AnalysisInput {
+  return {
+    ...STANDARD_REPORT_INPUT,
+    canSwim400m: false,
+    level: "Einsteiger",
+    goal: "Kraulen lernen",
+    targetDistance: "Becken",
+    t50: "",
+    s50: undefined,
+    t200: "",
+    s200: undefined,
     t400: "",
     s400: undefined,
   };

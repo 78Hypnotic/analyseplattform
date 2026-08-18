@@ -53,7 +53,6 @@ function BeginnerReportView({
   const planSummary =
     trainingPlanPreview?.summary ??
     "Wasserlage, Atmung und ruhige Wiederholungen. Der Plan führt dich Schritt für Schritt zu 400 m am Stück.";
-  const firstSteps = result.issues[0];
 
   return (
     <div className="space-y-6">
@@ -71,16 +70,19 @@ function BeginnerReportView({
         </p>
       </section>
 
-      {firstSteps ? (
-        <section className="surface p-5">
-          <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--subtle)]">Dein erster Schritt</p>
-          <h2 className="mt-2 text-2xl font-semibold">{firstSteps.title}</h2>
-          <p className="muted mt-3 max-w-3xl leading-7">{firstSteps.cause}</p>
-          <p className="mt-5 max-w-3xl border-l-2 border-[var(--accent)] pl-4 text-lg leading-8">
-            {firstSteps.cue}
-          </p>
-        </section>
-      ) : null}
+      <section className="surface p-5">
+        <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--subtle)]">Dein Ziel</p>
+        <h2 className="mt-2 text-2xl font-semibold">400 m am Stück – gut machbar in {BEGINNER_PLAN_WEEKS} Wochen</h2>
+        <p className="muted mt-3 max-w-3xl leading-7">
+          Fast alle schaffen das schneller als gedacht, sobald die Technik stimmt. Darauf zahlen deine ersten
+          Einheiten ein:
+        </p>
+        <div className="mt-5 grid gap-3 md:grid-cols-3">
+          <BeginnerFocus title="Ruhig atmen" text="Gleichmäßig ins Wasser ausatmen nimmt Hektik aus jeder Bahn." />
+          <BeginnerFocus title="Hoch liegen" text="Kopf tief, Blick nach unten: Die Beine kommen von allein nach oben." />
+          <BeginnerFocus title="Länge vor Tempo" text="Lieber wenige lange Züge als viel Kraft. Das spart Energie." />
+        </div>
+      </section>
 
       <section className="surface border-[color-mix(in_oklab,var(--accent)_42%,var(--line))] p-6">
         <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--accent)]">Trainingsplan</p>
@@ -95,6 +97,10 @@ function BeginnerReportView({
           <MiniFact label="Fokus" value={planFocus} />
           <MiniFact label="Umfang" value={`${BEGINNER_PLAN_WEEKS} Wochen · ${sessionsPerWeek}x/Woche`} />
           <MiniFact label="Ziel" value="400 m am Stück" />
+        </div>
+        <div className="mt-6 border-t border-[var(--line)] pt-6">
+          <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--subtle)]">So geht es weiter</p>
+          <BeginnerMilestones sessionsPerWeek={sessionsPerWeek} />
         </div>
         <div className="mt-6 flex flex-col gap-4 border-t border-[var(--line)] pt-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -115,6 +121,58 @@ function BeginnerReportView({
         </div>
       </section>
     </div>
+  );
+}
+
+function BeginnerFocus({ title, text }: { title: string; text: string }) {
+  return (
+    <div className="rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-4">
+      <p className="text-sm font-medium">{title}</p>
+      <p className="muted mt-2 text-sm leading-6">{text}</p>
+    </div>
+  );
+}
+
+function BeginnerMilestones({ sessionsPerWeek }: { sessionsPerWeek: number }) {
+  const milestones = [
+    {
+      title: "Jetzt: Einstiegsplan starten",
+      text: `${BEGINNER_PLAN_WEEKS} Wochen mit ${sessionsPerWeek} Einheiten pro Woche. Fokus auf Wasserlage, Atmung und ruhige Technik.`,
+    },
+    {
+      title: "Meilenstein: 400 m am Stück",
+      text: "Sobald du 400 m ohne Pause durchschwimmst, ist die technische Basis gelegt.",
+    },
+    {
+      title: "ReTest: 50 m, 200 m und 400 m",
+      text: "Der vollständige Schwimmtest liefert Pace, Zuglänge und Zugfrequenz.",
+    },
+    {
+      title: "Plan für Fortgeschrittene",
+      text: "Mit CSS und Leistungsprofil bekommst du einen Plan, der auf deine Werte zugeschnitten ist.",
+    },
+  ];
+
+  return (
+    <ol className="mt-4">
+      {milestones.map((milestone, index) => (
+        <li key={milestone.title} className="relative flex gap-4 pb-6 last:pb-0">
+          {index < milestones.length - 1 ? (
+            <span
+              aria-hidden="true"
+              className="absolute left-4 top-9 h-[calc(100%-2.25rem)] w-px -translate-x-1/2 bg-[var(--line)]"
+            />
+          ) : null}
+          <span className="relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full border border-[var(--accent)] bg-[var(--panel-2)] text-xs font-medium text-[var(--accent)]">
+            {index + 1}
+          </span>
+          <div className="min-w-0 pt-1">
+            <p className="text-sm font-medium">{milestone.title}</p>
+            <p className="muted mt-1 text-sm leading-6">{milestone.text}</p>
+          </div>
+        </li>
+      ))}
+    </ol>
   );
 }
 
