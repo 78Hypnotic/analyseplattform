@@ -73,6 +73,32 @@ describe("ReportView", () => {
     expect(screen.queryByText("Trainingshebel")).toBeNull();
   });
 
+  it("renders beginner reports without any swim test data", () => {
+    const input: AnalysisInput = {
+      ...STANDARD_INPUT,
+      canSwim400m: false,
+      level: "Einsteiger",
+      goal: "Kraulen lernen",
+      targetDistance: "Becken",
+      t50: "",
+      s50: undefined,
+      t200: "",
+      s200: undefined,
+      t400: "",
+      s400: undefined,
+    };
+    const result = runAnalysis(input);
+    if (!result || result.mode !== "technique_only") {
+      throw new Error("Expected technique-only analysis result");
+    }
+
+    render(<ReportView input={input} result={result} />);
+
+    expect(screen.getByRole("heading", { name: "Erst Technik stabilisieren, dann physiologisch auswerten." })).toBeTruthy();
+    expect(screen.queryByText("Schwimm-Mechanik")).toBeNull();
+    expect(screen.getByText("Expertenmodus / Details")).toBeTruthy();
+  });
+
   it("renders stored legacy standard reports without newer optional fields", () => {
     const result = runAnalysis(STANDARD_INPUT);
     if (!result || result.mode !== "standard") {

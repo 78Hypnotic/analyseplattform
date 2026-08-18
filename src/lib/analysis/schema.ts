@@ -40,10 +40,10 @@ export const analysisInputSchema = z.object({
   canSwim400m: z.boolean().default(true),
   testType: z.enum(["water_start", "dive_start", "wall_push"]).default("wall_push"),
   equipment: z.enum(["ohne", "pullbuoy", "neo", "paddles"]).default("ohne"),
-  t50: timeSchema,
+  t50: optionalTimeSchema,
   s50: optionalPositiveStrokeSchema,
-  t200: timeSchema,
-  s200: z.coerce.number().positive().max(80),
+  t200: optionalTimeSchema,
+  s200: optionalPositiveStrokeSchema,
   t400: optionalTimeSchema,
   s400: optionalPositiveStrokeSchema,
   goal: z.enum(["Kraulen lernen", "Beckenschwimmen", "Freiwasserschwimmen", "Triathlon"]),
@@ -68,6 +68,30 @@ export const analysisInputSchema = z.object({
   }
 
   if (!input.canSwim400m) return;
+
+  if (!input.t50) {
+    context.addIssue({
+      code: "custom",
+      path: ["t50"],
+      message: "50 m Zeit ist Pflicht, wenn 400 m am Stück möglich sind.",
+    });
+  }
+
+  if (!input.t200) {
+    context.addIssue({
+      code: "custom",
+      path: ["t200"],
+      message: "200 m Zeit ist Pflicht, wenn 400 m am Stück möglich sind.",
+    });
+  }
+
+  if (input.s200 === undefined) {
+    context.addIssue({
+      code: "custom",
+      path: ["s200"],
+      message: "Züge pro Bahn für 200 m sind Pflicht, wenn 400 m am Stück möglich sind.",
+    });
+  }
 
   if (!input.t400) {
     context.addIssue({

@@ -132,14 +132,14 @@ export function runAnalysis(input: AnalysisInput): AnalysisResult | null {
   const t200 = parseTime(input.t200);
   const t400 = parseTime(input.t400);
   const test50 = computeSprintTest(t50, input.s50, input.poolLength);
-  const test200 = computeTest(200, t200, input.s200, input.poolLength);
+  const test200 =
+    input.s200 !== undefined ? computeTest(200, t200, input.s200, input.poolLength) : null;
   const test400 =
     input.canSwim400m && input.s400 !== undefined
       ? computeTest(400, t400, input.s400, input.poolLength)
       : null;
 
-  if (!test50 || !test200) return null;
-  if (input.canSwim400m && !test400) return null;
+  if (input.canSwim400m && (!test50 || !test200 || !test400)) return null;
 
   const techniqueGate = evaluateTechniqueGate(input, test400);
   const targetDistance = input.targetDistance ?? inferTargetDistance(input.goal);
@@ -150,8 +150,8 @@ export function runAnalysis(input: AnalysisInput): AnalysisResult | null {
   if (techniqueGate.status === "rot") {
     return buildTechniqueOnlyResult({
       input,
-      test50,
-      test200,
+      test50: test50 ?? undefined,
+      test200: test200 ?? undefined,
       test400: test400 ?? undefined,
       techniqueGate,
       targetDistance,
@@ -161,6 +161,7 @@ export function runAnalysis(input: AnalysisInput): AnalysisResult | null {
     });
   }
 
+  if (!test50 || !test200) return null;
   if (!test400 || test400.pace <= test200.pace) return null;
 
   const comparison = {
@@ -347,8 +348,8 @@ function buildTechniqueOnlyResult({
   styleProfile,
 }: {
   input: AnalysisInput;
-  test50: SprintMetrics;
-  test200: TestMetrics;
+  test50?: SprintMetrics;
+  test200?: TestMetrics;
   test400?: TestMetrics;
   techniqueGate: TechniqueGateResult;
   targetDistance: TargetDistance;
@@ -358,6 +359,7 @@ function buildTechniqueOnlyResult({
 }): TechniqueOnlyAnalysisResult {
   const basePlan = pickBeginnerTechniquePlan();
   const derivedWeeks = derivePlanLength(basePlan.weeks, swimSessionsPerWeek, input.raceDate);
+  const hasTestData = Boolean(test50 || test200);
 
   return {
     mode: "technique_only",
@@ -368,8 +370,10 @@ function buildTechniqueOnlyResult({
     sprintReserve: null,
     strengths: [
       {
-        title: "Testbasis angelegt",
-        description: `50 m und 200 m sind erfasst. Damit kann der Technikblock sauber gesteuert werden.`,
+        title: hasTestData ? "Testbasis angelegt" : "Startpunkt steht fest",
+        description: hasTestData
+          ? `50 m und 200 m sind erfasst. Damit kann der Technikblock sauber gesteuert werden.`
+          : "Ohne belastbare Testzeiten startet der Aufbau direkt mit dem Technikfundament.",
       },
       {
         title: "Klarer nächster Schritt",
@@ -926,8 +930,9 @@ function referenceSex(gender: Gender): Exclude<Gender, "divers"> | null {
   return gender === "divers" ? null : gender;
 }
 
-function pickStyle(input: AnalysisInput, test200: TestMetrics): string {
+function pickStyle(input: AnalysisInput, test200: TestMetrics | null): string {
   if (input.level === "Einsteiger") return "Der Mühelose";
+  if (!test200) return "Der Mühelose";
   if (input.level === "Ambitioniert" && test200.sr > 48) return "Die Windmühle";
   if (input.level === "Leistungsschwimmer") return "Der Galopper";
   return "Der Gleiter";

@@ -180,6 +180,33 @@ describe("swim analysis calculations", () => {
     expect(result?.plan.slug).toBe("wasserlage-balance");
   });
 
+  it("creates a beginner report without any swim times", () => {
+    const beginnerInput = {
+      ...DEFAULT_ANALYSIS_INPUT,
+      canSwim400m: false,
+      level: "Einsteiger" as const,
+      goal: "Kraulen lernen" as const,
+      targetDistance: "Becken" as const,
+      challenges: [],
+      t50: "",
+      s50: undefined,
+      t200: "",
+      s200: undefined,
+      t400: "",
+      s400: undefined,
+    };
+
+    expect(analysisInputSchema.safeParse(beginnerInput).success).toBe(true);
+
+    const result = runAnalysis(beginnerInput);
+
+    expect(result?.mode).toBe("technique_only");
+    expect(result?.techniqueGate.reason).toBe("cannot_swim_400m");
+    expect(result?.test50).toBeUndefined();
+    expect(result?.test200).toBeUndefined();
+    expect(result?.plan.slug).toBe("wasserlage-balance");
+  });
+
   it("blocks standard diagnostics when equipment is used", () => {
     const result = runAnalysis({
       ...DEFAULT_ANALYSIS_INPUT,

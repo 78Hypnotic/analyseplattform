@@ -92,7 +92,14 @@ function TechniqueOnlyReportView({
         <p className="muted mt-4 max-w-2xl leading-7">{result.techniqueGate.message}</p>
         <div className="mt-5 grid gap-3 sm:grid-cols-3">
           <MiniFact label="Technikklasse" value={result.techniqueGate.techniqueClass ?? "Technik-Gate"} />
-          <MiniFact label="200 m Pace" value={formatPace(result.test200.pace)} />
+          <MiniFact
+            label={result.test200 ? "200 m Pace" : "Einheiten/Woche"}
+            value={
+              result.test200
+                ? formatPace(result.test200.pace)
+                : String(input.swimSessionsPerWeek ?? result.plan.swimSessionsPerWeek ?? 3)
+            }
+          />
           <MiniFact label="Fokus" value={getPublicTrainingFocus(result.plan.slug, result.plan.name)} />
         </div>
       </section>
@@ -165,6 +172,7 @@ function CapacityBar({ label, score, value, text }: { label: string; score: numb
 
 function SwimMechanicsCard({ result }: { result: AnalysisResult }) {
   const metrics = getPrimaryMechanics(result);
+  if (!metrics) return null;
 
   return (
     <section className="surface p-5">
@@ -248,10 +256,10 @@ function ExpertDetails({ input, result }: { input: AnalysisInput; result: Analys
           <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--subtle)]">Rohdaten</p>
           <div className="mt-4 grid gap-3 md:grid-cols-3">
             <DetailItem label="50 m Zeit" value={input.t50 || "nicht erfasst"} />
-            <DetailItem label="200 m Zeit" value={input.t200} />
+            <DetailItem label="200 m Zeit" value={input.t200 || "nicht erfasst"} />
             <DetailItem label="400 m Zeit" value={input.t400 || "nicht erfasst"} />
             <DetailItem label="Züge 50 m" value={input.s50 ? String(input.s50) : "nicht erfasst"} />
-            <DetailItem label="Züge 200 m" value={String(input.s200)} />
+            <DetailItem label="Züge 200 m" value={input.s200 ? String(input.s200) : "nicht erfasst"} />
             <DetailItem label="Züge 400 m" value={input.s400 ? String(input.s400) : "nicht erfasst"} />
             <DetailItem label="KFA" value={input.bodyFatPercentage ? `${input.bodyFatPercentage} %` : "nicht erfasst"} />
             <DetailItem label="Fitnesslevel" value={fitnessLevel ? `${fitnessLevel}/5` : "nicht erfasst"} />
@@ -372,6 +380,7 @@ function DetailItem({ label, value }: { label: string; value: string }) {
 
 function getPrimaryMechanics(result: AnalysisResult) {
   const raw = result.test400 ?? result.test200;
+  if (!raw) return null;
 
   return {
     raw,

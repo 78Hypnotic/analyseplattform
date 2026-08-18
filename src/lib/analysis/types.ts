@@ -90,10 +90,10 @@ export type AnalysisInput = {
   canSwim400m: boolean;
   testType: SwimTestType;
   equipment: SwimEquipment;
-  t50: string;
+  t50?: string;
   s50?: number;
-  t200: string;
-  s200: number;
+  t200?: string;
+  s200?: number;
   t400?: string;
   s400?: number;
   goal: SwimGoal;
@@ -143,8 +143,8 @@ type AnalysisPlan = {
 type AnalysisBaseResult = {
   mode: AnalysisMode;
   techniqueGate: TechniqueGateResult;
-  test50: SprintMetrics;
-  test200: TestMetrics;
+  test50?: SprintMetrics;
+  test200?: TestMetrics;
   strengths: Array<{ title: string; description: string }>;
   issues: Array<{
     tag: string;
@@ -169,6 +169,7 @@ type AnalysisBaseResult = {
 
 export type StandardAnalysisResult = AnalysisBaseResult & {
   mode: "standard";
+  test50: SprintMetrics;
   test200: TestMetrics;
   test400: TestMetrics;
   comparison: {

@@ -12,8 +12,13 @@ geschwommen werden muss. Das Feld `equipment` bleibt für alte Daten als Default
 `ohne` erhalten.
 
 Die Eingabe zeigt keine Technik-Gate- oder Technikklassen-Preview. Wenn 400 m
-am Stück nicht möglich sind, wird der 400-m-Test ausgeblendet und erst der
-Report erklärt den Technik-only-Modus.
+am Stück nicht möglich sind, entfallen sämtliche Testzeiten (50 m, 200 m und
+400 m). Nur das Athletenprofil wird erfasst, der Kontextschritt wird
+übersprungen und mit Defaults belegt (`goal: Kraulen lernen`,
+`targetDistance: Becken`, `swimSessionsPerWeek: 3`, `level: Einsteiger`,
+keine Challenges). Der Report erklärt danach den Technik-only-Modus und zeigt
+den Anfängerplan; ohne Session führt der Weg vorher über das Login-Gate
+(`/login?next=/analyse/new?resume=1`).
 
 ## Analysemodi
 
@@ -60,7 +65,8 @@ eingeklappten Expertenmodus.
 
 Technique-only Reports zeigen keine CSS-Hauptbotschaft. Sie erklären zuerst,
 warum die physiologische Auswertung blockiert ist, und führen den Athleten zu
-Technikfokus, Schwimm-Mechanik, Trainingshebel und ReTest.
+Technikfokus, Schwimm-Mechanik, Trainingshebel und ReTest. Liegen gar keine
+Testzeiten vor, entfällt zusätzlich die Schwimm-Mechanik-Karte.
 
 ## Planempfehlung
 

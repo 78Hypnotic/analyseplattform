@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { AlertTriangle, ArrowRight, Check, Loader2, Lock, UserRound } from "lucide-react";
@@ -109,6 +109,7 @@ export type InitialAnalysisInput = Partial<
 
 const PENDING_ANALYSIS_STORAGE_KEY = "pending-analysis-input";
 const PENDING_ANALYSIS_NEXT_PATH = "/analyse/new?resume=1";
+const BEGINNER_SWIM_SESSIONS_PER_WEEK = 3;
 const DATA_STEP_FIELDS = [
   "name",
   "age",
@@ -179,13 +180,15 @@ export function AnalysisFlow({
   const [validationScope, setValidationScope] = useState<"data" | "all" | null>(null);
   const [isPending, startTransition] = useTransition();
   const resumeStarted = useRef(false);
+  const isBeginnerPath = !input.canSwim400m;
+  const effectiveInput = useMemo(() => applyBeginnerDefaults(input), [input]);
   const parsedInput = useMemo(() => {
-    const parsed = analysisInputSchema.safeParse(input);
+    const parsed = analysisInputSchema.safeParse(effectiveInput);
     return parsed.success ? parsed.data : null;
-  }, [input]);
+  }, [effectiveInput]);
   const result = useMemo(() => (parsedInput ? runAnalysis(parsedInput) : null), [parsedInput]);
-  const validationMessages = useMemo(() => getAnalysisValidationMessages(input), [input]);
-  const validationResult = useMemo(() => getAnalysisValidationResult(input), [input]);
+  const validationMessages = useMemo(() => getAnalysisValidationMessages(effectiveInput), [effectiveInput]);
+  const validationResult = useMemo(() => getAnalysisValidationResult(effectiveInput), [effectiveInput]);
   const visibleValidation = useMemo(
     () => getVisibleValidationResult(validationResult, validationScope),
     [validationResult, validationScope],
@@ -197,7 +200,7 @@ export function AnalysisFlow({
   }
 
   function goToContext() {
-    const dataValidation = filterValidationResult(getAnalysisValidationResult(input), DATA_STEP_FIELDS);
+    const dataValidation = filterValidationResult(getAnalysisValidationResult(effectiveInput), DATA_STEP_FIELDS);
     setValidationScope("data");
 
     if (dataValidation.messages.length > 0) {
@@ -237,7 +240,7 @@ export function AnalysisFlow({
     setMessage(null);
     setValidationScope("all");
 
-    const currentValidation = getAnalysisValidationResult(input);
+    const currentValidation = getAnalysisValidationResult(effectiveInput);
     if (currentValidation.messages.length > 0) {
       const firstInvalidField = getFirstInvalidField(currentValidation.fieldErrors);
       if (firstInvalidField && DATA_STEP_FIELD_SET.has(firstInvalidField)) {
@@ -247,7 +250,7 @@ export function AnalysisFlow({
       return;
     }
 
-    const parsed = analysisInputSchema.safeParse(input);
+    const parsed = analysisInputSchema.safeParse(effectiveInput);
     if (!parsed.success) return;
 
     startTransition(async () => {
@@ -274,7 +277,7 @@ export function AnalysisFlow({
             {analysisId ? "Analyse bearbeiten" : athleteId ? "Neue Athletenanalyse" : "Neue Analyse"}
           </p>
           <h1 className="mt-2 text-3xl font-semibold">
-            {["Testdaten", "Kontext"][step]}
+            {isBeginnerPath ? "Testdaten" : ["Testdaten", "Kontext"][step]}
           </h1>
         </div>
       </div>
@@ -284,6 +287,7 @@ export function AnalysisFlow({
         isAuthenticated={isAuthenticated}
         isSaving={isPending}
         onSelectStep={setStep}
+        skipContext={isBeginnerPath}
       />
 
       {step === 0 ? (
@@ -291,9 +295,11 @@ export function AnalysisFlow({
           input={input}
           update={update}
           validation={visibleValidation}
+          message={message}
           bodyFatInputMode={bodyFatInputMode}
           setBodyFatInputMode={setBodyFatInputMode}
-          next={goToContext}
+          next={isBeginnerPath ? save : goToContext}
+          nextLabel={isBeginnerPath ? "Report erstellen" : "Weiter"}
           isPending={isPending}
         />
       ) : null}
@@ -354,45 +360,49 @@ function AnalysisProgress({
   isAuthenticated,
   isSaving,
   onSelectStep,
+  skipContext,
 }: {
   currentStep: number;
   isAuthenticated: boolean;
   isSaving: boolean;
   onSelectStep: (step: number) => void;
+  skipContext: boolean;
 }) {
-  const steps = [
-    { label: "Daten", action: () => onSelectStep(0) },
-    { label: "Kontext", action: () => onSelectStep(1) },
-    { label: "Report" },
-  ];
-  const activeStep = isSaving && isAuthenticated ? 2 : currentStep;
+  const steps = skipContext
+    ? [{ label: "Daten", action: () => onSelectStep(0) }, { label: "Report" }]
+    : [
+        { label: "Daten", action: () => onSelectStep(0) },
+        { label: "Kontext", action: () => onSelectStep(1) },
+        { label: "Report" },
+      ];
+  const reportIndex = steps.length - 1;
+  const activeStep = isSaving && isAuthenticated ? reportIndex : currentStep;
 
   return (
     <nav className="surface px-4 py-4 sm:px-5" aria-label="Analysefortschritt">
-      <ol className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:gap-3">
+      <ol
+        className={
+          skipContext
+            ? "grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:gap-3"
+            : "grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:gap-3"
+        }
+      >
         {steps.map((item, index) => (
-          <StepItem
-            key={item.label}
-            label={item.label}
-            index={index}
-            isActive={activeStep === index}
-            isComplete={activeStep > index}
-            onClick={item.action}
-          />
-        )).flatMap((item, index) => {
-          if (index === 0) return [item, <StepConnector key="connector-data-context" isActive={activeStep > 0} />];
-          if (index === 1) {
-            return [
-              item,
-              <AccountGate
-                key="connector-data-report"
-                isAuthenticated={isAuthenticated}
-                isActive={isSaving || activeStep > 1}
-              />,
-            ];
-          }
-          return [item];
-        })}
+          <Fragment key={item.label}>
+            {index === 0 ? null : index === reportIndex ? (
+              <AccountGate isAuthenticated={isAuthenticated} isActive={isSaving || activeStep >= reportIndex} />
+            ) : (
+              <StepConnector isActive={activeStep >= index} />
+            )}
+            <StepItem
+              label={item.label}
+              index={index}
+              isActive={activeStep === index}
+              isComplete={activeStep > index}
+              onClick={item.action}
+            />
+          </Fragment>
+        ))}
       </ol>
     </nav>
   );
@@ -667,24 +677,28 @@ function DataStep({
   input,
   update,
   validation,
+  message,
   bodyFatInputMode,
   setBodyFatInputMode,
   next,
+  nextLabel,
   isPending,
 }: {
   input: AnalysisDraft;
   update: (patch: Partial<AnalysisDraft>) => void;
   validation: AnalysisValidationResult;
+  message: string | null;
   bodyFatInputMode: BodyFatInputMode;
   setBodyFatInputMode: (mode: BodyFatInputMode) => void;
   next: () => void;
+  nextLabel: string;
   isPending: boolean;
 }) {
   const bodyFatSex = getBodyFatSexFromGender(input.gender);
 
   return (
     <section className="space-y-6">
-      <ValidationSummary validation={validation} />
+      <ValidationSummary validation={validation} fallbackMessage={message} />
 
       <div className="surface p-5">
         <p className="mono mb-4 text-xs uppercase tracking-[0.18em] text-[var(--subtle)]">
@@ -702,7 +716,9 @@ function DataStep({
               <SegmentButton
                 label="Nein"
                 active={!input.canSwim400m}
-                onClick={() => update({ canSwim400m: false, t400: "", s400: "" })}
+                onClick={() =>
+                  update({ canSwim400m: false, t50: "", s50: "", t200: "", s200: "", t400: "", s400: "" })
+                }
               />
             </div>
           </div>
@@ -775,26 +791,26 @@ function DataStep({
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="surface min-w-0 overflow-hidden p-5">
-          <h2 className="mb-4 text-xl font-semibold">50 m Test</h2>
-          <div className="grid min-w-0 gap-4 sm:grid-cols-2">
-            <Field label="Zeit" fieldKey="t50" error={validation.fieldErrors.t50} value={input.t50} placeholder="z. B. 38.2" onChange={(value) => update({ t50: value })} />
-            <Field label="Züge pro Bahn optional" fieldKey="s50" error={validation.fieldErrors.s50} type="number" value={input.s50} placeholder="z. B. 22" onChange={(value) => update({ s50: optionalNumber(value) })} />
+      {input.canSwim400m ? (
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="surface min-w-0 overflow-hidden p-5">
+            <h2 className="mb-4 text-xl font-semibold">50 m Test</h2>
+            <div className="grid min-w-0 gap-4 sm:grid-cols-2">
+              <Field label="Zeit" fieldKey="t50" error={validation.fieldErrors.t50} value={input.t50 ?? ""} placeholder="z. B. 38.2" onChange={(value) => update({ t50: value })} />
+              <Field label="Züge pro Bahn optional" fieldKey="s50" error={validation.fieldErrors.s50} type="number" value={input.s50} placeholder="z. B. 22" onChange={(value) => update({ s50: optionalNumber(value) })} />
+            </div>
           </div>
-        </div>
-        <TestCard
-          title="200 m Test"
-          time={input.t200}
-          strokes={input.s200}
-          timeFieldKey="t200"
-          strokesFieldKey="s200"
-          timeError={validation.fieldErrors.t200}
-          strokesError={validation.fieldErrors.s200}
-          onTime={(value) => update({ t200: value })}
-          onStrokes={(value) => update({ s200: optionalNumber(value) })}
-        />
-        {input.canSwim400m ? (
+          <TestCard
+            title="200 m Test"
+            time={input.t200 ?? ""}
+            strokes={input.s200}
+            timeFieldKey="t200"
+            strokesFieldKey="s200"
+            timeError={validation.fieldErrors.t200}
+            strokesError={validation.fieldErrors.s200}
+            onTime={(value) => update({ t200: value })}
+            onStrokes={(value) => update({ s200: optionalNumber(value) })}
+          />
           <TestCard
             title="400 m Test"
             time={input.t400 ?? ""}
@@ -806,12 +822,23 @@ function DataStep({
             onTime={(value) => update({ t400: value })}
             onStrokes={(value) => update({ s400: optionalNumber(value) })}
           />
-        ) : null}
-      </div>
+        </div>
+      ) : (
+        <div className="surface p-5">
+          <p className="mono mb-3 text-xs uppercase tracking-[0.18em] text-[var(--subtle)]">
+            Einstieg
+          </p>
+          <h2 className="text-xl font-semibold">Ohne 400 m brauchen wir keine Testzeiten</h2>
+          <p className="muted mt-2 max-w-2xl leading-6">
+            Du bekommst direkt den Technikplan für den Einstieg. Sobald 400 m am Stück möglich sind,
+            liefert der vollständige Test CSS und die physiologische Auswertung.
+          </p>
+        </div>
+      )}
 
       <div className="flex justify-end">
         <Button variant="primary" onClick={next} disabled={isPending}>
-          Weiter <ArrowRight size={16} />
+          {nextLabel} <ArrowRight size={16} />
         </Button>
       </div>
     </section>
@@ -1161,6 +1188,27 @@ function getFirstInvalidField(fieldErrors: Partial<Record<AnalysisFieldKey, stri
 
 function optionalNumber(value: string) {
   return value === "" ? "" : Number(value);
+}
+
+/** Ohne 400 m am Stück entfällt der Kontextschritt, deshalb werden seine Pflichtfelder hier gesetzt. */
+function applyBeginnerDefaults(input: AnalysisDraft): AnalysisDraft {
+  if (input.canSwim400m) return input;
+
+  return {
+    ...input,
+    t50: "",
+    s50: "",
+    t200: "",
+    s200: "",
+    t400: "",
+    s400: "",
+    level: "Einsteiger",
+    goal: input.goal === "" ? "Kraulen lernen" : input.goal,
+    targetDistance: input.targetDistance === "" ? "Becken" : input.targetDistance,
+    swimSessionsPerWeek:
+      input.swimSessionsPerWeek === "" ? BEGINNER_SWIM_SESSIONS_PER_WEEK : input.swimSessionsPerWeek,
+    challenges: [],
+  };
 }
 
 function storePendingAnalysisInput(input: AnalysisInput) {

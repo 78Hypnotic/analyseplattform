@@ -93,13 +93,13 @@ function getCalculationValidationResult(input: AnalysisInput): AnalysisValidatio
   const t200 = parseTime(input.t200);
   const t400 = parseTime(input.t400);
 
-  if (!Number.isFinite(t50) || t50 <= 0) {
-    addValidationError(messages, fieldErrors, "t50", "50 m Zeit: muss größer als 0 sein.", "muss größer als 0 sein.");
-  }
-  if (!Number.isFinite(t200) || t200 <= 0) {
-    addValidationError(messages, fieldErrors, "t200", "200 m Zeit: muss größer als 0 sein.", "muss größer als 0 sein.");
-  }
   if (input.canSwim400m) {
+    if (!Number.isFinite(t50) || t50 <= 0) {
+      addValidationError(messages, fieldErrors, "t50", "50 m Zeit: muss größer als 0 sein.", "muss größer als 0 sein.");
+    }
+    if (!Number.isFinite(t200) || t200 <= 0) {
+      addValidationError(messages, fieldErrors, "t200", "200 m Zeit: muss größer als 0 sein.", "muss größer als 0 sein.");
+    }
     if (!Number.isFinite(t400) || t400 <= 0) {
       addValidationError(messages, fieldErrors, "t400", "400 m Zeit: muss größer als 0 sein.", "muss größer als 0 sein.");
     }
