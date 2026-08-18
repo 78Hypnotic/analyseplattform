@@ -91,7 +91,7 @@ export function DatePicker({
   return (
     <div className="grid min-w-0 gap-2 text-sm" data-analysis-field={fieldKey}>
       <span id={labelId}>{label}</span>
-      <div ref={containerRef} className="relative">
+      <div ref={containerRef} className="relative" data-datepicker-open={open ? "" : undefined}>
         <button
           ref={triggerRef}
           type="button"
@@ -111,7 +111,7 @@ export function DatePicker({
           <div
             role="dialog"
             aria-labelledby={labelId}
-            className="surface absolute left-0 top-full z-30 mt-2 w-[min(20rem,calc(100vw-2rem))] p-3 shadow-lg"
+            className="absolute left-0 top-full z-30 mt-2 w-[min(20rem,calc(100vw-2rem))] rounded-lg border border-[var(--line)] bg-[var(--panel)] p-3 shadow-lg"
           >
             <div className="mb-2 flex items-center justify-between gap-2">
               <button

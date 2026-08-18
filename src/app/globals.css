@@ -108,6 +108,12 @@ input[type="checkbox"] {
   border-radius: 8px;
 }
 
+/* .surface bildet durch die item-rise-Animation einen Stacking-Context, der offene Popovers hinter nachfolgende Container schieben wuerde. */
+.surface:has([data-datepicker-open]) {
+  position: relative;
+  z-index: 20;
+}
+
 .muted {
   color: var(--muted);
 }
