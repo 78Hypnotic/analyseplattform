@@ -1,4 +1,4 @@
-import { Activity, Bike, Footprints, LogOut, ShieldCheck, UsersRound, Waves } from "lucide-react";
+import { LogOut, Waves } from "lucide-react";
 import Link from "next/link";
 import { signOut } from "@/app/login/actions";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -43,27 +43,22 @@ export async function AppHeader({ userEmail }: { userEmail?: string | null }) {
           <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/#preise">
             Preise
           </Link>
-          <Link className="flex items-center gap-2 rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/analyse">
-            <Activity size={16} />
+          <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/analyse">
             Schwimmen
           </Link>
-          <Link className="flex items-center gap-2 rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/lauf">
-            <Footprints size={16} />
+          <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/lauf">
             Laufen
           </Link>
-          <Link className="flex items-center gap-2 rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/rad">
-            <Bike size={16} />
+          <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/rad">
             Radfahren
           </Link>
           {isCoach ? (
-            <Link className="flex items-center gap-2 rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/coach">
-              <UsersRound size={16} />
+            <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/coach">
               Coach
             </Link>
           ) : null}
           {isAdmin ? (
-            <Link className="flex items-center gap-2 rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/admin">
-              <ShieldCheck size={16} />
+            <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/admin">
               Admin
             </Link>
           ) : null}

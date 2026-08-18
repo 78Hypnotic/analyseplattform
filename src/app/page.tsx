@@ -83,13 +83,13 @@ function Hero({ isAuthenticated }: { isAuthenticated: boolean }) {
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <ButtonLink href="/analyse/new" variant="primary" className="h-12 px-6">
-                <Waves size={16} /> Schwimm-Analyse
+                Schwimm-Analyse
               </ButtonLink>
               <ButtonLink href="/lauf/new" variant="primary" className="h-12 px-6">
-                <Footprints size={16} /> Lauf-Analyse
+                Lauf-Analyse
               </ButtonLink>
               <ButtonLink href="/rad/new" variant="primary" className="h-12 px-6">
-                <Bike size={16} /> Rad-Analyse
+                Rad-Analyse
               </ButtonLink>
             </div>
             <p className="mono mt-4 text-xs tracking-[0.14em] text-[var(--subtle)]">
