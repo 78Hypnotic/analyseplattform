@@ -6,6 +6,7 @@ import Link from "next/link";
 import { AlertTriangle, ArrowRight, Check, Loader2, Lock, UserRound } from "lucide-react";
 import { BodyFatVisualSelector } from "@/components/body-fat-visual-selector";
 import { Button } from "@/components/button";
+import { DatePicker } from "@/components/date-picker";
 import { ReportView } from "@/components/report-view";
 import { getBodyFatSexFromGender } from "@/lib/body-fat";
 import { CHALLENGE_GROUPS, GOALS, TARGET_DISTANCES } from "@/lib/analysis/constants";
@@ -596,12 +597,10 @@ function ContextStep({
         </div>
         <FieldErrorMessage message={validation.fieldErrors.targetDistance} />
         <div className="mt-5 grid gap-4 md:grid-cols-2">
-          <Field
+          <DatePicker
             label="Wettkampfdatum (optional)"
             value={input.raceDate ?? ""}
-            placeholder="JJJJ-MM-TT"
             fieldKey="raceDate"
-            error={validation.fieldErrors.raceDate}
             onChange={(value) => update({ raceDate: value })}
           />
           <Field

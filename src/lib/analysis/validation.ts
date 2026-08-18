@@ -56,7 +56,6 @@ const FIELD_MESSAGES: Record<string, string> = {
   goal: "bitte auswählen.",
   level: "bitte auswählen.",
   targetDistance: "bitte auswählen.",
-  raceDate: "bitte als gültiges Datum eingeben.",
   swimSessionsPerWeek: "muss zwischen 1 und 7 liegen.",
   challenges: "bitte maximal 12 Einträge auswählen.",
 };
@@ -74,11 +73,7 @@ export function getAnalysisValidationResult(input: unknown): AnalysisValidationR
       const key = String(issue.path[0] ?? "");
       const field = FIELD_LABELS[key] ?? "Eingabe";
       const fieldMessage =
-        key === "raceDate"
-          ? FIELD_MESSAGES[key]
-          : issue.code === "custom"
-            ? issue.message
-            : (FIELD_MESSAGES[key] ?? issue.message);
+        issue.code === "custom" ? issue.message : (FIELD_MESSAGES[key] ?? issue.message);
       const message = `${field}: ${fieldMessage}`;
       if (isAnalysisFieldKey(key) && !fieldErrors[key]) {
         fieldErrors[key] = fieldMessage;

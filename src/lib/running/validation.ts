@@ -35,7 +35,6 @@ const FIELD_MESSAGES: Record<string, string> = {
   distance3min: "muss zwischen 200 und 2000 m liegen.",
   distance12min: "muss zwischen 600 und 8000 m liegen.",
   goal: "bitte auswählen.",
-  raceDate: "bitte als gültiges Datum eingeben.",
   runSessionsPerWeek: "muss zwischen 1 und 14 liegen.",
 };
 

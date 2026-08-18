@@ -304,15 +304,6 @@ describe("swim analysis calculations", () => {
     expect(result.fieldErrors.poolLength).toContain("25 m oder 50 m");
   });
 
-  it("returns field errors for invalid race dates", () => {
-    const result = getAnalysisValidationResult({
-      ...DEFAULT_ANALYSIS_INPUT,
-      raceDate: "2026-99-99",
-    });
-
-    expect(result.fieldErrors.raceDate).toContain("gültiges Datum");
-  });
-
   it("returns actionable validation messages for impossible test timing", () => {
     const messages = getAnalysisValidationMessages({
       ...DEFAULT_ANALYSIS_INPUT,

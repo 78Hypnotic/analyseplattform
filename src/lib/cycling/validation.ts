@@ -44,7 +44,6 @@ const FIELD_MESSAGES: Record<string, string> = {
   sprintAvg20sWatt: "muss zwischen 150 und 2000 W liegen.",
   oneMinPowerWatt: "muss zwischen 50 und 700 W liegen.",
   goal: "bitte auswählen.",
-  raceDate: "bitte als gültiges Datum eingeben.",
   bikeSessionsPerWeek: "muss zwischen 1 und 14 liegen.",
   validation12minWatt: "muss zwischen 50 und 700 W liegen.",
 };
