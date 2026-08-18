@@ -1,7 +1,9 @@
-# Trainingsanalyse MVP
+# Web-Diagnostik-MVP
 
 Der MVP migriert den bestehenden Prototyp in eine Next.js-App mit Supabase Auth,
-gespeicherten Analysen, erweitertem Report und Admin-verwalteten Trainingsplänen.
+gespeicherten Analysen, erweiterten Reports und Admin-verwalteten
+Trainingsplanvorlagen. Er ist die erste Stufe der langfristigen
+[Trainingsplattform](../product-vision.md).
 
 ## Umfang
 
@@ -16,6 +18,9 @@ gespeicherten Analysen, erweitertem Report und Admin-verwalteten Trainingspläne
 - Admin-Rollenmodell und Trainingsplan-Builder unter `/admin/plans`
 - Coach-Zugang für zugeordnete Athleten unter `/coach`
 - Gesperrte Trainingsplan-Vorschau im Report
+
+Einmaliger Planverkauf, persönliche Planfreischaltung, Terminierung, Fortschritt,
+Abos und Community gehören noch nicht zu diesem MVP.
 
 ## Report-Struktur
 
@@ -62,3 +67,20 @@ CRUD ist Admins vorbehalten.
 
 Weitere Schritte stehen in `docs/supabase-auth-production.md`.
 Leaked Password Protection ist laut Supabase Advisor aktuell noch zu aktivieren.
+
+## Nächster Produktmeilenstein
+
+Der nächste Meilenstein schließt für Schwimmen den Weg von der Diagnostik zur
+Trainingsdurchführung:
+
+- unveränderliche Veröffentlichungsversion einer Planvorlage,
+- einmaliger Web-Kauf über Stripe Checkout,
+- provider-neutrale Freischaltung,
+- persönliches Startdatum und feste Trainingstage,
+- aktueller Plan, Fortschritt und nächste Einheit im Profil,
+- Re-Diagnostik oder Folgeplan nach Abschluss.
+
+Die verbindliche Spezifikation steht in
+[Statische Trainingspläne verkaufen](static-training-plan-sales.md). Eine spätere
+iOS-/Android-App wird bereits in der [Mobile-Roadmap](../architecture/mobile-roadmap.md)
+architektonisch berücksichtigt, ist aber nicht Teil dieses Meilensteins.
