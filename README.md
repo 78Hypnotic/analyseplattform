@@ -119,6 +119,8 @@ on conflict (user_id) do update set role = 'admin'::public.app_role;
   `docs/product-vision.md`
 - Nächster Meilenstein, statische Schwimmpläne verkaufen:
   `docs/features/static-training-plan-sales.md`
+- Garmin Activity-Import und spätere Workout-Synchronisierung:
+  `docs/features/garmin-integration.md`
 - Zielarchitektur für iOS und Android:
   `docs/architecture/mobile-roadmap.md`
 - Noch offene Go-live-Punkte:

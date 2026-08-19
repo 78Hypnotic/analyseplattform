@@ -98,6 +98,9 @@ Garmin und weitere Sportplattformen können später Aktivitäten, Belastung und
 Erledigungsstatus synchronisieren. Verknüpfungen bleiben freiwillig, verwenden
 minimale Berechtigungen und können jederzeit getrennt werden.
 
+Der geplante stufenweise Garmin-Vertrag steht in der
+[Garmin-Integration](features/garmin-integration.md).
+
 Web bleibt zunächst der primäre Produktkanal. Spätere Apps für iOS und Android
 sollen dieselbe Fachlogik, dieselben Konten und dieselben Freischaltungen nutzen.
 Die Zielrichtung steht in der [Mobile-Roadmap](architecture/mobile-roadmap.md).
