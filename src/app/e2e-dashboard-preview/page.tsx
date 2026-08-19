@@ -53,6 +53,7 @@ export default function DashboardPreviewPage() {
         { group: "Rotation", score: 55, status: "offen", statement: "Keine Angabe im Kontext" },
         { group: "Beinschlag", score: 30, status: "fokus", statement: "Beine ermüden schnell" },
       ]}
+      activeTrainingPlan={null}
       isCoach
       isAdmin
       coachAthleteCount={12}

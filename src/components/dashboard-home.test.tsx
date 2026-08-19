@@ -21,21 +21,42 @@ const baseProps: DashboardHomeProps = {
   },
   analyses: [],
   swimTechniqueAxes: null,
+  activeTrainingPlan: null,
   isCoach: false,
   isAdmin: false,
 };
 
 describe("DashboardHome", () => {
-  it("shows an honest training and analysis empty state", () => {
+  it("hides the training module when no plan is active", () => {
     render(<DashboardHome {...baseProps} />);
 
     expect(screen.getByRole("heading", { name: "Willkommen zurück, Mara." })).toBeTruthy();
-    expect(screen.getByText("Noch kein persönlicher Plan aktiv")).toBeTruthy();
+    expect(screen.queryByText(/Mein Training/)).toBeNull();
     expect(screen.getByText(/Noch keine Analyse gespeichert/)).toBeTruthy();
     expect(screen.getByText("Noch kein Technikprofil vorhanden")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Mara Muster" })).toBeTruthy();
     expect(screen.getByText("Basisdaten für präzisere Analysen vervollständigen")).toBeTruthy();
     expect(screen.queryByText("Steuerzentrale")).toBeNull();
+  });
+
+  it("shows a summary when a training plan is active", () => {
+    render(
+      <DashboardHome
+        {...baseProps}
+        activeTrainingPlan={{
+          id: "plan-1",
+          title: "Technik stabilisieren",
+          focus: "Wasserlage und früher Catch",
+          weeks: 4,
+          discipline: "swim",
+          startDate: "2026-08-17",
+        }}
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "Technik stabilisieren" })).toBeTruthy();
+    expect(screen.getByText("Wasserlage und früher Catch")).toBeTruthy();
+    expect(screen.getByText(/4 Wochen/)).toBeTruthy();
   });
 
   it("shows the athlete's key profile information", () => {
@@ -112,6 +133,6 @@ describe("DashboardHome", () => {
 
     expect(screen.getByRole("heading", { name: "3 Athleten" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Steuerzentrale" })).toBeTruthy();
-    expect(screen.getByText("Noch kein persönlicher Plan aktiv")).toBeTruthy();
+    expect(screen.queryByText(/Mein Training/)).toBeNull();
   });
 });

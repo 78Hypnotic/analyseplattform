@@ -39,10 +39,20 @@ export type DashboardProfile = {
   latestBikeFtpWatt: number | null;
 };
 
+export type DashboardTrainingPlan = {
+  id: string;
+  title: string;
+  focus: string;
+  weeks: number;
+  discipline: "swim" | "run" | "bike";
+  startDate: string;
+};
+
 export type DashboardHomeProps = {
   profile: DashboardProfile;
   analyses: DashboardAnalysis[];
   swimTechniqueAxes: TechniqueProfileAxis[] | null;
+  activeTrainingPlan: DashboardTrainingPlan | null;
   isCoach: boolean;
   isAdmin: boolean;
   coachAthleteCount?: number;
@@ -52,6 +62,7 @@ export function DashboardHome({
   profile,
   analyses,
   swimTechniqueAxes,
+  activeTrainingPlan,
   isCoach,
   isAdmin,
   coachAthleteCount = 0,
@@ -80,38 +91,36 @@ export function DashboardHome({
       </header>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-6 xl:grid-cols-12">
-        <section className="surface relative overflow-hidden p-6 md:col-span-6 xl:col-span-7 xl:row-span-2">
-          <div className="relative flex h-full min-h-72 flex-col">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--subtle)]">
-                  Mein Training
-                </p>
-                <h2 className="display-serif mt-2 text-4xl text-[var(--foreground)]">
-                  Dein nächster Trainingsblock.
-                </h2>
+        {activeTrainingPlan ? (
+          <section className="surface relative overflow-hidden p-6 md:col-span-6 xl:col-span-7 xl:row-span-2">
+            <div className="relative flex h-full min-h-72 flex-col">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--subtle)]">
+                    Mein Training · {formatDiscipline(activeTrainingPlan.discipline)}
+                  </p>
+                  <h2 className="display-serif mt-2 text-4xl text-[var(--foreground)]">
+                    {activeTrainingPlan.title}
+                  </h2>
+                </div>
+                <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-[var(--raised-bg)] text-[var(--accent)]">
+                  <CalendarDays size={20} />
+                </span>
               </div>
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-[var(--raised-bg)] text-[var(--accent)]">
-                <CalendarDays size={20} />
-              </span>
+              <div className="mt-auto max-w-xl pt-12">
+                <p className="text-lg font-medium text-[var(--foreground)]">{activeTrainingPlan.focus}</p>
+                <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                  {activeTrainingPlan.weeks} Wochen · gestartet am {formatDate(activeTrainingPlan.startDate)}
+                </p>
+              </div>
             </div>
-            <div className="mt-auto max-w-xl pt-12">
-              <p className="text-lg font-medium text-[var(--foreground)]">
-                Noch kein persönlicher Plan aktiv
-              </p>
-              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                Eine aktuelle Diagnostik liefert die Grundlage für deinen nächsten
-                passenden Trainingsplan.
-              </p>
-              <ButtonLink href="/analyse/new" className="mt-5">
-                Schwimm-Diagnostik starten
-                <ArrowRight size={16} />
-              </ButtonLink>
-            </div>
-          </div>
-        </section>
+          </section>
+        ) : null}
 
-        <section className="surface p-6 md:col-span-6 xl:col-span-5">
+        <section className={activeTrainingPlan
+          ? "surface p-6 md:col-span-6 xl:col-span-5"
+          : "surface p-6 md:col-span-6 xl:col-span-6"}
+        >
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--subtle)]">

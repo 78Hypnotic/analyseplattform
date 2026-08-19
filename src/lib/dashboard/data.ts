@@ -1,6 +1,11 @@
 import "server-only";
 
-import type { DashboardAnalysis, DashboardHomeProps, DashboardProfile } from "@/components/dashboard-home";
+import type {
+  DashboardAnalysis,
+  DashboardHomeProps,
+  DashboardProfile,
+  DashboardTrainingPlan,
+} from "@/components/dashboard-home";
 import { buildTechniqueProfile } from "@/lib/analysis/calculations";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -32,6 +37,17 @@ type SwimAnalysisInputRow = {
   input: unknown;
 };
 
+type ActiveTrainingPlanRow = {
+  id: string;
+  discipline: DashboardTrainingPlan["discipline"];
+  start_date: string;
+  training_plan_versions: {
+    title: string;
+    focus: string;
+    weeks: number;
+  } | null;
+};
+
 export async function getAuthenticatedHomeData(): Promise<DashboardHomeProps | null> {
   const supabase = await createSupabaseServerClient();
   const {
@@ -40,7 +56,7 @@ export async function getAuthenticatedHomeData(): Promise<DashboardHomeProps | n
 
   if (!user) return null;
 
-  const [profileResult, analysesResult, latestSwimResult, rolesResult] = await Promise.all([
+  const [profileResult, analysesResult, latestSwimResult, activePlanResult, rolesResult] = await Promise.all([
     supabase
       .from("profiles")
       .select(
@@ -62,12 +78,21 @@ export async function getAuthenticatedHomeData(): Promise<DashboardHomeProps | n
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
+    supabase
+      .from("user_training_plans")
+      .select("id,discipline,start_date,training_plan_versions(title,focus,weeks)")
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
     supabase.from("user_roles").select("role").eq("user_id", user.id),
   ]);
 
   if (profileResult.error) throw new Error(profileResult.error.message);
   if (analysesResult.error) throw new Error(analysesResult.error.message);
   if (latestSwimResult.error) throw new Error(latestSwimResult.error.message);
+  if (activePlanResult.error) throw new Error(activePlanResult.error.message);
   if (rolesResult.error) throw new Error(rolesResult.error.message);
 
   const roleValues = (rolesResult.data ?? []).map((row) => row.role);
@@ -98,9 +123,24 @@ export async function getAuthenticatedHomeData(): Promise<DashboardHomeProps | n
       createdAt: analysis.created_at,
     })),
     swimTechniqueAxes: toTechniqueAxes((latestSwimResult.data as SwimAnalysisInputRow | null)?.input),
+    activeTrainingPlan: toActiveTrainingPlan(activePlanResult.data as ActiveTrainingPlanRow | null),
     isCoach,
     isAdmin,
     coachAthleteCount,
+  };
+}
+
+function toActiveTrainingPlan(row: ActiveTrainingPlanRow | null): DashboardTrainingPlan | null {
+  const version = row?.training_plan_versions;
+  if (!row || !version || !row.start_date) return null;
+
+  return {
+    id: row.id,
+    title: version.title,
+    focus: version.focus,
+    weeks: version.weeks,
+    discipline: row.discipline,
+    startDate: row.start_date,
   };
 }
 
