@@ -31,7 +31,7 @@ export type TrainingPlanLibraryHome =
 export type TrainingPlanSelectionState =
   | { kind: "available" }
   | { kind: "active-plan-exists" }
-  | { kind: "unavailable" };
+  | { kind: "unavailable"; reason: "signed-out" | "not-in-library" | "membership-required" };
 
 type LibraryRow = {
   id: string;
@@ -238,7 +238,7 @@ export async function getTrainingPlanSelectionState(
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) return { kind: "unavailable" };
+  if (!user) return { kind: "unavailable", reason: "signed-out" };
 
   const { data: existingPlan, error: existingPlanError } = await supabase
     .from("user_training_plans")
@@ -259,7 +259,7 @@ export async function getTrainingPlanSelectionState(
     .maybeSingle();
 
   if (linkError) throw new Error(linkError.message);
-  if (!libraryLink) return { kind: "unavailable" };
+  if (!libraryLink) return { kind: "unavailable", reason: "not-in-library" };
 
   const now = new Date().toISOString();
   const { data: membership, error: membershipError } = await supabase
@@ -273,5 +273,7 @@ export async function getTrainingPlanSelectionState(
     .maybeSingle();
 
   if (membershipError) throw new Error(membershipError.message);
-  return membership ? { kind: "available" } : { kind: "unavailable" };
+  return membership
+    ? { kind: "available" }
+    : { kind: "unavailable", reason: "membership-required" };
 }

@@ -59,6 +59,18 @@ export default async function TrainingPlanDetailPage({
             Diese ältere Planversion kann noch nicht persönlich terminiert werden.
           </div>
         ) : null}
+        {selectionState.kind === "unavailable" ? (
+          <div className="surface mt-8 p-5">
+            <p className="font-medium text-[var(--foreground)]">Dieser Plan kann mit diesem Konto nicht aktiviert werden.</p>
+            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+              {selectionState.reason === "membership-required"
+                ? "Für die Auswahl aus dieser Coach-Bibliothek benötigt dein Athletenkonto eine aktive Gruppencoaching-Mitgliedschaft für genau diese Bibliothek. Coach- oder Adminrechte erlauben die Ansicht, ersetzen aber keine Membership."
+                : selectionState.reason === "not-in-library"
+                  ? "Diese Planversion ist keiner Coach-Bibliothek zugeordnet und kann deshalb noch nicht ausgewählt werden."
+                  : "Bitte melde dich als Athlet mit aktiver Gruppencoaching-Mitgliedschaft an."}
+            </p>
+          </div>
+        ) : null}
 
         <TrainingPlanContentView content={version.content} />
       </main>
