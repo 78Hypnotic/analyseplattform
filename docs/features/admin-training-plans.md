@@ -42,6 +42,36 @@ besteht aus:
 - `content`: strukturierter Builder mit Wochen, Einheiten, Blöcken/Sets und Drills
 - `is_active`: Veröffentlichung für Report-Vorschauen
 
+## Visueller Builder V2
+
+Neue und bearbeitete Entwürfe verwenden ein strukturiertes Schwimmworkout-Schema
+mit `content_schema_version = 2`. Die primäre Oberfläche ist ein Wochen-Board:
+
+- Wochen zeigen Ziel, Workoutanzahl und berechnete Gesamtmeter,
+- Workout-Karten zeigen Fokus, Blockanzahl, Meter und offene Review-Schritte,
+- Workouts und Wochen können dupliziert und umsortiert werden,
+- Workouts lassen sich zwischen Wochen verschieben,
+- der rechte Inspector bearbeitet Blöcke und einzelne strukturierte Schritte,
+- Wiederholungen, Distanz, Pause, Schwimmart, Intensität und Equipment sind
+	eigene Felder statt eines kombinierten Set-Textes,
+- integrierte Vorlagen erzeugen Technik-, Aerob- und CSS-Workouts als vollständig
+	strukturierte Ausgangspunkte.
+
+Die Vorlage speichert weiterhin nur die Reihenfolge der Workouts. Konkrete
+Wochentage wählt der Athlet erst bei der Aktivierung seines persönlichen Plans.
+
+Bestehende V1-Freitextpläne bleiben lesbar und werden beim Öffnen des Builders
+in einen V2-Arbeitsstand überführt. Sicher lesbare Angaben wie `6 x 100 m`
+werden strukturiert importiert. Mehrdeutige Angaben und alte Drill-Einträge
+erhalten einen Reviewmarker. Solange ein Reviewmarker besteht, darf keine neue
+unveränderliche Version veröffentlicht werden.
+
+Berechnet werden ausschließlich fachlich belastbare Werte wie Meter pro
+Schritt, Block, Workout, Woche und Plan sowie die Distanzverteilung nach Zonen.
+TSS oder scheinpräzise Dauern werden ohne ein beschlossenes Modell nicht
+erzeugt. Das strukturierte Schema bildet zugleich die Grundlage für eine
+spätere Garmin-Training-API-Übersetzung.
+
 Aktive Pläne können von eingeloggten Nutzern als gesperrte Vorschau gelesen
 werden. Vollständiges Anlegen, Bearbeiten, Aktivieren und Löschen ist Admins
 vorbehalten.

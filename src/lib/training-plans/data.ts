@@ -2,9 +2,8 @@ import "server-only";
 
 import { requireCoachAccess } from "@/lib/auth/roles";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { emptyTrainingPlanContent } from "./defaults";
-import { trainingPlanContentSchema } from "./schema";
-import type { TrainingPlan, TrainingPlanContent, TrainingPlanPreview } from "./types";
+import { parseTrainingPlanContent } from "./content";
+import type { TrainingPlan, TrainingPlanPreview } from "./types";
 
 type TrainingPlanRow = Omit<TrainingPlan, "content" | "target_distances"> & {
   content: unknown;
@@ -91,14 +90,9 @@ function parseTrainingPlan(row: TrainingPlanRow): TrainingPlan {
   return {
     ...row,
     discipline: row.discipline ?? "swim",
-    content: parseContent(row.content),
+    content: parseTrainingPlanContent(row.content),
     target_distances: parseTargetDistances(row.target_distances),
   };
-}
-
-function parseContent(value: unknown): TrainingPlanContent {
-  const parsed = trainingPlanContentSchema.safeParse(value);
-  return parsed.success ? parsed.data : emptyTrainingPlanContent();
 }
 
 function parseTargetDistances(value: unknown) {

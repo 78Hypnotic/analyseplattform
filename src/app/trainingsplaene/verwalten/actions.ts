@@ -5,6 +5,11 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireCoachAccess } from "@/lib/auth/roles";
 import { assertRateLimit } from "@/lib/rate-limit/server";
+import {
+  assertPublishableTrainingPlanContent,
+  isStructuredTrainingPlanContent,
+  parseTrainingPlanContent,
+} from "@/lib/training-plans/content";
 import { trainingPlanSchema } from "@/lib/training-plans/schema";
 
 export type TrainingPlanActionState = {
@@ -39,10 +44,11 @@ export async function saveTrainingPlan(
       phase: parsed.data.phase,
       level: parsed.data.level,
       target_distances: parsed.data.target_distances,
-      weeks: parsed.data.weeks,
       summary: parsed.data.summary,
       preview: parsed.data.preview,
       content: parsed.data.content,
+      content_schema_version: isStructuredTrainingPlanContent(parsed.data.content) ? 2 : 1,
+      weeks: parsed.data.content.weeks.length,
       is_active: false,
     };
 
@@ -102,7 +108,7 @@ export async function publishTrainingPlan(formData: FormData) {
 
   const { data: plan, error: planError } = await supabase
     .from("training_plans")
-    .select("created_by")
+    .select("created_by, content")
     .eq("id", id)
     .maybeSingle();
 
@@ -110,6 +116,8 @@ export async function publishTrainingPlan(formData: FormData) {
   if (!plan || (!isAdmin && plan.created_by !== user.id)) {
     throw new Error("Du darfst diesen Plan nicht veröffentlichen.");
   }
+
+  assertPublishableTrainingPlanContent(parseTrainingPlanContent(plan.content));
 
   const { error } = await supabase.rpc("publish_training_plan", { target_plan_id: id });
   if (error) throw new Error(error.message);

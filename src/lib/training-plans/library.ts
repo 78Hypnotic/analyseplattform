@@ -1,10 +1,8 @@
 import "server-only";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { emptyTrainingPlanContent } from "./defaults";
-import { trainingPlanContentSchema } from "./schema";
+import { parseTrainingPlanContent } from "./content";
 import type {
-  TrainingPlanContent,
   TrainingPlanVersion,
   TrainingPlanVersionSummary,
 } from "./types";
@@ -147,7 +145,7 @@ export async function getAccessibleTrainingPlanVersionById(
   return {
     ...row,
     target_distances: parseTargetDistances(row.target_distances),
-    content: parseContent(row.content),
+    content: parseTrainingPlanContent(row.content),
   };
 }
 
@@ -204,11 +202,6 @@ async function enrichLibraries(rows: LibraryRow[]) {
     description: row.description,
     isActive: row.is_active,
   }));
-}
-
-function parseContent(value: unknown): TrainingPlanContent {
-  const parsed = trainingPlanContentSchema.safeParse(value);
-  return parsed.success ? parsed.data : emptyTrainingPlanContent();
 }
 
 function parseTargetDistances(value: unknown) {

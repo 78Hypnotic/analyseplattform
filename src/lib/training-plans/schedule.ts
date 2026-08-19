@@ -1,4 +1,4 @@
-import type { TrainingPlanContent } from "./types";
+import type { AnyTrainingPlanContent } from "./types";
 
 export type IsoWeekday = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
@@ -10,7 +10,7 @@ export type ScheduledPlanSession = {
 };
 
 export type BuildTrainingPlanScheduleInput = {
-  content: TrainingPlanContent;
+  content: AnyTrainingPlanContent;
   startDate: string;
   weekdays: IsoWeekday[];
 };
