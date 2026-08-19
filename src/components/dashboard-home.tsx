@@ -69,6 +69,9 @@ export function DashboardHome({
 }: DashboardHomeProps) {
   const firstName = profile.fullName?.trim().split(/\s+/)[0];
   const profileFacts = buildProfileFacts(profile);
+  const roleCardSpan = isCoach && isAdmin
+    ? "md:col-span-3 xl:col-span-6"
+    : "md:col-span-6 xl:col-span-12";
 
   return (
     <main className="mx-auto w-full max-w-6xl px-5 py-8 pb-24 sm:py-10">
@@ -92,7 +95,7 @@ export function DashboardHome({
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-6 xl:grid-cols-12">
         {activeTrainingPlan ? (
-          <section className="surface relative overflow-hidden p-6 md:col-span-6 xl:col-span-7 xl:row-span-2">
+          <section className="surface relative overflow-hidden p-6 md:col-span-6 xl:col-span-12">
             <div className="relative flex h-full min-h-72 flex-col">
               <div className="flex items-start justify-between gap-4">
                 <div>
@@ -117,65 +120,66 @@ export function DashboardHome({
           </section>
         ) : null}
 
-        <section className={activeTrainingPlan
-          ? "surface p-6 md:col-span-6 xl:col-span-5"
-          : "surface p-6 md:col-span-6 xl:col-span-6"}
-        >
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--subtle)]">
-                Schwimmen · Technikprofil
-              </p>
-              <h2 className="mt-2 text-xl font-semibold">Deine Technik im Überblick</h2>
-            </div>
-            <Waves size={20} className="shrink-0 text-[var(--accent)]" />
-          </div>
-          {swimTechniqueAxes && swimTechniqueAxes.length >= 3 ? (
-            <div className="mt-2 flex justify-center">
-              <TechniqueSpiderChart axes={swimTechniqueAxes} />
-            </div>
-          ) : (
-            <div className="flex min-h-64 items-center justify-center py-8 text-center">
+        <div className="grid gap-4 md:col-span-6 md:grid-cols-2 xl:col-span-12 xl:grid-cols-12">
+          <section className="surface p-6 md:col-span-2 xl:col-span-7">
+            <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="font-medium">Noch kein Technikprofil vorhanden</p>
-                <p className="mt-2 max-w-sm text-sm leading-6 text-[var(--muted)]">
-                  Die Schwimmdiagnostik bewertet Wasserlage, Atmung, Zug und weitere Technikfelder.
+                <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--subtle)]">
+                  Schwimmen · Technikprofil
+                </p>
+                <h2 className="mt-2 text-xl font-semibold">Deine Technik im Überblick</h2>
+              </div>
+              <Waves size={20} className="shrink-0 text-[var(--accent)]" />
+            </div>
+            {swimTechniqueAxes && swimTechniqueAxes.length >= 3 ? (
+              <div className="mt-2 flex justify-center">
+                <TechniqueSpiderChart axes={swimTechniqueAxes} />
+              </div>
+            ) : (
+              <div className="flex min-h-64 items-center justify-center py-8 text-center">
+                <div>
+                  <p className="font-medium">Noch kein Technikprofil vorhanden</p>
+                  <p className="mt-2 max-w-sm text-sm leading-6 text-[var(--muted)]">
+                    Die Schwimmdiagnostik bewertet Wasserlage, Atmung, Zug und weitere Technikfelder.
+                  </p>
+                </div>
+              </div>
+            )}
+            <div className="flex items-end justify-between gap-4 border-t border-[var(--line)] pt-4">
+              <div>
+                <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--subtle)]">Aktuelle CSS</p>
+                <p className="mt-1 text-2xl font-semibold">
+                  {profile.latestSwimCssPaceSec === null ? "-" : `${formatPace(profile.latestSwimCssPaceSec)} / 100 m`}
                 </p>
               </div>
+              <DashboardLink href={profile.latestSwimAnalyzedAt ? "/analyse" : "/analyse/new"}>
+                {profile.latestSwimAnalyzedAt ? "Schwimmen öffnen" : "Analyse starten"}
+              </DashboardLink>
             </div>
-          )}
-          <div className="flex items-end justify-between gap-4 border-t border-[var(--line)] pt-4">
-            <div>
-              <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--subtle)]">Aktuelle CSS</p>
-              <p className="mt-1 text-2xl font-semibold">
-                {profile.latestSwimCssPaceSec === null ? "-" : `${formatPace(profile.latestSwimCssPaceSec)} / 100 m`}
-              </p>
-            </div>
-            <DashboardLink href={profile.latestSwimAnalyzedAt ? "/analyse" : "/analyse/new"}>
-              {profile.latestSwimAnalyzedAt ? "Schwimmen öffnen" : "Analyse starten"}
-            </DashboardLink>
+          </section>
+
+          <div className="grid gap-4 md:col-span-2 md:grid-cols-2 xl:col-span-5 xl:grid-cols-1 xl:grid-rows-2">
+            <DisciplineMetric
+              href={profile.latestRunAnalyzedAt ? "/lauf" : "/lauf/new"}
+              icon={<Footprints size={20} />}
+              eyebrow="Laufen · Schwellenpace"
+              value={profile.latestRunCsPaceSec === null ? "-" : formatPace(profile.latestRunCsPaceSec)}
+              unit="min/km"
+              date={profile.latestRunAnalyzedAt}
+              emptyText="Laufdiagnostik starten"
+            />
+
+            <DisciplineMetric
+              href={profile.latestBikeAnalyzedAt ? "/rad" : "/rad/new"}
+              icon={<Bike size={20} />}
+              eyebrow="Radfahren · Leistung"
+              value={profile.latestBikeFtpWatt === null ? "-" : String(profile.latestBikeFtpWatt)}
+              unit="W FTP"
+              date={profile.latestBikeAnalyzedAt}
+              emptyText="Raddiagnostik starten"
+            />
           </div>
-        </section>
-
-        <DisciplineMetric
-          href={profile.latestRunAnalyzedAt ? "/lauf" : "/lauf/new"}
-          icon={<Footprints size={20} />}
-          eyebrow="Laufen · Schwellenpace"
-          value={profile.latestRunCsPaceSec === null ? "-" : formatPace(profile.latestRunCsPaceSec)}
-          unit="min/km"
-          date={profile.latestRunAnalyzedAt}
-          emptyText="Laufdiagnostik starten"
-        />
-
-        <DisciplineMetric
-          href={profile.latestBikeAnalyzedAt ? "/rad" : "/rad/new"}
-          icon={<Bike size={20} />}
-          eyebrow="Radfahren · Leistung"
-          value={profile.latestBikeFtpWatt === null ? "-" : String(profile.latestBikeFtpWatt)}
-          unit="W FTP"
-          date={profile.latestBikeAnalyzedAt}
-          emptyText="Raddiagnostik starten"
-        />
+        </div>
 
         <section className="surface p-6 md:col-span-6 xl:col-span-6">
           <div className="flex items-start justify-between gap-4">
@@ -213,7 +217,7 @@ export function DashboardHome({
           </div>
         </section>
 
-        <section className="surface p-6 md:col-span-3 xl:col-span-8">
+        <section className="surface p-6 md:col-span-6 xl:col-span-6">
           <div className="mb-4 flex items-end justify-between gap-4">
             <div>
               <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--subtle)]">
@@ -254,6 +258,7 @@ export function DashboardHome({
             eyebrow="Coach"
             title={`${coachAthleteCount} ${coachAthleteCount === 1 ? "Athlet" : "Athleten"}`}
             text="Profile, Diagnostiken und Reports deiner Zuordnungen öffnen."
+            spanClass={roleCardSpan}
           />
         ) : null}
 
@@ -264,6 +269,7 @@ export function DashboardHome({
             eyebrow="Admin"
             title="Steuerzentrale"
             text="Nutzer, Rollen und Trainingspläne verwalten."
+            spanClass={roleCardSpan}
           />
         ) : null}
       </div>
@@ -289,16 +295,16 @@ function DisciplineMetric({
   emptyText: string;
 }) {
   return (
-    <section className="surface p-6 md:col-span-3 xl:col-span-3">
+    <section className="surface flex min-h-44 flex-col p-6">
       <div className="flex items-start justify-between gap-4">
         <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--subtle)]">{eyebrow}</p>
         <span className="text-[var(--accent)]">{icon}</span>
       </div>
-      <div className="mt-6 flex items-end gap-2">
+      <div className="my-auto flex items-end gap-2 py-5">
         <p className="display-serif text-5xl leading-none text-[var(--foreground)]">{value}</p>
         <p className="pb-1 text-sm text-[var(--muted)]">{unit}</p>
       </div>
-      <div className="mt-6 flex items-center justify-between gap-3 border-t border-[var(--line)] pt-4">
+      <div className="flex items-center justify-between gap-3 border-t border-[var(--line)] pt-4">
         <p className="text-xs text-[var(--subtle)]">{date ? `Stand ${formatDate(date)}` : "Noch keine Analyse"}</p>
         <DashboardLink href={href}>{date ? "Öffnen" : emptyText}</DashboardLink>
       </div>
@@ -346,15 +352,17 @@ function RoleCard({
   eyebrow,
   title,
   text,
+  spanClass,
 }: {
   href: string;
   icon: React.ReactNode;
   eyebrow: string;
   title: string;
   text: string;
+  spanClass: string;
 }) {
   return (
-    <Link href={href} className="surface p-6 transition hover:border-[var(--accent)] md:col-span-3 xl:col-span-4">
+    <Link href={href} className={`surface p-6 transition hover:border-[var(--accent)] ${spanClass}`}>
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--subtle)]">{eyebrow}</p>
