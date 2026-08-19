@@ -21,7 +21,17 @@ export type TrainingPlanLibraryHome =
   | { kind: "locked" }
   | { kind: "member"; library: PlanLibrary; versions: TrainingPlanVersionSummary[] }
   | { kind: "coach"; library: PlanLibrary | null; versions: TrainingPlanVersionSummary[] }
-  | { kind: "admin"; libraries: PlanLibrary[] };
+  | {
+      kind: "admin";
+      libraries: PlanLibrary[];
+      selectedLibrary: PlanLibrary | null;
+      versions: TrainingPlanVersionSummary[];
+    };
+
+export type TrainingPlanSelectionState =
+  | { kind: "available" }
+  | { kind: "active-plan-exists" }
+  | { kind: "unavailable" };
 
 type LibraryRow = {
   id: string;
@@ -48,7 +58,9 @@ type VersionRow = Omit<TrainingPlanVersion, "content" | "target_distances"> & {
 const VERSION_SUMMARY_COLUMNS =
   "id,training_plan_id,version_number,discipline,slug,title,focus,phase,level,target_distances,weeks,summary,published_by,published_at";
 
-export async function getTrainingPlanLibraryHome(): Promise<TrainingPlanLibraryHome> {
+export async function getTrainingPlanLibraryHome(
+  selectedLibraryId?: string,
+): Promise<TrainingPlanLibraryHome> {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -71,7 +83,14 @@ export async function getTrainingPlanLibraryHome(): Promise<TrainingPlanLibraryH
       .order("created_at", { ascending: false });
 
     if (error) throw new Error(error.message);
-    return { kind: "admin", libraries: await enrichLibraries((data ?? []) as LibraryRow[]) };
+    const libraries = await enrichLibraries((data ?? []) as LibraryRow[]);
+    const selectedLibrary = libraries.find((library) => library.id === selectedLibraryId) ?? null;
+    return {
+      kind: "admin",
+      libraries,
+      selectedLibrary,
+      versions: selectedLibrary ? await getLibraryVersions(selectedLibrary.id) : [],
+    };
   }
 
   if (roles.includes("coach")) {
@@ -209,4 +228,50 @@ function parseTargetDistances(value: unknown) {
   return value.filter((item): item is TrainingPlanVersion["target_distances"][number] =>
     ["Sprint", "OD", "MD", "LD", "Becken", "Freiwasser"].includes(String(item)),
   );
+}
+
+export async function getTrainingPlanSelectionState(
+  versionId: string,
+): Promise<TrainingPlanSelectionState> {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { kind: "unavailable" };
+
+  const { data: existingPlan, error: existingPlanError } = await supabase
+    .from("user_training_plans")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("discipline", "swim")
+    .in("status", ["setup_required", "active", "paused"])
+    .limit(1)
+    .maybeSingle();
+
+  if (existingPlanError) throw new Error(existingPlanError.message);
+  if (existingPlan) return { kind: "active-plan-exists" };
+
+  const { data: libraryLink, error: linkError } = await supabase
+    .from("coach_library_versions")
+    .select("library_id")
+    .eq("training_plan_version_id", versionId)
+    .maybeSingle();
+
+  if (linkError) throw new Error(linkError.message);
+  if (!libraryLink) return { kind: "unavailable" };
+
+  const now = new Date().toISOString();
+  const { data: membership, error: membershipError } = await supabase
+    .from("group_coaching_memberships")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("library_id", libraryLink.library_id)
+    .eq("status", "active")
+    .lte("valid_from", now)
+    .or(`valid_until.is.null,valid_until.gt.${now}`)
+    .maybeSingle();
+
+  if (membershipError) throw new Error(membershipError.message);
+  return membership ? { kind: "available" } : { kind: "unavailable" };
 }

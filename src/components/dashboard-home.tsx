@@ -1,6 +1,7 @@
 import {
   ArrowRight,
   Bike,
+  BookOpen,
   CalendarDays,
   Footprints,
   Settings2,
@@ -53,6 +54,7 @@ export type DashboardHomeProps = {
   analyses: DashboardAnalysis[];
   swimTechniqueAxes: TechniqueProfileAxis[] | null;
   activeTrainingPlan: DashboardTrainingPlan | null;
+  trainingPlanAccess: "locked" | "member" | "coach" | "admin";
   isCoach: boolean;
   isAdmin: boolean;
   coachAthleteCount?: number;
@@ -63,6 +65,7 @@ export function DashboardHome({
   analyses,
   swimTechniqueAxes,
   activeTrainingPlan,
+  trainingPlanAccess,
   isCoach,
   isAdmin,
   coachAthleteCount = 0,
@@ -118,7 +121,9 @@ export function DashboardHome({
               </div>
             </div>
           </section>
-        ) : null}
+        ) : (
+          <NoActiveTrainingPlan access={trainingPlanAccess} />
+        )}
 
         <div className="grid gap-4 md:col-span-6 md:grid-cols-2 xl:col-span-12 xl:grid-cols-12">
           <section className="surface p-6 md:col-span-2 xl:col-span-7">
@@ -389,4 +394,55 @@ function formatDiscipline(discipline: DashboardAnalysis["discipline"]) {
 
 function formatDate(value: string) {
   return new Date(value).toLocaleDateString("de-DE");
+}
+
+function NoActiveTrainingPlan({
+  access,
+}: {
+  access: DashboardHomeProps["trainingPlanAccess"];
+}) {
+  const copy = access === "member"
+    ? {
+        title: "Noch kein Trainingsplan aktiv",
+        text: "Deine Gruppencoaching-Bibliothek ist freigeschaltet. Wähle dort deinen nächsten Schwimmplan aus.",
+        action: "Trainingsplan auswählen",
+      }
+    : access === "coach"
+      ? {
+          title: "Noch kein eigener Trainingsplan aktiv",
+          text: "Öffne deine Coach-Bibliothek oder verwalte neue Planvorlagen.",
+          action: "Bibliothek öffnen",
+        }
+      : access === "admin"
+        ? {
+            title: "Noch kein eigener Trainingsplan aktiv",
+            text: "Öffne die Coach-Bibliotheken oder verwalte Planvorlagen.",
+            action: "Bibliotheken öffnen",
+          }
+        : {
+            title: "Noch kein Trainingsplan aktiv",
+            text: "Trainingspläne sind Bestandteil des Gruppencoachings. Dort erhältst du Zugriff auf die Bibliothek deines Coaches.",
+            action: "Zugang ansehen",
+          };
+
+  return (
+    <Link
+      href="/trainingsplaene"
+      className="surface group flex flex-col justify-between gap-8 p-6 transition hover:border-[var(--accent)] md:col-span-6 md:flex-row md:items-center xl:col-span-12"
+    >
+      <div className="flex items-start gap-4">
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-[var(--raised-bg)] text-[var(--accent)]">
+          <BookOpen size={20} />
+        </span>
+        <div>
+          <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--subtle)]">Mein Training</p>
+          <h2 className="mt-2 text-xl font-semibold">{copy.title}</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--muted)]">{copy.text}</p>
+        </div>
+      </div>
+      <span className="inline-flex shrink-0 items-center gap-2 text-sm font-medium text-[var(--accent)]">
+        {copy.action} <ArrowRight size={16} className="transition group-hover:translate-x-1" />
+      </span>
+    </Link>
+  );
 }

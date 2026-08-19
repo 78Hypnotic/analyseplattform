@@ -38,6 +38,17 @@ Ablauf oder Kündigung gilt:
 Ein Abo erzeugt damit kein dauerhaftes Eigentum an einzelnen Planversionen. Ein
 separat gekaufter statischer Plan bleibt vom Aboende unberührt.
 
+Ein Nutzer mit aktiver Membership kann eine veröffentlichte V2-Planversion aus
+der Bibliothek seines Coaches öffnen, ein Startdatum sowie die erforderliche
+Anzahl Trainingstage wählen und daraus atomar einen aktiven persönlichen Plan
+mit datierten `user_plan_sessions` erzeugen. Die Dashboard-Kachel führt bei
+fehlendem aktivem Plan direkt in diese Bibliothek. Nutzer ohne Membership sehen
+statt der Inhalte weiterhin die Gruppencoaching-Sperrseite.
+
+Die Zahlungsintegration für das Gruppencoaching ist davon getrennt und noch
+nicht umgesetzt. Sie erzeugt beziehungsweise verlängert später ausschließlich
+die Membership; die Planaktivierung vertraut nicht auf einen Client-Abo-Status.
+
 Die Selbstwahl erfolgt aus einer gefilterten Bibliothek. Disziplin, Ziel,
 Leistungsniveau, Dauer und Trainingshäufigkeit müssen sichtbar sein. Pläne, die
 für das Profil des Athleten ungeeignet oder ausdrücklich ausgeschlossen sind,

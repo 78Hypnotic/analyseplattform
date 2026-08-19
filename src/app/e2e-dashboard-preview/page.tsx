@@ -54,6 +54,7 @@ export default function DashboardPreviewPage() {
         { group: "Beinschlag", score: 30, status: "fokus", statement: "Beine ermüden schnell" },
       ]}
       activeTrainingPlan={null}
+      trainingPlanAccess="admin"
       isCoach
       isAdmin
       coachAthleteCount={12}

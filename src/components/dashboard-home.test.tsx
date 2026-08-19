@@ -22,21 +22,29 @@ const baseProps: DashboardHomeProps = {
   analyses: [],
   swimTechniqueAxes: null,
   activeTrainingPlan: null,
+  trainingPlanAccess: "locked",
   isCoach: false,
   isAdmin: false,
 };
 
 describe("DashboardHome", () => {
-  it("hides the training module when no plan is active", () => {
+  it("links to training plans when no plan is active", () => {
     render(<DashboardHome {...baseProps} />);
 
     expect(screen.getByRole("heading", { name: "Willkommen zurück, Mara." })).toBeTruthy();
-    expect(screen.queryByText(/Mein Training/)).toBeNull();
+    expect(screen.getByRole("link", { name: /Noch kein Trainingsplan aktiv/ }).getAttribute("href")).toBe("/trainingsplaene");
     expect(screen.getByText(/Noch keine Analyse gespeichert/)).toBeTruthy();
     expect(screen.getByText("Noch kein Technikprofil vorhanden")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Mara Muster" })).toBeTruthy();
     expect(screen.getByText("Basisdaten für präzisere Analysen vervollständigen")).toBeTruthy();
     expect(screen.queryByText("Steuerzentrale")).toBeNull();
+  });
+
+  it("offers plan selection to group coaching members", () => {
+    render(<DashboardHome {...baseProps} trainingPlanAccess="member" />);
+
+    expect(screen.getByText("Trainingsplan auswählen")).toBeTruthy();
+    expect(screen.getByText(/Bibliothek ist freigeschaltet/)).toBeTruthy();
   });
 
   it("shows a summary when a training plan is active", () => {
@@ -129,10 +137,18 @@ describe("DashboardHome", () => {
   });
 
   it("adds coach and admin modules without replacing the athlete dashboard", () => {
-    render(<DashboardHome {...baseProps} isCoach isAdmin coachAthleteCount={3} />);
+    render(
+      <DashboardHome
+        {...baseProps}
+        isCoach
+        isAdmin
+        trainingPlanAccess="admin"
+        coachAthleteCount={3}
+      />,
+    );
 
     expect(screen.getByRole("heading", { name: "3 Athleten" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Steuerzentrale" })).toBeTruthy();
-    expect(screen.queryByText(/Mein Training/)).toBeNull();
+    expect(screen.getByText("Bibliotheken öffnen")).toBeTruthy();
   });
 });

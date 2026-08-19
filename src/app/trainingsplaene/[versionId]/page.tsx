@@ -1,7 +1,12 @@
 import { notFound } from "next/navigation";
 import { AppHeader } from "@/components/app-header";
+import { ActivatePlanForm } from "@/components/training-plans/activate-plan-form";
 import { TrainingPlanContentView } from "@/components/training-plans/training-plan-content-view";
-import { getAccessibleTrainingPlanVersionById } from "@/lib/training-plans/library";
+import { isStructuredTrainingPlanContent } from "@/lib/training-plans/content";
+import {
+  getAccessibleTrainingPlanVersionById,
+  getTrainingPlanSelectionState,
+} from "@/lib/training-plans/library";
 
 export const dynamic = "force-dynamic";
 
@@ -11,8 +16,15 @@ export default async function TrainingPlanDetailPage({
   params: Promise<{ versionId: string }>;
 }) {
   const { versionId } = await params;
-  const version = await getAccessibleTrainingPlanVersionById(versionId);
+  const [version, selectionState] = await Promise.all([
+    getAccessibleTrainingPlanVersionById(versionId),
+    getTrainingPlanSelectionState(versionId),
+  ]);
   if (!version) notFound();
+  const requiredTrainingDays = Math.max(
+    0,
+    ...version.content.weeks.map((week) => week.sessions.length),
+  );
 
   return (
     <>
@@ -29,6 +41,24 @@ export default async function TrainingPlanDetailPage({
           <span>{version.target_distances.join(" · ")}</span>
           <span>Veröffentlicht am {new Date(version.published_at).toLocaleDateString("de-DE")}</span>
         </div>
+
+        {selectionState.kind === "available" && isStructuredTrainingPlanContent(version.content) ? (
+          <ActivatePlanForm
+            versionId={version.id}
+            requiredTrainingDays={requiredTrainingDays}
+            minimumStartDate={new Date().toISOString().slice(0, 10)}
+          />
+        ) : null}
+        {selectionState.kind === "active-plan-exists" ? (
+          <div className="surface mt-8 p-5 text-sm text-[var(--muted)]">
+            Du hast bereits einen aktiven Schwimmplan. Schließe oder pausiere ihn, bevor du einen neuen auswählst.
+          </div>
+        ) : null}
+        {selectionState.kind === "available" && !isStructuredTrainingPlanContent(version.content) ? (
+          <div className="surface mt-8 p-5 text-sm text-[var(--warn)]">
+            Diese ältere Planversion kann noch nicht persönlich terminiert werden.
+          </div>
+        ) : null}
 
         <TrainingPlanContentView content={version.content} />
       </main>

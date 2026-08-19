@@ -10,8 +10,14 @@ import type { TrainingPlanVersionSummary } from "@/lib/training-plans/types";
 
 export const dynamic = "force-dynamic";
 
-export default async function TrainingPlansPage() {
-  const home = await getTrainingPlanLibraryHome();
+export default async function TrainingPlansPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ library?: string | string[] }>;
+}) {
+  const params = await searchParams;
+  const selectedLibraryId = Array.isArray(params?.library) ? params.library[0] : params?.library;
+  const home = await getTrainingPlanLibraryHome(selectedLibraryId);
 
   return (
     <>
@@ -28,9 +34,20 @@ export default async function TrainingPlansPage() {
           />
         ) : null}
         {home.kind === "member" ? (
-          <LibraryView eyebrow={`Gruppencoaching · ${home.library.coachName}`} library={home.library} versions={home.versions} />
+          <LibraryView
+            eyebrow={`Gruppencoaching · ${home.library.coachName}`}
+            library={home.library}
+            versions={home.versions}
+            selectable
+          />
         ) : null}
-        {home.kind === "admin" ? <AdminLibraries libraries={home.libraries} /> : null}
+        {home.kind === "admin" ? (
+          <AdminLibraries
+            libraries={home.libraries}
+            selectedLibrary={home.selectedLibrary}
+            versions={home.versions}
+          />
+        ) : null}
       </main>
     </>
   );
@@ -74,11 +91,13 @@ function LibraryView({
   library,
   versions,
   manage = false,
+  selectable = false,
 }: {
   eyebrow: string;
   library: PlanLibrary | null;
   versions: TrainingPlanVersionSummary[];
   manage?: boolean;
+  selectable?: boolean;
 }) {
   return (
     <>
@@ -97,12 +116,18 @@ function LibraryView({
           </ButtonLink>
         ) : null}
       </header>
-      <PlanGrid versions={versions} />
+      <PlanGrid versions={versions} selectable={selectable} />
     </>
   );
 }
 
-function PlanGrid({ versions }: { versions: TrainingPlanVersionSummary[] }) {
+function PlanGrid({
+  versions,
+  selectable = false,
+}: {
+  versions: TrainingPlanVersionSummary[];
+  selectable?: boolean;
+}) {
   if (versions.length === 0) {
     return (
       <section className="surface mt-8 p-8">
@@ -124,7 +149,7 @@ function PlanGrid({ versions }: { versions: TrainingPlanVersionSummary[] }) {
           <p className="mt-2 text-sm text-[var(--accent)]">{version.focus}</p>
           <p className="mt-4 line-clamp-3 text-sm leading-6 text-[var(--muted)]">{version.summary}</p>
           <span className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-[var(--accent)]">
-            Plan öffnen <ArrowRight size={15} />
+            {selectable ? "Ansehen & auswählen" : "Plan öffnen"} <ArrowRight size={15} />
           </span>
         </Link>
       ))}
@@ -132,7 +157,15 @@ function PlanGrid({ versions }: { versions: TrainingPlanVersionSummary[] }) {
   );
 }
 
-function AdminLibraries({ libraries }: { libraries: PlanLibrary[] }) {
+function AdminLibraries({
+  libraries,
+  selectedLibrary,
+  versions,
+}: {
+  libraries: PlanLibrary[];
+  selectedLibrary: PlanLibrary | null;
+  versions: TrainingPlanVersionSummary[];
+}) {
   return (
     <>
       <header>
@@ -148,13 +181,31 @@ function AdminLibraries({ libraries }: { libraries: PlanLibrary[] }) {
             <p className="text-[var(--muted)]">Noch keine Coach-Bibliothek vorhanden.</p>
           </div>
         ) : libraries.map((library) => (
-          <div key={library.id} className="surface p-5">
+          <Link
+            key={library.id}
+            href={`/trainingsplaene?library=${library.id}`}
+            className={selectedLibrary?.id === library.id
+              ? "surface border-[var(--accent)] p-5"
+              : "surface p-5 transition hover:border-[var(--accent)]"}
+          >
             <UsersRound size={19} className="text-[var(--accent)]" />
             <h2 className="mt-3 text-xl font-semibold">{library.name}</h2>
             <p className="mt-1 text-sm text-[var(--muted)]">Coach: {library.coachName}</p>
-          </div>
+            <span className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-[var(--accent)]">
+              Bibliothek ansehen <ArrowRight size={15} />
+            </span>
+          </Link>
         ))}
       </section>
+      {selectedLibrary ? (
+        <section className="mt-12 border-t border-[var(--line)] pt-8">
+          <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--accent)]">
+            Bibliothek von {selectedLibrary.coachName}
+          </p>
+          <h2 className="display-serif mt-3 text-4xl text-[var(--foreground)]">{selectedLibrary.name}</h2>
+          <PlanGrid versions={versions} />
+        </section>
+      ) : null}
     </>
   );
 }

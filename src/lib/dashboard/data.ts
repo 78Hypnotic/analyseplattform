@@ -58,7 +58,8 @@ export async function getAuthenticatedHomeData(): Promise<DashboardHomeProps | n
 
   if (!user) return null;
 
-  const [profileResult, analysesResult, latestSwimResult, activePlanResult, rolesResult] = await Promise.all([
+  const now = new Date().toISOString();
+  const [profileResult, analysesResult, latestSwimResult, activePlanResult, membershipResult, rolesResult] = await Promise.all([
     supabase
       .from("profiles")
       .select(
@@ -88,6 +89,15 @@ export async function getAuthenticatedHomeData(): Promise<DashboardHomeProps | n
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
+    supabase
+      .from("group_coaching_memberships")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .lte("valid_from", now)
+      .or(`valid_until.is.null,valid_until.gt.${now}`)
+      .limit(1)
+      .maybeSingle(),
     supabase.from("user_roles").select("role").eq("user_id", user.id),
   ]);
 
@@ -95,6 +105,7 @@ export async function getAuthenticatedHomeData(): Promise<DashboardHomeProps | n
   if (analysesResult.error) throw new Error(analysesResult.error.message);
   if (latestSwimResult.error) throw new Error(latestSwimResult.error.message);
   if (activePlanResult.error) throw new Error(activePlanResult.error.message);
+  if (membershipResult.error) throw new Error(membershipResult.error.message);
   if (rolesResult.error) throw new Error(rolesResult.error.message);
 
   const activePlanRow = activePlanResult.data as ActiveTrainingPlanRow | null;
@@ -143,6 +154,13 @@ export async function getAuthenticatedHomeData(): Promise<DashboardHomeProps | n
     })),
     swimTechniqueAxes: toTechniqueAxes((latestSwimResult.data as SwimAnalysisInputRow | null)?.input),
     activeTrainingPlan,
+    trainingPlanAccess: isAdmin
+      ? "admin"
+      : isCoach
+        ? "coach"
+        : membershipResult.data
+          ? "member"
+          : "locked",
     isCoach,
     isAdmin,
     coachAthleteCount,
