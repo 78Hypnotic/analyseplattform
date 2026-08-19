@@ -1,4 +1,4 @@
-import { Activity, Bike, ChevronDown, Footprints, LogOut, Waves } from "lucide-react";
+import { Activity, Bike, BookOpen, ChevronDown, Footprints, LogOut, Waves } from "lucide-react";
 import Link from "next/link";
 import { signOut } from "@/app/login/actions";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -52,6 +52,10 @@ export async function AppHeader({ userEmail }: { userEmail?: string | null }) {
               </Link>
             </>
           )}
+          <Link className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/trainingsplaene">
+            <BookOpen size={15} />
+            Trainingspläne
+          </Link>
           {isCoach ? (
             <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/coach">
               Coach

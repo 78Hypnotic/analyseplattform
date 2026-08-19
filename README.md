@@ -62,7 +62,8 @@ Supabase Auth muss dieselbe URL erlauben:
 - PDF-Export über Browser-Druckdialog
 - Rollenmodell mit `user`, `coach` und `admin`
 - Coach-Zugriff auf ausdrücklich zugeordnete Athleten
-- Admin-Trainingsplan-Builder unter `/admin/plans`
+- Coach-/Admin-Trainingsplan-Builder unter `/trainingsplaene/verwalten`
+- Gruppencoaching-Bibliothek unter `/trainingsplaene`
 - Gesperrte Trainingsplan-Vorschau im Report
 - Rechtliche Seiten: `/impressum`, `/datenschutz`, `/cookies`
 
@@ -105,7 +106,8 @@ on conflict (user_id) do update set role = 'admin'::public.app_role;
 - `/rad`, `/rad/new`, `/rad/[id]` Raddiagnostik
 - `/coach` zugeordnete Athleten
 - `/admin` Admin-Übersicht
-- `/admin/plans` Trainingspläne verwalten
+- `/trainingsplaene` Trainingsplanbibliothek beziehungsweise gesperrter Gruppencoaching-Zugang
+- `/trainingsplaene/verwalten` eigene Planvorlagen für Coaches und alle Vorlagen für Admins
 
 ## Production Setup
 

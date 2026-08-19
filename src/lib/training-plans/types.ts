@@ -30,9 +30,11 @@ export type TrainingPlanContent = {
 };
 
 export type TrainingPlanLevel = SwimLevel | "Alle";
+export type TrainingPlanDiscipline = "swim" | "run" | "bike";
 
 export type TrainingPlan = {
   id: string;
+  discipline: TrainingPlanDiscipline;
   slug: string;
   title: string;
   focus: string;
@@ -53,3 +55,24 @@ export type TrainingPlanPreview = Pick<
   TrainingPlan,
   "id" | "slug" | "title" | "focus" | "phase" | "weeks" | "summary" | "preview" | "target_distances"
 >;
+
+export type TrainingPlanVersion = {
+  id: string;
+  training_plan_id: string;
+  version_number: number;
+  discipline: TrainingPlanDiscipline;
+  slug: string;
+  title: string;
+  focus: string;
+  phase: string;
+  level: string;
+  target_distances: TargetDistance[];
+  weeks: number;
+  summary: string;
+  preview: string;
+  content: TrainingPlanContent;
+  published_by: string | null;
+  published_at: string;
+};
+
+export type TrainingPlanVersionSummary = Omit<TrainingPlanVersion, "content" | "preview">;

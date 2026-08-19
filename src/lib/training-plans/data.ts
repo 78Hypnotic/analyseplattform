@@ -1,5 +1,6 @@
 import "server-only";
 
+import { requireCoachAccess } from "@/lib/auth/roles";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { emptyTrainingPlanContent } from "./defaults";
 import { trainingPlanContentSchema } from "./schema";
@@ -36,19 +37,42 @@ export async function getTrainingPlanById(id: string): Promise<TrainingPlan | nu
   return data ? parseTrainingPlan(data as TrainingPlanRow) : null;
 }
 
+export async function getManageableTrainingPlans(limit = 50): Promise<TrainingPlan[]> {
+  const { supabase, user, isAdmin } = await requireCoachAccess();
+  let query = supabase
+    .from("training_plans")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (!isAdmin) query = query.eq("created_by", user.id);
+
+  const { data, error } = await query;
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as TrainingPlanRow[]).map(parseTrainingPlan);
+}
+
+export async function getManageableTrainingPlanById(id: string): Promise<TrainingPlan | null> {
+  const { supabase, user, isAdmin } = await requireCoachAccess();
+  let query = supabase.from("training_plans").select("*").eq("id", id);
+
+  if (!isAdmin) query = query.eq("created_by", user.id);
+
+  const { data, error } = await query.maybeSingle();
+  if (error) throw new Error(error.message);
+  return data ? parseTrainingPlan(data as TrainingPlanRow) : null;
+}
+
 export async function getActiveTrainingPlanPreview(slug?: string | null): Promise<TrainingPlanPreview | null> {
   if (!slug) return null;
 
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("training_plans")
-    .select("id,slug,title,focus,phase,weeks,summary,preview,target_distances")
-    .eq("slug", slug)
-    .eq("is_active", true)
-    .maybeSingle();
+  const { data, error } = await supabase.rpc("get_active_training_plan_preview", {
+    target_slug: slug,
+  });
 
-  if (error || !data) return null;
-  const row = data as TrainingPlanRow;
+  const row = (Array.isArray(data) ? data[0] : data) as TrainingPlanRow | null;
+  if (error || !row) return null;
 
   return {
     id: row.id,
@@ -66,6 +90,7 @@ export async function getActiveTrainingPlanPreview(slug?: string | null): Promis
 function parseTrainingPlan(row: TrainingPlanRow): TrainingPlan {
   return {
     ...row,
+    discipline: row.discipline ?? "swim",
     content: parseContent(row.content),
     target_distances: parseTargetDistances(row.target_distances),
   };

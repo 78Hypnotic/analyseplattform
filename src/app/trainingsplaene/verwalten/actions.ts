@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { requireAdmin } from "@/lib/auth/roles";
+import { requireCoachAccess } from "@/lib/auth/roles";
 import { assertRateLimit } from "@/lib/rate-limit/server";
 import { trainingPlanSchema } from "@/lib/training-plans/schema";
 
@@ -24,7 +24,7 @@ export async function saveTrainingPlan(
 
   try {
     await assertRateLimit("admin-training-plan-save", 20, 60_000);
-    const { supabase, user } = await requireAdmin();
+    const { supabase, user, isAdmin } = await requireCoachAccess();
     const parsed = parseTrainingPlanForm(formData);
 
     if (!parsed.success) {
@@ -32,6 +32,7 @@ export async function saveTrainingPlan(
     }
 
     const payload = {
+      discipline: parsed.data.discipline,
       slug: parsed.data.slug,
       title: parsed.data.title,
       focus: parsed.data.focus,
@@ -42,37 +43,49 @@ export async function saveTrainingPlan(
       summary: parsed.data.summary,
       preview: parsed.data.preview,
       content: parsed.data.content,
-      is_active: parsed.data.is_active,
-      created_by: user.id,
+      is_active: false,
     };
 
     if (parsed.data.id) {
+      const { data: existing, error: existingError } = await supabase
+        .from("training_plans")
+        .select("created_by,is_active")
+        .eq("id", parsed.data.id)
+        .maybeSingle();
+
+      if (existingError) return { message: existingError.message };
+      if (!existing || (!isAdmin && existing.created_by !== user.id)) {
+        return { message: "Du darfst diesen Plan nicht bearbeiten." };
+      }
+
       const { error } = await supabase
         .from("training_plans")
-        .update(payload)
+        .update({ ...payload, is_active: existing.is_active })
         .eq("id", parsed.data.id);
 
       if (error) return { message: error.message };
 
       revalidatePath("/admin");
-      revalidatePath("/admin/plans");
-      revalidatePath(`/admin/plans/${parsed.data.id}`);
+      revalidatePath("/trainingsplaene");
+      revalidatePath("/trainingsplaene/verwalten");
+      revalidatePath(`/trainingsplaene/verwalten/${parsed.data.id}`);
       revalidatePath("/analyse");
       return { message: "Plan gespeichert." };
     }
 
     const { data, error } = await supabase
       .from("training_plans")
-      .insert(payload)
+      .insert({ ...payload, created_by: user.id })
       .select("id")
       .single();
 
     if (error) return { message: error.message };
 
     revalidatePath("/admin");
-    revalidatePath("/admin/plans");
+    revalidatePath("/trainingsplaene");
+    revalidatePath("/trainingsplaene/verwalten");
     revalidatePath("/analyse");
-    redirectTo = `/admin/plans/${data.id}`;
+    redirectTo = `/trainingsplaene/verwalten/${data.id}`;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Plan konnte nicht gespeichert werden.";
     return { message };
@@ -82,45 +95,62 @@ export async function saveTrainingPlan(
   return { message: "Plan gespeichert." };
 }
 
-export async function toggleTrainingPlan(formData: FormData) {
-  await assertRateLimit("admin-training-plan-toggle", 30, 60_000);
-  const { supabase } = await requireAdmin();
-  const parsed = z
-    .object({
-      id: z.string().uuid(),
-      is_active: z.enum(["true", "false"]),
-    })
-    .parse({
-      id: formData.get("id"),
-      is_active: formData.get("is_active"),
-    });
+export async function publishTrainingPlan(formData: FormData) {
+  await assertRateLimit("training-plan-publish", 10, 60_000);
+  const { supabase, user, isAdmin } = await requireCoachAccess();
+  const id = z.string().uuid().parse(formData.get("id"));
 
-  await supabase
+  const { data: plan, error: planError } = await supabase
     .from("training_plans")
-    .update({ is_active: parsed.is_active === "true" })
-    .eq("id", parsed.id);
+    .select("created_by")
+    .eq("id", id)
+    .maybeSingle();
 
+  if (planError) throw new Error(planError.message);
+  if (!plan || (!isAdmin && plan.created_by !== user.id)) {
+    throw new Error("Du darfst diesen Plan nicht veröffentlichen.");
+  }
+
+  const { error } = await supabase.rpc("publish_training_plan", { target_plan_id: id });
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/trainingsplaene");
+  revalidatePath("/trainingsplaene/verwalten");
+  revalidatePath(`/trainingsplaene/verwalten/${id}`);
   revalidatePath("/admin");
-  revalidatePath("/admin/plans");
   revalidatePath("/analyse");
 }
 
 export async function deleteTrainingPlan(formData: FormData) {
-  await assertRateLimit("admin-training-plan-delete", 10, 60_000);
-  const { supabase } = await requireAdmin();
+  await assertRateLimit("training-plan-delete", 10, 60_000);
+  const { supabase, user, isAdmin } = await requireCoachAccess();
   const id = z.string().uuid().parse(formData.get("id"));
 
-  await supabase.from("training_plans").delete().eq("id", id);
+  const { data: plan, error: planError } = await supabase
+    .from("training_plans")
+    .select("created_by")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (planError) throw new Error(planError.message);
+  if (!plan || (!isAdmin && plan.created_by !== user.id)) {
+    throw new Error("Du darfst diesen Plan nicht löschen.");
+  }
+
+  const { error } = await supabase.from("training_plans").delete().eq("id", id);
+  if (error) throw new Error(error.message);
 
   revalidatePath("/admin");
-  revalidatePath("/admin/plans");
+  revalidatePath("/trainingsplaene");
+  revalidatePath("/trainingsplaene/verwalten");
   revalidatePath("/analyse");
-  redirect("/admin/plans");
+  redirect("/trainingsplaene/verwalten");
 }
 
 function parseTrainingPlanForm(formData: FormData) {
   return trainingPlanSchema.safeParse({
     id: emptyToUndefined(formData.get("id")),
+    discipline: formData.get("discipline"),
     slug: formData.get("slug"),
     title: formData.get("title"),
     focus: formData.get("focus"),
@@ -131,7 +161,7 @@ function parseTrainingPlanForm(formData: FormData) {
     summary: formData.get("summary"),
     preview: formData.get("preview"),
     content: parseJson(formData.get("content")),
-    is_active: formData.get("is_active") === "on",
+    is_active: formData.get("is_active") === "true",
   });
 }
 

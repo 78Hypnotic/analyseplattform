@@ -51,6 +51,7 @@ export const trainingPlanContentSchema = z.object({
 
 export const trainingPlanSchema = z.object({
   id: z.string().uuid().optional(),
+  discipline: z.literal("swim"),
   slug: z
     .string()
     .trim()

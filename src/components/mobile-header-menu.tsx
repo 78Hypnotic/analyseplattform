@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Activity, Bike, ChevronDown, Footprints, LayoutDashboard, LogOut, Menu, ShieldCheck, UserRound, UsersRound, X } from "lucide-react";
+import { Activity, Bike, BookOpen, ChevronDown, Footprints, LayoutDashboard, LogOut, Menu, ShieldCheck, UserRound, UsersRound, X } from "lucide-react";
 import Link from "next/link";
 import { signOut } from "@/app/login/actions";
 import { Button } from "./button";
@@ -68,6 +68,7 @@ export function MobileHeaderMenu({
                 </div>
               ) : null}
             </div>
+            <MobileLink href="/trainingsplaene" label="Trainingspläne" icon={<BookOpen size={16} />} onClick={() => setOpen(false)} />
             {isCoach ? (
               <MobileLink href="/coach" label="Coach" icon={<UsersRound size={16} />} onClick={() => setOpen(false)} />
             ) : null}

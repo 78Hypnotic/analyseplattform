@@ -5,8 +5,8 @@
 Die Plattform nutzt drei Rollen:
 
 - `user`: normale Nutzer mit Zugriff auf eigene Analysen
-- `coach`: Trainer mit read-only Zugriff auf zugeordnete Athleten
-- `admin`: Zugriff auf Admin-Bereich und Trainingsplan-Builder
+- `coach`: Trainer mit Zugriff auf zugeordnete Athleten, eigene Planvorlagen und eigene Bibliothek
+- `admin`: Zugriff auf Admin-Bereich sowie alle Planvorlagen und Bibliotheken
 
 Rollen liegen in `public.user_roles`. Normale Nutzer dürfen ihre Rolle nur lesen,
 aber nicht schreiben. Admin-Rechte werden DB-only vergeben:
@@ -29,7 +29,9 @@ prefixt werden.
 
 ## Planvorlagen
 
-Admins verwalten Pläne unter `/admin/plans`.
+Coaches und Admins verwalten Pläne unter `/trainingsplaene/verwalten`.
+Coaches sehen und bearbeiten ausschließlich eigene Vorlagen. Admins sehen alle
+Vorlagen. Der erste Builder-Meilenstein unterstützt bewusst nur Schwimmen.
 
 Ein Datensatz in `training_plans` ist aktuell eine editierbare Planvorlage. Sie
 besteht aus:
@@ -44,8 +46,10 @@ Aktive Pläne können von eingeloggten Nutzern als gesperrte Vorschau gelesen
 werden. Vollständiges Anlegen, Bearbeiten, Aktivieren und Löschen ist Admins
 vorbehalten.
 
-`is_active` veröffentlicht heute nur die Vorschau. Es ist noch keine verkaufbare,
-unveränderliche Planversion und keine Freischaltung für einen einzelnen Nutzer.
+Speichern verändert nur die Vorlage. Der getrennte Befehl „Veröffentlichen“
+erzeugt eine unveränderliche `training_plan_versions`-Version. Eine spätere
+Änderung der Vorlage verändert keine veröffentlichte Version; erneutes
+Veröffentlichen erzeugt die nächste Versionsnummer.
 
 ## Report-Verknüpfung
 
@@ -71,13 +75,15 @@ Der vollständige fachliche Vertrag steht in
 
 ## Gruppenbibliothek
 
-Veröffentlichte Planversionen können später einer von Coaches kuratierten
-Gruppencoaching-Bibliothek zugeordnet werden. Die Bibliothek verweist auf
+Veröffentlichte Planversionen werden einer vom jeweiligen Coach kuratierten
+Gruppencoaching-Bibliothek zugeordnet. Die Bibliothek verweist auf
 unveränderliche Versionen und enthält Sichtbarkeit, Eignung und Sortierung; sie
 dupliziert keine Planinhalte. Coaches pflegen die fachliche Auswahl, während
 Abonnements ausschließlich das zeitlich begrenzte Zugriffsrecht steuern.
 
-Athleten wählen Bibliothekspläne selbst. Das Ende eines Abos entfernt keine
+Der Einstieg liegt unter `/trainingsplaene`. Nutzer ohne aktive Membership sehen
+eine Sperrseite ohne Bibliotheksinhalt. Athleten mit aktiver Membership wählen
+Bibliothekspläne selbst. Das Ende eines Abos entfernt keine
 Trainingshistorie, sperrt aber den weiteren Zugriff auf die über das Abo
 bereitgestellten Inhalte. Einzelkäufe bleiben davon unabhängig. Details stehen
 in [Trainingspläne, Gruppencoaching und individuelles KI-Coaching](coaching-business-model.md).

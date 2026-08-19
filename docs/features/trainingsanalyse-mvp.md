@@ -15,7 +15,7 @@ Trainingsplanvorlagen. Er ist die erste Stufe der langfristigen
 - Speicherung von Eingaben und Analyseergebnissen in Supabase
 - Analyse-Übersicht unter `/analyse`
 - Detailreport pro Analyse unter `/analyse/[id]`
-- Admin-Rollenmodell und Trainingsplan-Builder unter `/admin/plans`
+- Rollenmodell und Trainingsplan-Builder unter `/trainingsplaene/verwalten`
 - Coach-Zugang für zugeordnete Athleten unter `/coach`
 - Gesperrte Trainingsplan-Vorschau im Report
 

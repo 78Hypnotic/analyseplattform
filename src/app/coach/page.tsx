@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { Activity, ArrowRight, UsersRound } from "lucide-react";
+import { Activity, ArrowRight, BookOpen, UsersRound } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
+import { ButtonLink } from "@/components/button";
 import { formatPace } from "@/lib/analysis/calculations";
 import { getCurrentUserRole } from "@/lib/auth/roles";
 import { getAssignedCoachAthletes } from "@/lib/coach-athletes";
@@ -32,6 +33,10 @@ export default async function CoachPage() {
               Profile pflegen, Diagnostiken erfassen und gespeicherte Reports verwalten.
             </p>
           </div>
+          <ButtonLink href="/trainingsplaene">
+            <BookOpen size={16} />
+            Meine Trainingsbibliothek
+          </ButtonLink>
         </div>
 
         {currentUser.isCoach ? (

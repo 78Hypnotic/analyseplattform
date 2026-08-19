@@ -47,7 +47,7 @@ Integrationsschritt nach stabiler manueller Nutzung.
 
 - `training_plans` enthält editierbare Admin-Planvorlagen mit Wochen,
   Einheiten, Blöcken und Drills.
-- Der Builder unter `/admin/plans` pflegt diese Vorlagen.
+- Der Coach-/Admin-Builder unter `/trainingsplaene/verwalten` pflegt diese Vorlagen.
 - Die Schwimmdiagnostik erzeugt mit `result.plan.slug` eine Planempfehlung.
 - `getActiveTrainingPlanPreview` lädt eine begrenzte Vorschau für den Report.
 - Die Profilseite ist die bestehende Athletenoberfläche für den späteren

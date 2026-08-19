@@ -12,7 +12,7 @@ import type {
   TrainingPlanSession,
   TrainingPlanWeek,
 } from "@/lib/training-plans/types";
-import { saveTrainingPlan } from "./actions";
+import { saveTrainingPlan } from "@/app/trainingsplaene/verwalten/actions";
 
 const TARGET_DISTANCES = ["Sprint", "OD", "MD", "LD", "Becken", "Freiwasser"] as const;
 const LEVELS = ["Alle", "Einsteiger", "Fortgeschritten", "Ambitioniert", "Leistungsschwimmer"];
@@ -169,6 +169,8 @@ export function TrainingPlanForm({ plan }: TrainingPlanFormProps) {
   return (
     <form action={formAction} className="mt-8 space-y-6">
       <input type="hidden" name="id" value={plan?.id ?? ""} />
+      <input type="hidden" name="discipline" value="swim" />
+      <input type="hidden" name="is_active" value={plan?.is_active ? "true" : "false"} />
       <input type="hidden" name="content" value={contentJson} />
 
       <section className="surface grid gap-4 p-5 md:grid-cols-2">
@@ -203,10 +205,7 @@ export function TrainingPlanForm({ plan }: TrainingPlanFormProps) {
             <h2 className="text-xl font-semibold">Zielstrecken</h2>
             <p className="muted mt-1 text-sm">Mindestens eine Zielstrecke auswählen.</p>
           </div>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" name="is_active" defaultChecked={plan?.is_active ?? false} className="size-4" />
-            Aktiv veröffentlichen
-          </label>
+          <p className="text-sm text-[var(--subtle)]">Veröffentlichen erfolgt nach dem Speichern als eigene Version.</p>
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
           {TARGET_DISTANCES.map((distance) => (

@@ -36,7 +36,7 @@ export default async function AdminPage() {
               später im Report als gesperrte Vorschau ausgespielt.
             </p>
           </div>
-          <ButtonLink href="/admin/plans" variant="primary">
+          <ButtonLink href="/trainingsplaene/verwalten" variant="primary">
             <ClipboardList size={16} />
             Pläne verwalten
           </ButtonLink>
