@@ -61,6 +61,14 @@ export function TrainingPlanForm({ plan }: TrainingPlanFormProps) {
     }
   }, [state]);
 
+  useEffect(() => {
+    if (state.status !== "success" || state.savedTargetTechniqueAxis === undefined) return;
+    setDetails((current) => ({
+      ...current,
+      targetTechniqueAxis: state.savedTargetTechniqueAxis ?? "",
+    }));
+  }, [state.savedTargetTechniqueAxis, state.status]);
+
   function updateDetail(name: keyof typeof details, value: string) {
     setDetails((current) => ({ ...current, [name]: value }));
   }
@@ -173,7 +181,9 @@ export function TrainingPlanForm({ plan }: TrainingPlanFormProps) {
             ))}
           </select>
           <p className="text-xs text-[var(--subtle)]">
-            Markiert im Athleten-Radar den adressierten Trainingsfokus. Dies ist keine Ergebnisprognose.
+            Wird mit der nächsten Veröffentlichung unveränderlich in die Planversion übernommen und markiert dort
+            den Fokus im Athleten-Radar. Bereits veröffentlichte oder aktive Pläne ändern sich nicht. Dies ist keine
+            Ergebnisprognose.
           </p>
           <FieldError message={state.fieldErrors?.target_technique_axis} />
         </label>

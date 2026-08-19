@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import type { TechniqueProfileGroup } from "@/lib/analysis/types";
 import { requireCoachAccess } from "@/lib/auth/roles";
 import { assertRateLimit } from "@/lib/rate-limit/server";
 import {
@@ -20,6 +21,7 @@ export type TrainingPlanActionState = {
   message?: string;
   status?: "success" | "error";
   fieldErrors?: Partial<Record<TrainingPlanFieldName, string>>;
+  savedTargetTechniqueAxis?: TechniqueProfileGroup | null;
 };
 
 /**
@@ -75,10 +77,12 @@ export async function saveTrainingPlan(
         return { message: "Du darfst diesen Plan nicht bearbeiten.", status: "error" };
       }
 
-      const { error } = await supabase
+      const { data: savedPlan, error } = await supabase
         .from("training_plans")
         .update({ ...payload, is_active: existing.is_active })
-        .eq("id", parsed.data.id);
+        .eq("id", parsed.data.id)
+        .select("target_technique_axis")
+        .single();
 
       if (error) return { message: error.message, status: "error" };
 
@@ -87,7 +91,11 @@ export async function saveTrainingPlan(
       revalidatePath("/trainingsplaene/verwalten");
       revalidatePath(`/trainingsplaene/verwalten/${parsed.data.id}`);
       revalidatePath("/analyse");
-      return { message: "Plan gespeichert.", status: "success" };
+      return {
+        message: "Plan gespeichert.",
+        status: "success",
+        savedTargetTechniqueAxis: savedPlan.target_technique_axis as TechniqueProfileGroup | null,
+      };
     }
 
     const { data, error } = await supabase
