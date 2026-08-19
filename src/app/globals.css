@@ -22,7 +22,7 @@
   --brand-bg: #ffffff;
   --brand-fg: #000000;
   --hero-overlay: linear-gradient(to right, #0b0c0d, rgb(11 12 13 / 0.94), rgb(11 12 13 / 0.82));
-  --footer-bg: linear-gradient(135deg, #10201f 0%, #111315 48%, #181b12 100%);
+  --footer-bg: linear-gradient(to bottom, #10201f 0%, #111315 48%, #181b12 100%);
   --shadow-color: rgb(0 0 0 / 0.4);
 }
 
@@ -48,7 +48,7 @@
   --brand-bg: #171916;
   --brand-fg: #ffffff;
   --hero-overlay: linear-gradient(to right, rgb(247 248 245 / 0.96), rgb(247 248 245 / 0.9), rgb(247 248 245 / 0.78));
-  --footer-bg: linear-gradient(135deg, #e5f5f1 0%, #f7f8f5 48%, #f1f5dc 100%);
+  --footer-bg: linear-gradient(to bottom, #e5f5f1 0%, #f7f8f5 48%, #f1f5dc 100%);
   --shadow-color: rgb(34 43 38 / 0.16);
 }
 
