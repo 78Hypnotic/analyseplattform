@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Activity, Bike, Footprints, LogOut, Menu, ShieldCheck, UserRound, UsersRound, X } from "lucide-react";
+import { Activity, Bike, ChevronDown, Footprints, LayoutDashboard, LogOut, Menu, ShieldCheck, UserRound, UsersRound, X } from "lucide-react";
 import Link from "next/link";
 import { signOut } from "@/app/login/actions";
 import { Button } from "./button";
@@ -21,6 +21,7 @@ export function MobileHeaderMenu({
   avatarUrl?: string | null;
 }) {
   const [open, setOpen] = useState(false);
+  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
 
   return (
     <div className="md:hidden">
@@ -38,12 +39,35 @@ export function MobileHeaderMenu({
       {open ? (
         <div className="absolute inset-x-0 top-16 z-50 border-b border-[var(--line)] bg-[var(--overlay-bg)] px-5 py-4 shadow-[0_24px_60px_var(--shadow-color)]">
           <nav className="mx-auto grid max-w-6xl gap-2 text-sm">
-            <MobileLink href="/#disciplines" label="Disziplinen" onClick={() => setOpen(false)} />
-            <MobileLink href="/#methodik" label="Methodik" onClick={() => setOpen(false)} />
-            <MobileLink href="/#preise" label="Preise" onClick={() => setOpen(false)} />
-            <MobileLink href="/analyse" label="Schwimmen" icon={<Activity size={16} />} onClick={() => setOpen(false)} />
-            <MobileLink href="/lauf" label="Laufen" icon={<Footprints size={16} />} onClick={() => setOpen(false)} />
-            <MobileLink href="/rad" label="Radfahren" icon={<Bike size={16} />} onClick={() => setOpen(false)} />
+            {isAuthenticated ? (
+              <MobileLink href="/" label="Übersicht" icon={<LayoutDashboard size={16} />} onClick={() => setOpen(false)} />
+            ) : (
+              <>
+                <MobileLink href="/#methodik" label="Methodik" onClick={() => setOpen(false)} />
+                <MobileLink href="/#preise" label="Preise" onClick={() => setOpen(false)} />
+              </>
+            )}
+            <div className="rounded-lg border border-[var(--line)] bg-[var(--raised-bg)]">
+              <button
+                type="button"
+                onClick={() => setDiagnosticsOpen((current) => !current)}
+                aria-expanded={diagnosticsOpen}
+                className="flex w-full items-center justify-between gap-2 px-3 py-3 text-left text-[var(--muted)] hover:text-[var(--foreground)]"
+              >
+                <span className="flex items-center gap-2">
+                  <Activity size={16} className="text-[var(--accent)]" />
+                  Diagnostik
+                </span>
+                <ChevronDown size={16} className={diagnosticsOpen ? "rotate-180 transition" : "transition"} />
+              </button>
+              {diagnosticsOpen ? (
+                <div className="grid gap-1 border-t border-[var(--line)] p-2">
+                  <MobileLink href="/analyse" label="Schwimmen" icon={<Activity size={16} />} onClick={() => setOpen(false)} nested />
+                  <MobileLink href="/lauf" label="Laufen" icon={<Footprints size={16} />} onClick={() => setOpen(false)} nested />
+                  <MobileLink href="/rad" label="Radfahren" icon={<Bike size={16} />} onClick={() => setOpen(false)} nested />
+                </div>
+              ) : null}
+            </div>
             {isCoach ? (
               <MobileLink href="/coach" label="Coach" icon={<UsersRound size={16} />} onClick={() => setOpen(false)} />
             ) : null}
@@ -98,17 +122,21 @@ function MobileLink({
   label,
   icon,
   onClick,
+  nested = false,
 }: {
   href: string;
   label: string;
   icon?: React.ReactNode;
   onClick: () => void;
+  nested?: boolean;
 }) {
   return (
     <Link
       href={href}
       onClick={onClick}
-      className="flex items-center gap-2 rounded-lg px-3 py-3 text-[var(--muted)] hover:bg-[var(--panel)] hover:text-[var(--foreground)]"
+      className={nested
+        ? "flex items-center gap-2 rounded-lg px-3 py-2.5 text-[var(--muted)] hover:bg-[var(--panel)] hover:text-[var(--foreground)]"
+        : "flex items-center gap-2 rounded-lg px-3 py-3 text-[var(--muted)] hover:bg-[var(--panel)] hover:text-[var(--foreground)]"}
     >
       {icon}
       {label}

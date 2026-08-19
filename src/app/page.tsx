@@ -15,46 +15,40 @@ import {
 } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
 import { ButtonLink } from "@/components/button";
+import { DashboardHome } from "@/components/dashboard-home";
 import { HeroDisciplinePreview } from "@/components/hero-discipline-preview";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getAuthenticatedHomeData } from "@/lib/dashboard/data";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const isAuthenticated = await getIsAuthenticated();
+  const dashboardData = await getAuthenticatedHomeData();
 
   return (
     <>
       <AppHeader />
-      <main>
-        <Hero isAuthenticated={isAuthenticated} />
-        <Disciplines />
-        <HowItWorks />
-        <VocabularyMarquee />
-        <Method />
-        <ValueProps />
-        <Pricing isAuthenticated={isAuthenticated} />
-        <Faq />
-        <Cta />
-      </main>
+      {dashboardData ? <DashboardHome {...dashboardData} /> : <MarketingHome />}
     </>
   );
 }
 
-async function getIsAuthenticated() {
-  try {
-    const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    return Boolean(user);
-  } catch {
-    return false;
-  }
+function MarketingHome() {
+  return (
+    <main>
+      <Hero />
+      <Disciplines />
+      <HowItWorks />
+      <VocabularyMarquee />
+      <Method />
+      <ValueProps />
+      <Pricing />
+      <Faq />
+      <Cta />
+    </main>
+  );
 }
 
-function Hero({ isAuthenticated }: { isAuthenticated: boolean }) {
+function Hero() {
   return (
     <section className="hero-grid-lines relative min-h-[calc(100svh-4.25rem)] overflow-hidden border-b border-[var(--line)]">
       <Image
@@ -93,7 +87,7 @@ function Hero({ isAuthenticated }: { isAuthenticated: boolean }) {
               </ButtonLink>
             </div>
             <p className="mono mt-4 text-xs tracking-[0.14em] text-[var(--subtle)]">
-              {isAuthenticated ? "Mit deinem Profil verknüpft" : "Ø 2 Minuten · keine Kreditkarte"}
+              Ø 2 Minuten · keine Kreditkarte
             </p>
           </div>
           <HeroDisciplinePreview />
@@ -370,13 +364,13 @@ function Value({ label, title, text }: { label: string; title: string; text: str
   );
 }
 
-function Pricing({ isAuthenticated }: { isAuthenticated: boolean }) {
+function Pricing() {
   return (
     <Section id="preise" eyebrow="Preise" title="Fair. Transparent.">
       <div className="mt-10 grid gap-4 lg:grid-cols-3">
         <Plan name="Free" price="0" hint="Für den Einstieg" items={["1 Analyse / Monat", "Basis-Report", "Schwimmen & Laufen", "Community-Zugang"]} href="/analyse/new" cta="Starten" />
-        <Plan popular name="Athlet" price="9" hint="Unbegrenzte Analysen" items={["Unbegrenzt Analysen", "Schwimmen: CSS, VLa, VO2", "Laufen: CS, API, ACI + Zonen", "Historie & ReTest-Vergleich"]} href={isAuthenticated ? "/analyse" : "/login"} cta={isAuthenticated ? "Analysen öffnen" : "Account erstellen"} />
-        <Plan name="Coach" price="39" hint="Für Trainer mit Gruppen" items={["Bis zu 25 Athleten", "Team-Übersicht geplant", "Custom Trainingspläne", "White-Label Reports geplant"]} href={isAuthenticated ? "/analyse" : "/login"} cta={isAuthenticated ? "Analysen öffnen" : "Kontakt vorbereiten"} />
+        <Plan popular name="Athlet" price="9" hint="Unbegrenzte Analysen" items={["Unbegrenzt Analysen", "Schwimmen: CSS, VLa, VO2", "Laufen: CS, API, ACI + Zonen", "Historie & ReTest-Vergleich"]} href="/login" cta="Account erstellen" />
+        <Plan name="Coach" price="39" hint="Für Trainer mit Gruppen" items={["Bis zu 25 Athleten", "Team-Übersicht geplant", "Custom Trainingspläne", "White-Label Reports geplant"]} href="/login" cta="Kontakt vorbereiten" />
       </div>
     </Section>
   );

@@ -1,4 +1,4 @@
-import { LogOut, Waves } from "lucide-react";
+import { Activity, Bike, ChevronDown, Footprints, LogOut, Waves } from "lucide-react";
 import Link from "next/link";
 import { signOut } from "@/app/login/actions";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -34,24 +34,24 @@ export async function AppHeader({ userEmail }: { userEmail?: string | null }) {
         </Link>
 
         <nav className="hidden items-center gap-1 text-sm md:flex">
-          <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/#disciplines">
-            Disziplinen
-          </Link>
-          <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/#methodik">
-            Methodik
-          </Link>
-          <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/#preise">
-            Preise
-          </Link>
-          <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/analyse">
-            Schwimmen
-          </Link>
-          <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/lauf">
-            Laufen
-          </Link>
-          <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/rad">
-            Radfahren
-          </Link>
+          {resolvedUserEmail ? (
+            <>
+              <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/">
+                Übersicht
+              </Link>
+              <DiagnosticsMenu />
+            </>
+          ) : (
+            <>
+              <DiagnosticsMenu />
+              <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/#methodik">
+                Methodik
+              </Link>
+              <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/#preise">
+                Preise
+              </Link>
+            </>
+          )}
           {isCoach ? (
             <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/coach">
               Coach
@@ -103,6 +103,34 @@ export async function AppHeader({ userEmail }: { userEmail?: string | null }) {
         />
       </div>
     </header>
+  );
+}
+
+function DiagnosticsMenu() {
+  return (
+    <details className="group relative">
+      <summary className="flex cursor-pointer list-none items-center gap-1 rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)] [&::-webkit-details-marker]:hidden">
+        Diagnostik
+        <ChevronDown size={14} className="transition group-open:rotate-180" />
+      </summary>
+      <div className="absolute left-0 top-full z-50 mt-2 w-52 rounded-lg border border-[var(--line)] bg-[var(--overlay-bg)] p-2 shadow-[0_18px_50px_var(--shadow-color)]">
+        <DiagnosticsLink href="/analyse" icon={<Activity size={16} />} label="Schwimmen" />
+        <DiagnosticsLink href="/lauf" icon={<Footprints size={16} />} label="Laufen" />
+        <DiagnosticsLink href="/rad" icon={<Bike size={16} />} label="Radfahren" />
+      </div>
+    </details>
+  );
+}
+
+function DiagnosticsLink({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-[var(--muted)] hover:bg-[var(--panel)] hover:text-[var(--foreground)]"
+    >
+      <span className="text-[var(--accent)]">{icon}</span>
+      {label}
+    </Link>
   );
 }
 

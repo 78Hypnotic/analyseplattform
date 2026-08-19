@@ -1,6 +1,4 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { AnalysisAttribution } from "@/components/analysis-attribution";
 import { AppHeader } from "@/components/app-header";
 import { Button } from "@/components/button";
 import { parseBodyType } from "@/lib/body-type";
@@ -43,19 +41,6 @@ type ProfileData = {
   latest_bike_vlamax_proxy?: number | string | null;
 };
 
-type ProfileAnalysisRow = {
-  id: string;
-  title: string;
-  discipline: "swim" | "run" | "bike";
-  user_id: string;
-  created_at: string;
-  created_by: string | null;
-  created_by_name: string | null;
-  updated_by: string | null;
-  updated_by_name: string | null;
-  updated_at: string;
-};
-
 export const dynamic = "force-dynamic";
 
 /**
@@ -69,23 +54,13 @@ export default async function ProfilePage() {
 
   if (!user) redirect("/login");
 
-  const [{ data }, { data: recentAnalysisData, error: recentAnalysisError }] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", user.id)
-      .maybeSingle(),
-    supabase
-      .from("analyses")
-      .select("id,title,discipline,user_id,created_at,created_by,created_by_name,updated_by,updated_by_name,updated_at")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(12),
-  ]);
-  if (recentAnalysisError) throw new Error(recentAnalysisError.message);
+  const { data } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .maybeSingle();
 
   const profile = data as ProfileData | null;
-  const recentAnalyses = (recentAnalysisData ?? []) as ProfileAnalysisRow[];
   const metadataName =
     typeof user.user_metadata?.full_name === "string"
       ? user.user_metadata.full_name
@@ -171,11 +146,6 @@ export default async function ProfilePage() {
           </div>
         </section>
 
-        <LatestSwimSummary profile={profile} />
-        <LatestRunSummary profile={profile} />
-        <LatestBikeSummary profile={profile} />
-        <RecentAnalyses analyses={recentAnalyses} />
-
         <ProfileForm
           email={user.email ?? ""}
           fullName={fullName}
@@ -199,193 +169,10 @@ export default async function ProfilePage() {
   );
 }
 
-function RecentAnalyses({ analyses }: { analyses: ProfileAnalysisRow[] }) {
-  return (
-    <section className="surface p-6 sm:p-7">
-      <div className="mb-5">
-        <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--subtle)]">
-          Testverlauf
-        </p>
-        <h2 className="display-serif mt-2 text-3xl text-[var(--foreground)]">
-          Deine letzten Analysen
-        </h2>
-      </div>
-      {analyses.length === 0 ? (
-        <p className="text-sm text-[var(--muted)]">Noch keine Analyse gespeichert.</p>
-      ) : (
-        <div className="grid gap-3">
-          {analyses.map((analysis) => (
-            <Link
-              key={analysis.id}
-              href={getProfileAnalysisPath(analysis.discipline, analysis.id)}
-              className="rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-4 transition hover:border-[var(--accent)]"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <h3 className="font-medium">{analysis.title}</h3>
-                  <p className="mt-1 text-sm text-[var(--muted)]">
-                    {formatProfileDiscipline(analysis.discipline)} ·{" "}
-                    {new Date(analysis.created_at).toLocaleDateString("de-DE")}
-                  </p>
-                  <AnalysisAttribution audit={analysis} className="mt-1" />
-                </div>
-                <span className="text-sm font-medium text-[var(--accent)]">Report öffnen</span>
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
-
-function getProfileAnalysisPath(discipline: ProfileAnalysisRow["discipline"], id: string) {
-  if (discipline === "run") return `/lauf/${id}`;
-  if (discipline === "bike") return `/rad/${id}`;
-  return `/analyse/${id}`;
-}
-
-function formatProfileDiscipline(discipline: ProfileAnalysisRow["discipline"]) {
-  if (discipline === "run") return "Laufen";
-  if (discipline === "bike") return "Rad";
-  return "Schwimmen";
-}
-
-function LatestSwimSummary({ profile }: { profile: ProfileData | null }) {
-  const hasSummary = Boolean(profile?.latest_swim_analyzed_at || profile?.latest_swim_technique_status);
-
-  return (
-    <section className="surface p-6 sm:p-7">
-      <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
-        <div>
-          <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--subtle)]">Schwimm-Diagnostik</p>
-          <h2 className="display-serif mt-2 text-3xl text-[var(--foreground)]">Letzte berechnete Werte</h2>
-        </div>
-        <p className="text-sm text-[var(--muted)]">
-          {hasSummary && profile?.latest_swim_analyzed_at
-            ? new Date(profile.latest_swim_analyzed_at).toLocaleDateString("de-DE")
-            : "Noch keine Analyse gespeichert"}
-        </p>
-      </div>
-      <div className="grid gap-3 md:grid-cols-4">
-        <SummaryMetric label="Technik-Gate" value={formatTechniqueStatus(profile?.latest_swim_technique_status)} />
-        <SummaryMetric label="CSS" value={formatSeconds(profile?.latest_swim_css_pace_sec)} />
-        <SummaryMetric label="VO2-Proxy" value={formatProxy(profile?.latest_swim_vo2_proxy)} />
-        <SummaryMetric label="VLa-Profil" value={profile?.latest_swim_vla_profile ?? "-"} />
-      </div>
-    </section>
-  );
-}
-
-function LatestRunSummary({ profile }: { profile: ProfileData | null }) {
-  const hasSummary = Boolean(profile?.latest_run_analyzed_at || profile?.latest_run_cs_pace_sec);
-
-  return (
-    <section className="surface p-6 sm:p-7">
-      <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
-        <div>
-          <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--subtle)]">Lauf-Diagnostik</p>
-          <h2 className="display-serif mt-2 text-3xl text-[var(--foreground)]">Letzte berechnete Werte</h2>
-        </div>
-        <p className="text-sm text-[var(--muted)]">
-          {hasSummary && profile?.latest_run_analyzed_at
-            ? new Date(profile.latest_run_analyzed_at).toLocaleDateString("de-DE")
-            : "Noch keine Analyse gespeichert"}
-        </p>
-      </div>
-      <div className="grid gap-3 md:grid-cols-3">
-        <SummaryMetric label="Critical Speed" value={formatPacePerKm(profile?.latest_run_cs_pace_sec)} />
-        <SummaryMetric label="API" value={formatIndex(profile?.latest_run_api)} />
-        <SummaryMetric label="ACI" value={formatIndex(profile?.latest_run_aci)} />
-      </div>
-    </section>
-  );
-}
-
-function LatestBikeSummary({ profile }: { profile: ProfileData | null }) {
-  const hasSummary = Boolean(profile?.latest_bike_analyzed_at || profile?.latest_bike_ftp_watt);
-
-  return (
-    <section className="surface p-6 sm:p-7">
-      <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
-        <div>
-          <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--subtle)]">Rad-Diagnostik</p>
-          <h2 className="display-serif mt-2 text-3xl text-[var(--foreground)]">Letzte berechnete Werte</h2>
-        </div>
-        <p className="text-sm text-[var(--muted)]">
-          {hasSummary && profile?.latest_bike_analyzed_at
-            ? new Date(profile.latest_bike_analyzed_at).toLocaleDateString("de-DE")
-            : "Noch keine Analyse gespeichert"}
-        </p>
-      </div>
-      <div className="grid gap-3 md:grid-cols-3">
-        <SummaryMetric label="FTP" value={profile?.latest_bike_ftp_watt ? `${profile.latest_bike_ftp_watt} W` : "-"} />
-        <SummaryMetric label="VO₂max" value={formatVo2(profile?.latest_bike_vo2max_rel)} />
-        <SummaryMetric label="VLamax-Proxy" value={formatVlamax(profile?.latest_bike_vlamax_proxy)} />
-      </div>
-    </section>
-  );
-}
-
-function SummaryMetric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-4">
-      <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--subtle)]">{label}</p>
-      <p className="mt-2 text-sm font-medium">{value}</p>
-    </div>
-  );
-}
-
 function toNullableNumber(value: number | string | null | undefined) {
   if (value === null || value === undefined) return null;
   const numberValue = typeof value === "number" ? value : Number(value);
   return Number.isFinite(numberValue) ? numberValue : null;
-}
-
-function formatSeconds(value: number | string | null | undefined) {
-  const numberValue = toNullableNumber(value);
-  if (numberValue === null) return "-";
-  const minutes = Math.floor(numberValue / 60);
-  const seconds = Math.round(numberValue - minutes * 60);
-  return `${minutes}:${String(seconds).padStart(2, "0")} /100 m`;
-}
-
-function formatPacePerKm(value: number | string | null | undefined) {
-  const numberValue = toNullableNumber(value);
-  if (numberValue === null) return "-";
-  const minutes = Math.floor(numberValue / 60);
-  const seconds = Math.round(numberValue - minutes * 60);
-  return `${minutes}:${String(seconds).padStart(2, "0")} /km`;
-}
-
-function formatIndex(value: number | string | null | undefined) {
-  const numberValue = toNullableNumber(value);
-  if (numberValue === null) return "-";
-  return `${numberValue.toFixed(1)} / 10`;
-}
-
-function formatVo2(value: number | string | null | undefined) {
-  const numberValue = toNullableNumber(value);
-  if (numberValue === null) return "-";
-  return `${numberValue.toFixed(1)} ml/kg/min`;
-}
-
-function formatVlamax(value: number | string | null | undefined) {
-  const numberValue = toNullableNumber(value);
-  if (numberValue === null) return "-";
-  return `${numberValue.toFixed(2)} mmol/l/s`;
-}
-
-function formatTechniqueStatus(value: ProfileData["latest_swim_technique_status"]) {
-  if (value === "rot") return "Rot";
-  if (value === "gelb") return "Gelb";
-  if (value === "gruen") return "Grün";
-  return "-";
-}
-
-function formatProxy(value: ProfileData["latest_swim_vo2_proxy"]) {
-  if (value === "nicht_ermittelbar") return "Nicht ermittelbar";
-  return value ?? "-";
 }
 
 function calculateProfileCompletion(profile: {
