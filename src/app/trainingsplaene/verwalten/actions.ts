@@ -10,11 +10,16 @@ import {
   isStructuredTrainingPlanContent,
   parseTrainingPlanContent,
 } from "@/lib/training-plans/content";
-import { trainingPlanSchema } from "@/lib/training-plans/schema";
+import {
+  formatTrainingPlanValidationError,
+  trainingPlanSchema,
+  type TrainingPlanFieldName,
+} from "@/lib/training-plans/schema";
 
 export type TrainingPlanActionState = {
   message?: string;
   status?: "success" | "error";
+  fieldErrors?: Partial<Record<TrainingPlanFieldName, string>>;
 };
 
 /**
@@ -34,8 +39,9 @@ export async function saveTrainingPlan(
     const parsed = parseTrainingPlanForm(formData);
 
     if (!parsed.success) {
+      const feedback = formatTrainingPlanValidationError(parsed.error);
       return {
-        message: parsed.error.issues[0]?.message ?? "Plan konnte nicht gespeichert werden.",
+        ...feedback,
         status: "error",
       };
     }

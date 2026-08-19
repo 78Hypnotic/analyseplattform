@@ -134,3 +134,104 @@ export const trainingPlanSchema = z.object({
 });
 
 export type TrainingPlanFormData = z.infer<typeof trainingPlanSchema>;
+
+export type TrainingPlanFieldName =
+  | "title"
+  | "slug"
+  | "focus"
+  | "phase"
+  | "level"
+  | "target_distances"
+  | "summary"
+  | "preview"
+  | "content";
+
+export type TrainingPlanValidationFeedback = {
+  message: string;
+  fieldErrors: Partial<Record<TrainingPlanFieldName, string>>;
+};
+
+const FIELD_LABELS: Record<TrainingPlanFieldName, string> = {
+  title: "Titel",
+  slug: "Slug",
+  focus: "Fokus",
+  phase: "Phase",
+  level: "Niveau",
+  target_distances: "Zielstrecken",
+  summary: "Zusammenfassung",
+  preview: "Gesperrte Vorschau",
+  content: "Workout-Struktur",
+};
+
+export function formatTrainingPlanValidationError(
+  error: z.ZodError,
+): TrainingPlanValidationFeedback {
+  const fieldErrors: Partial<Record<TrainingPlanFieldName, string>> = {};
+  let firstMessage = "Plan konnte nicht gespeichert werden.";
+
+  error.issues.forEach((issue, index) => {
+    const field = getFieldName(issue.path[0]);
+    const message = translateIssue(issue, field);
+    if (!fieldErrors[field]) fieldErrors[field] = message;
+    if (index === 0) {
+      const context = field === "content" ? formatContentContext(issue.path) : FIELD_LABELS[field];
+      firstMessage = `${context}: ${message}`;
+    }
+  });
+
+  return { message: firstMessage, fieldErrors };
+}
+
+function getFieldName(value: PropertyKey | undefined): TrainingPlanFieldName {
+  const key = String(value ?? "content");
+  return key in FIELD_LABELS ? key as TrainingPlanFieldName : "content";
+}
+
+function translateIssue(issue: z.core.$ZodIssue, field: TrainingPlanFieldName) {
+  if (field === "target_distances" && issue.code === "too_small") {
+    return "Bitte mindestens eine Zielstrecke auswählen.";
+  }
+  if (field === "slug" && issue.code === "invalid_format") {
+    return "Nur Kleinbuchstaben, Zahlen und Bindestriche verwenden.";
+  }
+  if (field === "content" && issue.code === "too_small") {
+    const collection = getContentCollection(issue.path);
+    if (collection === "weeks") return "Bitte mindestens eine Woche anlegen.";
+    if (collection === "sessions") return "Bitte mindestens ein Workout anlegen.";
+    if (collection === "blocks") return "Bitte mindestens einen Block anlegen.";
+    if (collection === "steps") return "Bitte mindestens einen Schritt anlegen.";
+  }
+  if (issue.code === "too_small") {
+    const minimum = "minimum" in issue ? Number(issue.minimum) : 1;
+    return `Bitte mindestens ${minimum} Zeichen eingeben.`;
+  }
+  if (issue.code === "too_big") {
+    const maximum = "maximum" in issue ? Number(issue.maximum) : null;
+    return maximum ? `Bitte höchstens ${maximum} Zeichen eingeben.` : "Der Wert ist zu lang.";
+  }
+  if (issue.code === "invalid_type") return "Bitte einen gültigen Wert eingeben.";
+  if (issue.code === "invalid_value") return "Bitte eine gültige Auswahl treffen.";
+  return issue.message && !issue.message.startsWith("Too ")
+    ? issue.message
+    : "Bitte den Wert prüfen.";
+}
+
+function getContentCollection(path: PropertyKey[]) {
+  return [...path]
+    .reverse()
+    .find((item) => item === "weeks" || item === "sessions" || item === "blocks" || item === "steps");
+}
+
+function formatContentContext(path: PropertyKey[]) {
+  const weekPosition = path.indexOf("weeks");
+  const sessionPosition = path.indexOf("sessions");
+  const weekIndex = weekPosition >= 0 && typeof path[weekPosition + 1] === "number"
+    ? Number(path[weekPosition + 1]) + 1
+    : null;
+  const sessionIndex = sessionPosition >= 0 && typeof path[sessionPosition + 1] === "number"
+    ? Number(path[sessionPosition + 1]) + 1
+    : null;
+  if (weekIndex && sessionIndex) return `Workout-Struktur · Woche ${weekIndex}, Workout ${sessionIndex}`;
+  if (weekIndex) return `Workout-Struktur · Woche ${weekIndex}`;
+  return FIELD_LABELS.content;
+}

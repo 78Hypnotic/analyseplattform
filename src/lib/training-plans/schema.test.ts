@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { trainingPlanSchema } from "./schema";
+import { formatTrainingPlanValidationError, trainingPlanSchema } from "./schema";
 
 const validPlan = {
   discipline: "swim" as const,
@@ -47,5 +47,19 @@ describe("trainingPlanSchema", () => {
       content: { weeks: [{ title: "Woche 1", goal: "Technik", sessions: [] }] },
     });
     expect(result.success).toBe(false);
+  });
+
+  it("returns German field-specific validation feedback", () => {
+    const result = trainingPlanSchema.safeParse({
+      ...validPlan,
+      title: "",
+      summary: "kurz",
+    });
+    if (result.success) throw new Error("Fixture must be invalid");
+
+    const feedback = formatTrainingPlanValidationError(result.error);
+    expect(feedback.message).toBe("Titel: Bitte mindestens 3 Zeichen eingeben.");
+    expect(feedback.fieldErrors.title).toBe("Bitte mindestens 3 Zeichen eingeben.");
+    expect(feedback.fieldErrors.summary).toBe("Bitte mindestens 10 Zeichen eingeben.");
   });
 });
