@@ -30,7 +30,6 @@ export default async function TrainingPlanDetailPage({
           <span>Veröffentlicht am {new Date(version.published_at).toLocaleDateString("de-DE")}</span>
         </div>
 
-        <section className="mt-10 space-y-5">
         <TrainingPlanContentView content={version.content} />
       </main>
     </>
