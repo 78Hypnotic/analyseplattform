@@ -108,17 +108,24 @@ export async function AppHeader({ userEmail }: { userEmail?: string | null }) {
 
 function DiagnosticsMenu() {
   return (
-    <details className="group relative">
-      <summary className="flex cursor-pointer list-none items-center gap-1 rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)] [&::-webkit-details-marker]:hidden">
+    <div className="group relative">
+      <button
+        type="button"
+        aria-haspopup="menu"
+        className="flex items-center gap-1 rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)] focus-visible:text-[var(--foreground)]"
+      >
         Diagnostik
-        <ChevronDown size={14} className="transition group-open:rotate-180" />
-      </summary>
-      <div className="absolute left-0 top-full z-50 mt-2 w-52 rounded-lg border border-[var(--line)] bg-[var(--overlay-bg)] p-2 shadow-[0_18px_50px_var(--shadow-color)]">
+        <ChevronDown size={14} className="transition group-hover:rotate-180 group-focus-within:rotate-180" />
+      </button>
+      <div
+        role="menu"
+        className="invisible absolute left-0 top-full z-50 w-52 translate-y-1 rounded-lg border border-[var(--line)] bg-[var(--overlay-bg)] p-2 opacity-0 shadow-[0_18px_50px_var(--shadow-color)] transition group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100"
+      >
         <DiagnosticsLink href="/analyse" icon={<Activity size={16} />} label="Schwimmen" />
         <DiagnosticsLink href="/lauf" icon={<Footprints size={16} />} label="Laufen" />
         <DiagnosticsLink href="/rad" icon={<Bike size={16} />} label="Radfahren" />
       </div>
-    </details>
+    </div>
   );
 }
 
@@ -126,6 +133,7 @@ function DiagnosticsLink({ href, icon, label }: { href: string; icon: React.Reac
   return (
     <Link
       href={href}
+      role="menuitem"
       className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-[var(--muted)] hover:bg-[var(--panel)] hover:text-[var(--foreground)]"
     >
       <span className="text-[var(--accent)]">{icon}</span>
