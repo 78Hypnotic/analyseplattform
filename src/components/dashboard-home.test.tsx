@@ -122,7 +122,7 @@ describe("DashboardHome", () => {
         swimTechniqueAxes={[
           { group: "Wasserlage", score: 85, status: "stark", statement: "Stabil" },
           { group: "Atmung", score: 55, status: "offen", statement: "Offen" },
-          { group: "Zug", score: 30, status: "fokus", statement: "Fokus" },
+          { group: "Zugphase", score: 30, status: "fokus", statement: "Fokus" },
         ]}
       />,
     );

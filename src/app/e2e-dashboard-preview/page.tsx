@@ -47,11 +47,11 @@ export default function DashboardPreviewPage() {
       swimTechniqueAxes={[
         { group: "Wasserlage", score: 85, status: "stark", statement: "Stabile Wasserlage" },
         { group: "Atmung", score: 55, status: "offen", statement: "Keine Angabe im Kontext" },
-        { group: "Catch", score: 30, status: "fokus", statement: "Frühes Wasserfassen verbessern" },
+        { group: "Zugphase", score: 30, status: "fokus", statement: "Frühes Wasserfassen verbessern" },
         { group: "Druckphase", score: 30, status: "fokus", statement: "Druck bis zum Ende halten" },
         { group: "Rückführung", score: 85, status: "stark", statement: "Lockere Rückführung" },
         { group: "Rotation", score: 55, status: "offen", statement: "Keine Angabe im Kontext" },
-        { group: "Beinschlag", score: 30, status: "fokus", statement: "Beine ermüden schnell" },
+        { group: "Beinarbeit", score: 30, status: "fokus", statement: "Beine ermüden schnell" },
       ]}
       activeTrainingPlan={null}
       trainingPlanAccess="admin"
