@@ -3,7 +3,7 @@ import Link from "next/link";
 
 export function AppFooter() {
   return (
-    <footer className="border-t border-[var(--line)] bg-[var(--header-bg)] print:hidden">
+    <footer className="app-footer border-t border-[var(--line)] print:hidden">
       <div className="mx-auto grid max-w-6xl gap-8 px-5 py-10 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
         <div>
           <div className="flex items-center gap-3">
