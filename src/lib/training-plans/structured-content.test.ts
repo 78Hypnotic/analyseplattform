@@ -62,6 +62,7 @@ describe("structured training plan content", () => {
 
     expect(moved.weeks[0].sessions).toHaveLength(1);
     expect(moved.weeks[1].sessions[0].id).toBe(duplicateId);
+    expect(moved.weeks[1].sessions[0].preferredWeekday).toBe(2);
   });
 });
 
@@ -76,6 +77,7 @@ function fixture(): TrainingPlanContentV2 {
         id: "workout-1",
         title: "Aerob",
         focus: "Grundlage",
+        preferredWeekday: 2,
         blocks: [{
           id: "block-1",
           title: "Hauptserie",

@@ -57,8 +57,11 @@ mit `content_schema_version = 2`. Die primäre Oberfläche ist ein Wochen-Board:
 - integrierte Vorlagen erzeugen Technik-, Aerob- und CSS-Workouts als vollständig
 	strukturierte Ausgangspunkte.
 
-Die Vorlage speichert weiterhin nur die Reihenfolge der Workouts. Konkrete
-Wochentage wählt der Athlet erst bei der Aktivierung seines persönlichen Plans.
+Die Vorlage kann für jedes Workout einen empfohlenen Wochentag speichern. Diese
+Zuordnung strukturiert das Coach-Board, schreibt dem Athleten den Termin aber
+nicht fest. Bei der Aktivierung wählt beziehungsweise bestätigt der Athlet seine
+persönlichen Trainingstage; die persistierten persönlichen Einheiten bleiben die
+verbindliche Terminierung.
 
 Bestehende V1-Freitextpläne bleiben lesbar und werden beim Öffnen des Builders
 in einen V2-Arbeitsstand überführt. Sicher lesbare Angaben wie `6 x 100 m`

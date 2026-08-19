@@ -92,6 +92,10 @@ export const structuredTrainingPlanSessionSchema = z.object({
   id: structuredIdSchema,
   title: z.string().trim().min(2).max(80),
   focus: z.string().trim().min(2).max(160),
+  preferredWeekday: z.union([
+    z.literal(1), z.literal(2), z.literal(3), z.literal(4),
+    z.literal(5), z.literal(6), z.literal(7),
+  ]).optional(),
   estimatedDurationMinutes: z.number().int().min(1).max(600).optional(),
   blocks: z.array(structuredSwimBlockSchema).min(1).max(12),
 });

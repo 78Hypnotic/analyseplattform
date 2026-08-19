@@ -53,6 +53,11 @@ const EQUIPMENT = [
   ["snorkel", "Schnorchel"],
   ["kickboard", "Brett"],
 ] as const;
+const WEEKDAYS = [
+  [1, "Mo", "Montag"], [2, "Di", "Dienstag"], [3, "Mi", "Mittwoch"],
+  [4, "Do", "Donnerstag"], [5, "Fr", "Freitag"], [6, "Sa", "Samstag"], [7, "So", "Sonntag"],
+] as const;
+type PreferredWeekday = NonNullable<StructuredTrainingPlanSession["preferredWeekday"]>;
 
 export function StructuredPlanBuilder({
   content,
@@ -63,9 +68,7 @@ export function StructuredPlanBuilder({
 }) {
   const deferredContent = useDeferredValue(content);
   const metrics = getPlanMetrics(deferredContent);
-  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
-    content.weeks[0]?.sessions[0]?.id ?? null,
-  );
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const selected = findSession(content, selectedSessionId);
 
   function addPreset(preset: "technique" | "aerobic" | "css") {
@@ -143,6 +146,25 @@ export function StructuredPlanBuilder({
     onChange(moveSession(content, selected.session.id, targetWeek.id, targetWeek.sessions.length));
   }
 
+  function assignSessionToDay(
+    sessionId: string,
+    targetWeekId: string,
+    preferredWeekday?: PreferredWeekday,
+  ) {
+    const moved = moveSession(content, sessionId, targetWeekId, Number.MAX_SAFE_INTEGER);
+    onChange({
+      ...moved,
+      weeks: moved.weeks.map((week) => week.id === targetWeekId
+        ? {
+            ...week,
+            sessions: week.sessions.map((session) => session.id === sessionId
+              ? { ...session, preferredWeekday }
+              : session),
+          }
+        : week),
+    });
+  }
+
   return (
     <section className="mt-6 space-y-4">
       <PlanSummary metrics={metrics} />
@@ -157,7 +179,10 @@ export function StructuredPlanBuilder({
           <Button type="button" variant="ghost" onClick={() => addPreset("css")}>CSS</Button>
         </div>
       </div>
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_24rem] xl:items-start">
+      <div className={cn(
+        "gap-4",
+        selected ? "grid xl:grid-cols-[minmax(0,1fr)_24rem] xl:items-start" : "block",
+      )}>
         <div className="min-w-0 space-y-4">
           {content.weeks.map((week, weekIndex) => (
             <WeekRow
@@ -177,8 +202,7 @@ export function StructuredPlanBuilder({
                   setSelectedSessionId(remaining[0]?.id ?? null);
                 }
               }}
-              onMoveSession={(from, to) => updateWeek(week.id, { sessions: moveItem(week.sessions, from, to) })}
-              onDropSession={(sessionId, targetIndex) => onChange(moveSession(content, sessionId, week.id, targetIndex))}
+              onDropSession={(sessionId, preferredWeekday) => assignSessionToDay(sessionId, week.id, preferredWeekday)}
               onDuplicateWeek={() => onChange(duplicateWeek(content, week.id))}
               onMoveWeek={(direction) => onChange({
                 ...content,
@@ -193,8 +217,8 @@ export function StructuredPlanBuilder({
           </Button>
         </div>
 
-        <aside className="xl:sticky xl:top-4">
-          {selected ? (
+        {selected ? (
+          <aside className="xl:sticky xl:top-4">
             <WorkoutInspector
               session={selected.session}
               canMovePreviousWeek={selected.weekIndex > 0}
@@ -204,12 +228,8 @@ export function StructuredPlanBuilder({
               onMoveNextWeek={() => moveSelectedToWeek(1)}
               onClose={() => setSelectedSessionId(null)}
             />
-          ) : (
-            <div className="surface p-6 text-sm text-[var(--muted)]">
-              Wähle ein Workout aus, um seine Blöcke zu bearbeiten.
-            </div>
-          )}
-        </aside>
+          </aside>
+        ) : null}
       </div>
     </section>
   );
@@ -243,7 +263,6 @@ function WeekRow({
   onAddSession,
   onDuplicateSession,
   onRemoveSession,
-  onMoveSession,
   onDropSession,
   onDuplicateWeek,
   onMoveWeek,
@@ -258,13 +277,27 @@ function WeekRow({
   onAddSession: () => void;
   onDuplicateSession: (id: string) => void;
   onRemoveSession: (id: string) => void;
-  onMoveSession: (from: number, to: number) => void;
-  onDropSession: (id: string, targetIndex: number) => void;
+  onDropSession: (id: string, preferredWeekday?: PreferredWeekday) => void;
   onDuplicateWeek: () => void;
   onMoveWeek: (direction: -1 | 1) => void;
   onRemoveWeek: () => void;
   canRemove: boolean;
 }) {
+  const renderWorkout = (session: StructuredTrainingPlanSession) => {
+    return (
+      <WorkoutCard
+        key={session.id}
+        session={session}
+        selected={session.id === selectedSessionId}
+        onSelect={() => onSelect(session.id)}
+        onDuplicate={() => onDuplicateSession(session.id)}
+        onRemove={() => onRemoveSession(session.id)}
+        canRemove={week.sessions.length > 1}
+      />
+    );
+  };
+  const flexibleSessions = week.sessions.filter((session) => !session.preferredWeekday);
+
   return (
     <section className="border-t border-[var(--line)] pt-4">
       <div className="grid gap-3 md:grid-cols-[5rem_minmax(0,1fr)_auto] md:items-center">
@@ -283,43 +316,49 @@ function WeekRow({
       <div className="mt-3 flex items-center justify-between text-xs text-[var(--subtle)]">
         <span>{week.sessions.length} Workouts</span><span>{formatMeters(getWeekMeters(week))}</span>
       </div>
+      <div className="mt-3 grid gap-2 md:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-7">
+        {WEEKDAYS.map(([value, shortLabel]) => (
+          <DayColumn
+            key={value}
+            label={shortLabel}
+            onDrop={(sessionId) => onDropSession(sessionId, value)}
+          >
+            {week.sessions.filter((session) => session.preferredWeekday === value).map(renderWorkout)}
+          </DayColumn>
+        ))}
+      </div>
       <div
-        className="mt-3 grid gap-3 sm:grid-cols-2 2xl:grid-cols-3"
+        className="mt-3 rounded-lg border border-dashed border-[var(--line)] p-3"
         onDragOver={(event) => event.preventDefault()}
         onDrop={(event) => {
           event.preventDefault();
           const sessionId = event.dataTransfer.getData("application/x-workout-id");
-          if (sessionId) onDropSession(sessionId, week.sessions.length);
+          if (sessionId) onDropSession(sessionId, undefined);
         }}
       >
-        {week.sessions.map((session, sessionIndex) => (
-          <WorkoutCard
-            key={session.id}
-            session={session}
-            selected={session.id === selectedSessionId}
-            onSelect={() => onSelect(session.id)}
-            onDuplicate={() => onDuplicateSession(session.id)}
-            onMoveLeft={() => onMoveSession(sessionIndex, sessionIndex - 1)}
-            onMoveRight={() => onMoveSession(sessionIndex, sessionIndex + 1)}
-            onRemove={() => onRemoveSession(session.id)}
-            canRemove={week.sessions.length > 1}
-          />
-        ))}
-        <button type="button" onClick={onAddSession} className="flex min-h-36 items-center justify-center gap-2 rounded-lg border border-dashed border-[var(--line)] text-sm text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--foreground)]">
-          <Plus size={16} /> Workout
-        </button>
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <p className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--subtle)]">Flexibel</p>
+          <button type="button" onClick={onAddSession} className="inline-flex items-center gap-1 text-xs text-[var(--accent)]">
+            <Plus size={13} /> Workout
+          </button>
+        </div>
+        {flexibleSessions.length > 0 ? (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {flexibleSessions.map(renderWorkout)}
+          </div>
+        ) : (
+          <p className="py-3 text-center text-xs text-[var(--subtle)]">Workouts ohne Tagesempfehlung hier ablegen</p>
+        )}
       </div>
     </section>
   );
 }
 
-function WorkoutCard({ session, selected, onSelect, onDuplicate, onMoveLeft, onMoveRight, onRemove, canRemove }: {
+function WorkoutCard({ session, selected, onSelect, onDuplicate, onRemove, canRemove }: {
   session: StructuredTrainingPlanSession;
   selected: boolean;
   onSelect: () => void;
   onDuplicate: () => void;
-  onMoveLeft: () => void;
-  onMoveRight: () => void;
   onRemove: () => void;
   canRemove: boolean;
 }) {
@@ -346,8 +385,6 @@ function WorkoutCard({ session, selected, onSelect, onDuplicate, onMoveLeft, onM
         </div>
       </button>
       <div className="mt-3 flex justify-end gap-1 border-t border-[var(--line)] pt-2">
-        <IconButton title="Nach links" onClick={onMoveLeft}><ArrowLeft size={14} /></IconButton>
-        <IconButton title="Nach rechts" onClick={onMoveRight}><ArrowRight size={14} /></IconButton>
         <IconButton title="Workout duplizieren" onClick={onDuplicate}><Copy size={14} /></IconButton>
         <IconButton title="Workout löschen" onClick={onRemove} disabled={!canRemove}><Trash2 size={14} /></IconButton>
       </div>
@@ -387,6 +424,17 @@ function WorkoutInspector({ session, onChange, onMovePreviousWeek, onMoveNextWee
       <div className="mt-4 grid gap-3">
         <InspectorField label="Titel" value={session.title} onChange={(value) => onChange({ title: value })} />
         <InspectorField label="Fokus" value={session.focus} onChange={(value) => onChange({ focus: value })} />
+        <label className="grid gap-1 text-xs text-[var(--muted)]">Empfohlener Trainingstag
+          <select
+            value={session.preferredWeekday ?? ""}
+            onChange={(event) => onChange({
+              preferredWeekday: event.target.value ? Number(event.target.value) as PreferredWeekday : undefined,
+            })}
+          >
+            <option value="">Flexibel</option>
+            {WEEKDAYS.map(([value, , fullLabel]) => <option key={value} value={value}>{fullLabel}</option>)}
+          </select>
+        </label>
         <label className="grid gap-1 text-xs text-[var(--muted)]">Geschätzte Dauer (min)
           <input type="number" min={1} max={600} value={session.estimatedDurationMinutes ?? ""} onChange={(event) => onChange({ estimatedDurationMinutes: event.target.value ? Number(event.target.value) : undefined })} />
         </label>
@@ -432,6 +480,23 @@ function WorkoutInspector({ session, onChange, onMovePreviousWeek, onMoveNextWee
         <Button type="button" onClick={addBlock} className="w-full"><Plus size={15} /> Block</Button>
       </div>
     </div>
+  );
+}
+
+function DayColumn({ label, onDrop, children }: { label: string; onDrop: (sessionId: string) => void; children: React.ReactNode }) {
+  return (
+    <section
+      className="min-h-40 rounded-lg border border-[var(--line)] bg-[var(--soft-bg)] p-2"
+      onDragOver={(event) => event.preventDefault()}
+      onDrop={(event) => {
+        event.preventDefault();
+        const sessionId = event.dataTransfer.getData("application/x-workout-id");
+        if (sessionId) onDrop(sessionId);
+      }}
+    >
+      <p className="mono mb-2 text-center text-[9px] uppercase tracking-[0.14em] text-[var(--subtle)]">{label}</p>
+      <div className="space-y-2">{children}</div>
+    </section>
   );
 }
 

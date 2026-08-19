@@ -64,6 +64,7 @@ export type StructuredTrainingPlanSession = {
   id: string;
   title: string;
   focus: string;
+  preferredWeekday?: 1 | 2 | 3 | 4 | 5 | 6 | 7;
   estimatedDurationMinutes?: number;
   blocks: StructuredSwimBlock[];
 };
