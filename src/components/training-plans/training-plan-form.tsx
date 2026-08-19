@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useMemo, useState } from "react";
-import { Save } from "lucide-react";
+import { AlertTriangle, Check, Save } from "lucide-react";
 import { Button } from "@/components/button";
 import { saveTrainingPlan } from "@/app/trainingsplaene/verwalten/actions";
 import {
@@ -41,15 +41,29 @@ export function TrainingPlanForm({ plan }: TrainingPlanFormProps) {
       <input type="hidden" name="weeks" value={content.weeks.length} />
       <input type="hidden" name="content" value={contentJson} />
 
-      <div className="sticky top-0 z-30 flex items-center justify-between gap-4 border-y border-[var(--line)] bg-[var(--overlay-bg)] px-3 py-2 shadow-[0_10px_28px_var(--shadow-color)] backdrop-blur">
+      <div className="sticky top-0 z-30 flex flex-col gap-3 border-y border-[var(--line)] bg-[var(--overlay-bg)] px-3 py-2 shadow-[0_10px_28px_var(--shadow-color)] backdrop-blur sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--accent)]">Planentwurf · V2</p>
           <p className="mt-0.5 text-xs text-[var(--muted)]">{content.weeks.length} Wochen · strukturiertes Schwimmworkout</p>
         </div>
-        <Button type="submit" variant="primary" disabled={isPending}>
-          <Save size={16} />
-          {isPending ? "Speichert..." : "Speichern"}
-        </Button>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          {state.message ? (
+            <div
+              role={state.status === "error" ? "alert" : "status"}
+              aria-live="polite"
+              className={state.status === "error"
+                ? "flex items-center gap-2 rounded-lg border border-[var(--warn)] px-3 py-2 text-sm text-[var(--warn)]"
+                : "flex items-center gap-2 rounded-lg border border-[var(--accent)] px-3 py-2 text-sm text-[var(--accent)]"}
+            >
+              {state.status === "error" ? <AlertTriangle size={15} /> : <Check size={15} />}
+              <span>{state.message}</span>
+            </div>
+          ) : null}
+          <Button type="submit" variant="primary" disabled={isPending}>
+            <Save size={16} />
+            {isPending ? "Speichert..." : "Speichern"}
+          </Button>
+        </div>
       </div>
 
       <section className="surface grid gap-4 p-5 md:grid-cols-2">
@@ -108,10 +122,6 @@ export function TrainingPlanForm({ plan }: TrainingPlanFormProps) {
       </section>
 
       <StructuredPlanBuilder content={content} onChange={setContent} />
-
-      {state.message ? (
-        <div className="surface border-[var(--warn)] p-4 text-sm text-[var(--warn)]">{state.message}</div>
-      ) : null}
 
     </form>
   );

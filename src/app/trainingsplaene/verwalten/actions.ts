@@ -14,6 +14,7 @@ import { trainingPlanSchema } from "@/lib/training-plans/schema";
 
 export type TrainingPlanActionState = {
   message?: string;
+  status?: "success" | "error";
 };
 
 /**
@@ -33,7 +34,10 @@ export async function saveTrainingPlan(
     const parsed = parseTrainingPlanForm(formData);
 
     if (!parsed.success) {
-      return { message: parsed.error.issues[0]?.message ?? "Plan konnte nicht gespeichert werden." };
+      return {
+        message: parsed.error.issues[0]?.message ?? "Plan konnte nicht gespeichert werden.",
+        status: "error",
+      };
     }
 
     const payload = {
@@ -59,9 +63,9 @@ export async function saveTrainingPlan(
         .eq("id", parsed.data.id)
         .maybeSingle();
 
-      if (existingError) return { message: existingError.message };
+      if (existingError) return { message: existingError.message, status: "error" };
       if (!existing || (!isAdmin && existing.created_by !== user.id)) {
-        return { message: "Du darfst diesen Plan nicht bearbeiten." };
+        return { message: "Du darfst diesen Plan nicht bearbeiten.", status: "error" };
       }
 
       const { error } = await supabase
@@ -69,14 +73,14 @@ export async function saveTrainingPlan(
         .update({ ...payload, is_active: existing.is_active })
         .eq("id", parsed.data.id);
 
-      if (error) return { message: error.message };
+      if (error) return { message: error.message, status: "error" };
 
       revalidatePath("/admin");
       revalidatePath("/trainingsplaene");
       revalidatePath("/trainingsplaene/verwalten");
       revalidatePath(`/trainingsplaene/verwalten/${parsed.data.id}`);
       revalidatePath("/analyse");
-      return { message: "Plan gespeichert." };
+      return { message: "Plan gespeichert.", status: "success" };
     }
 
     const { data, error } = await supabase
@@ -85,7 +89,7 @@ export async function saveTrainingPlan(
       .select("id")
       .single();
 
-    if (error) return { message: error.message };
+    if (error) return { message: error.message, status: "error" };
 
     revalidatePath("/admin");
     revalidatePath("/trainingsplaene");
@@ -94,11 +98,11 @@ export async function saveTrainingPlan(
     redirectTo = `/trainingsplaene/verwalten/${data.id}`;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Plan konnte nicht gespeichert werden.";
-    return { message };
+    return { message, status: "error" };
   }
 
   if (redirectTo) redirect(redirectTo);
-  return { message: "Plan gespeichert." };
+  return { message: "Plan gespeichert.", status: "success" };
 }
 
 export async function publishTrainingPlan(formData: FormData) {
