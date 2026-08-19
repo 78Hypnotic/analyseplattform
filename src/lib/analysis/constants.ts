@@ -141,10 +141,18 @@ export const CHALLENGE_GROUPS = [
     items: ["Ich liege stabil im Wasser", "Meine Beine sinken ab", "Ich gleite kaum"],
   },
   {
-    group: "Armzug",
+    group: "Zugphase",
     items: [
-      "Mein Zug fühlt sich stabil an",
+      "Mein Wasserfassen fühlt sich stabil an",
       "Ich habe Probleme mit dem frühen Wasserfassen",
+      "Mein Ellenbogen fällt beim Zug nach unten",
+    ],
+  },
+  {
+    group: "Druckphase",
+    items: [
+      "Ich bringe Druck bis zur Hüfte",
+      "Mein Druck lässt zum Ende des Zugs nach",
       "Mein Zug fühlt sich kurz an",
     ],
   },

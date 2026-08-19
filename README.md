@@ -1,7 +1,20 @@
-# Trainingsanalyse
+# Trainingsplattform
 
-Next.js MVP für eine datenbasierte Schwimm-Trainingsanalyse mit Supabase Auth,
-gespeicherten Reports und Admin-verwalteten Trainingsplänen.
+Web-first Trainingsplattform für sportartspezifische Diagnostik, verständliche
+Reports und den schrittweisen Weg zu persönlichen Trainingsplänen. Der aktuelle
+Next.js MVP bildet Diagnostiken für Schwimmen, Laufen und Radfahren mit Supabase
+Auth, gespeicherten Reports sowie Coach- und Adminfunktionen ab.
+
+Das langfristige Ziel ist ein geschlossener Trainingskreislauf aus Diagnostik,
+Planempfehlung, Training, Fortschritt und Re-Diagnostik. Der nächste
+Produktmeilenstein verkauft statische Schwimmpläne einmalig über Stripe und zeigt
+den persönlichen Plan sowie die nächste Einheit im Profil. Membership,
+Community, KI-unterstützte coach-freigegebene Pläne, Pro-Coaching,
+Mentaltraining, Garmin sowie iOS und Android folgen in späteren Stufen.
+
+Siehe [Produktvision](docs/product-vision.md),
+[Planverkaufsmeilenstein](docs/features/static-training-plan-sales.md) und
+[Mobile-Roadmap](docs/architecture/mobile-roadmap.md).
 
 ## Setup
 
@@ -18,11 +31,18 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SECRET_KEY=
 NEXT_PUBLIC_SITE_URL=https://analyseplattform.vercel.app
+LEGAL_OPERATOR_NAME=Manuel Hohlwegler
+LEGAL_POSTAL_ADDRESS=Straße Hausnummer|PLZ Ort|Deutschland
+LEGAL_CONTACT_EMAIL=manuel.hohlwegler@gmx.de
 ```
 
 `SUPABASE_SECRET_KEY` wird nur serverseitig fuer Admin-Aktionen wie User-Anlage
 verwendet. Falls noch der alte JWT-Key genutzt wird, funktioniert alternativ
 `SUPABASE_SERVICE_ROLE_KEY`.
+
+`LEGAL_POSTAL_ADDRESS` ist in Produktion erforderlich. Mehrere Anschriftzeilen
+werden mit `|` getrennt. Optional können `LEGAL_CONTACT_PHONE` und `LEGAL_VAT_ID`
+gesetzt werden.
 
 Supabase Auth muss dieselbe URL erlauben:
 
@@ -35,16 +55,20 @@ Supabase Auth muss dieselbe URL erlauben:
 
 - Passwort-Login und Registrierung mit Supabase Auth
 - Profilseite mit Name, E-Mail und Profilbild-Upload
-- Analyseflow für Schwimmen: Kontext, Zielwettkampf, Testdaten, Report
+- Diagnoseflows und gespeicherte Reports für Schwimmen, Laufen und Radfahren
 - Zielstrecke, optionales Wettkampfdatum und Schwimmeinheiten pro Woche
 - Automatische Planlänge aus Basisplan, Einheiten/Woche und Wettkampfdatum
-- Gespeicherte Analysen unter `/analyse`
-- Detailreport unter `/analyse/[id]`
+- Gespeicherte Analysen und Detailreports je Disziplin
 - PDF-Export über Browser-Druckdialog
-- Admin-Rollenmodell mit `user` und `admin`
+- Rollenmodell mit `user`, `coach` und `admin`
+- Coach-Zugriff auf ausdrücklich zugeordnete Athleten
 - Admin-Trainingsplan-Builder unter `/admin/plans`
 - Gesperrte Trainingsplan-Vorschau im Report
 - Rechtliche Seiten: `/impressum`, `/datenschutz`, `/cookies`
+
+Kauf, Freischaltung, persönliche Terminierung und Fortschritt von
+Trainingsplänen sind noch nicht implementiert. Ihr verbindlicher Umfang steht
+im [Planverkaufsmeilenstein](docs/features/static-training-plan-sales.md).
 
 ## Supabase
 
@@ -77,6 +101,9 @@ on conflict (user_id) do update set role = 'admin'::public.app_role;
 - `/analyse` gespeicherte Analysen
 - `/analyse/new` neuer Analyseflow
 - `/analyse/[id]` gespeicherter Report
+- `/lauf`, `/lauf/new`, `/lauf/[id]` Laufdiagnostik
+- `/rad`, `/rad/new`, `/rad/[id]` Raddiagnostik
+- `/coach` zugeordnete Athleten
 - `/admin` Admin-Übersicht
 - `/admin/plans` Trainingspläne verwalten
 
@@ -86,8 +113,16 @@ on conflict (user_id) do update set role = 'admin'::public.app_role;
   `docs/supabase-auth-production.md`
 - Admin-Rollen und Trainingsplan-Builder:
   `docs/features/admin-training-plans.md`
-- MVP-Funktionsumfang:
+- Web-Diagnostik-MVP:
   `docs/features/trainingsanalyse-mvp.md`
+- Langfristige Produktvision:
+  `docs/product-vision.md`
+- Nächster Meilenstein, statische Schwimmpläne verkaufen:
+  `docs/features/static-training-plan-sales.md`
+- Zielarchitektur für iOS und Android:
+  `docs/architecture/mobile-roadmap.md`
+- Noch offene Go-live-Punkte:
+  `docs/produktionsreife-offene-punkte.md`
 
 ## Scripts
 

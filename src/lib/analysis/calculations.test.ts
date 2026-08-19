@@ -125,12 +125,24 @@ describe("swim analysis calculations", () => {
     const profile = buildTechniqueProfile([
       "Ich liege stabil im Wasser",
       "Ich habe Probleme mit dem frühen Wasserfassen",
+      "Mein Druck lässt zum Ende des Zugs nach",
     ]);
 
-    expect(profile).toHaveLength(7);
+    expect(profile).toHaveLength(8);
+    expect(profile.map((axis) => axis.group)).toEqual([
+      "Wasserlage",
+      "Zugphase",
+      "Druckphase",
+      "Rückführung",
+      "Rotation",
+      "Atmung",
+      "Beinarbeit",
+      "Wassergefühl",
+    ]);
     expect(profile[0]).toMatchObject({ group: "Wasserlage", status: "stark", score: 85 });
-    expect(profile[1]).toMatchObject({ group: "Armzug", status: "fokus", score: 30 });
-    expect(profile[2]).toMatchObject({ group: "Rückführung", status: "offen" });
+    expect(profile[1]).toMatchObject({ group: "Zugphase", status: "fokus", score: 30 });
+    expect(profile[2]).toMatchObject({ group: "Druckphase", status: "fokus", score: 30 });
+    expect(profile[3]).toMatchObject({ group: "Rückführung", status: "offen" });
     expect(buildTechniqueProfile().every((axis) => axis.status === "offen")).toBe(true);
   });
 
