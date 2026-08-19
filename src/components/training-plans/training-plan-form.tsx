@@ -5,6 +5,7 @@ import { AlertTriangle, Check, Save } from "lucide-react";
 import { Button } from "@/components/button";
 import { saveTrainingPlan } from "@/app/trainingsplaene/verwalten/actions";
 import { cn } from "@/lib/utils";
+import { TECHNIQUE_PROFILE_GROUPS } from "@/lib/analysis/constants";
 import {
   createEmptyStructuredPlan,
   isStructuredTrainingPlanContent,
@@ -35,6 +36,7 @@ export function TrainingPlanForm({ plan }: TrainingPlanFormProps) {
     level: plan?.level ?? "Alle",
     summary: plan?.summary ?? "",
     preview: plan?.preview ?? "",
+    targetTechniqueAxis: plan?.target_technique_axis ?? "",
   }));
   const [targetDistances, setTargetDistances] = useState<Array<(typeof TARGET_DISTANCES)[number]>>(
     () => plan?.target_distances ?? [...TARGET_DISTANCES],
@@ -155,6 +157,25 @@ export function TrainingPlanForm({ plan }: TrainingPlanFormProps) {
             placeholder="Dieser Text erscheint im Report, bevor der Plan freigeschaltet ist."
           />
           <FieldError message={state.fieldErrors?.preview} />
+        </label>
+        <label className="grid gap-2 text-sm md:col-span-2">
+          Technik-Zielattribut
+          <select
+            name="target_technique_axis"
+            value={details.targetTechniqueAxis}
+            aria-invalid={Boolean(state.fieldErrors?.target_technique_axis)}
+            className={state.fieldErrors?.target_technique_axis ? "border-[var(--warn)]" : undefined}
+            onChange={(event) => updateDetail("targetTechniqueAxis", event.target.value)}
+          >
+            <option value="">Kein Technikfokus</option>
+            {TECHNIQUE_PROFILE_GROUPS.map((group) => (
+              <option key={group} value={group}>{group}</option>
+            ))}
+          </select>
+          <p className="text-xs text-[var(--subtle)]">
+            Markiert im Athleten-Radar den adressierten Trainingsfokus. Dies ist keine Ergebnisprognose.
+          </p>
+          <FieldError message={state.fieldErrors?.target_technique_axis} />
         </label>
       </section>
 

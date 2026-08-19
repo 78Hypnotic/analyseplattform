@@ -7,7 +7,9 @@ import type {
   DashboardTrainingPlan,
 } from "@/components/dashboard-home";
 import { buildTechniqueProfile } from "@/lib/analysis/calculations";
+import type { TechniqueProfileGroup } from "@/lib/analysis/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { parseTrainingPlanContent } from "@/lib/training-plans/content";
 
 type ProfileRow = {
   full_name?: string | null;
@@ -48,6 +50,16 @@ type TrainingPlanVersionRow = {
   title: string;
   focus: string;
   weeks: number;
+  content: unknown;
+  target_technique_axis: TechniqueProfileGroup | null;
+};
+
+type UserPlanSessionRow = {
+  week_index: number;
+  session_index: number;
+  status: "scheduled" | "completed" | "skipped";
+  sequence: number;
+  scheduled_for: string;
 };
 
 export async function getAuthenticatedHomeData(): Promise<DashboardHomeProps | null> {
@@ -112,16 +124,25 @@ export async function getAuthenticatedHomeData(): Promise<DashboardHomeProps | n
   let activeTrainingPlan: DashboardTrainingPlan | null = null;
 
   if (activePlanRow) {
-    const { data: versionData, error: versionError } = await supabase
-      .from("training_plan_versions")
-      .select("title,focus,weeks")
-      .eq("id", activePlanRow.training_plan_version_id)
-      .maybeSingle();
+    const [versionResult, sessionResult] = await Promise.all([
+      supabase
+        .from("training_plan_versions")
+        .select("title,focus,weeks,content,target_technique_axis")
+        .eq("id", activePlanRow.training_plan_version_id)
+        .maybeSingle(),
+      supabase
+        .from("user_plan_sessions")
+        .select("week_index,session_index,status,sequence,scheduled_for")
+        .eq("user_training_plan_id", activePlanRow.id)
+        .order("sequence", { ascending: true }),
+    ]);
 
-    if (versionError) throw new Error(versionError.message);
+    if (versionResult.error) throw new Error(versionResult.error.message);
+    if (sessionResult.error) throw new Error(sessionResult.error.message);
     activeTrainingPlan = toActiveTrainingPlan(
       activePlanRow,
-      versionData as TrainingPlanVersionRow | null,
+      versionResult.data as TrainingPlanVersionRow | null,
+      (sessionResult.data ?? []) as UserPlanSessionRow[],
     );
   }
 
@@ -170,16 +191,34 @@ export async function getAuthenticatedHomeData(): Promise<DashboardHomeProps | n
 function toActiveTrainingPlan(
   row: ActiveTrainingPlanRow,
   version: TrainingPlanVersionRow | null,
+  sessions: UserPlanSessionRow[],
 ): DashboardTrainingPlan | null {
   if (!version || !row.start_date) return null;
 
+  const content = parseTrainingPlanContent(version.content);
+  const next = sessions.find((session) => session.status === "scheduled") ?? null;
+  const workout = next
+    ? content.weeks[next.week_index]?.sessions[next.session_index]
+    : null;
+
   return {
     id: row.id,
+    versionId: row.training_plan_version_id,
     title: version.title,
     focus: version.focus,
     weeks: version.weeks,
     discipline: row.discipline,
     startDate: row.start_date,
+    completedSessions: sessions.filter((session) => session.status === "completed").length,
+    totalSessions: sessions.length,
+    nextSession: next
+      ? {
+          title: workout?.title ?? "Geplante Einheit",
+          focus: workout?.focus ?? version.focus,
+          scheduledFor: next.scheduled_for,
+        }
+      : null,
+    targetTechniqueAxis: version.target_technique_axis,
   };
 }
 

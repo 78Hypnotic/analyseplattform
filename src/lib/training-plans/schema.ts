@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TECHNIQUE_PROFILE_GROUPS } from "@/lib/analysis/constants";
 
 export const trainingPlanTargetDistanceSchema = z.enum([
   "Sprint",
@@ -129,6 +130,7 @@ export const trainingPlanSchema = z.object({
   weeks: z.coerce.number().int().min(1).max(16),
   summary: z.string().trim().min(10).max(1200),
   preview: z.string().trim().min(10).max(1200),
+  target_technique_axis: z.enum(TECHNIQUE_PROFILE_GROUPS).nullable(),
   content: anyTrainingPlanContentSchema,
   is_active: z.boolean(),
 });
@@ -144,6 +146,7 @@ export type TrainingPlanFieldName =
   | "target_distances"
   | "summary"
   | "preview"
+  | "target_technique_axis"
   | "content";
 
 export type TrainingPlanValidationFeedback = {
@@ -160,6 +163,7 @@ const FIELD_LABELS: Record<TrainingPlanFieldName, string> = {
   target_distances: "Zielstrecken",
   summary: "Zusammenfassung",
   preview: "Gesperrte Vorschau",
+  target_technique_axis: "Technik-Zielattribut",
   content: "Workout-Struktur",
 };
 

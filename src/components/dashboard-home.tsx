@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { formatPace } from "@/lib/analysis/calculations";
-import type { TechniqueProfileAxis } from "@/lib/analysis/types";
+import type { TechniqueProfileAxis, TechniqueProfileGroup } from "@/lib/analysis/types";
 import { ButtonLink } from "./button";
 import { TechniqueSpiderChart } from "./technique-spider-chart";
 
@@ -42,11 +42,20 @@ export type DashboardProfile = {
 
 export type DashboardTrainingPlan = {
   id: string;
+  versionId: string;
   title: string;
   focus: string;
   weeks: number;
   discipline: "swim" | "run" | "bike";
   startDate: string;
+  completedSessions: number;
+  totalSessions: number;
+  nextSession: {
+    title: string;
+    focus: string;
+    scheduledFor: string;
+  } | null;
+  targetTechniqueAxis: TechniqueProfileGroup | null;
 };
 
 export type DashboardHomeProps = {
@@ -99,25 +108,58 @@ export function DashboardHome({
       <div className="grid grid-cols-1 gap-4 md:grid-cols-6 xl:grid-cols-12">
         {activeTrainingPlan ? (
           <section className="surface relative overflow-hidden p-6 md:col-span-6 xl:col-span-12">
-            <div className="relative flex h-full min-h-72 flex-col">
-              <div className="flex items-start justify-between gap-4">
+            <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,0.72fr)] lg:items-stretch">
+              <div className="flex flex-col justify-between gap-8">
                 <div>
-                  <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--subtle)]">
-                    Mein Training · {formatDiscipline(activeTrainingPlan.discipline)}
-                  </p>
-                  <h2 className="display-serif mt-2 text-4xl text-[var(--foreground)]">
-                    {activeTrainingPlan.title}
-                  </h2>
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--subtle)]">
+                        Mein Training · {formatDiscipline(activeTrainingPlan.discipline)}
+                      </p>
+                      <h2 className="display-serif mt-2 text-4xl text-[var(--foreground)]">
+                        {activeTrainingPlan.title}
+                      </h2>
+                    </div>
+                    <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-[var(--raised-bg)] text-[var(--accent)]">
+                      <CalendarDays size={20} />
+                    </span>
+                  </div>
+                  <p className="mt-4 text-base text-[var(--muted)]">{activeTrainingPlan.focus}</p>
                 </div>
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-[var(--raised-bg)] text-[var(--accent)]">
-                  <CalendarDays size={20} />
-                </span>
+                <PlanProgress plan={activeTrainingPlan} />
               </div>
-              <div className="mt-auto max-w-xl pt-12">
-                <p className="text-lg font-medium text-[var(--foreground)]">{activeTrainingPlan.focus}</p>
-                <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                  {activeTrainingPlan.weeks} Wochen · gestartet am {formatDate(activeTrainingPlan.startDate)}
+
+              <div className="rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-5">
+                <p className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--subtle)]">
+                  {activeTrainingPlan.nextSession ? formatSessionDate(activeTrainingPlan.nextSession.scheduledFor) : "Status"}
                 </p>
+                {activeTrainingPlan.nextSession ? (
+                  <>
+                    <h3 className="mt-3 text-2xl font-semibold">{activeTrainingPlan.nextSession.title}</h3>
+                    <p className="mt-2 text-sm text-[var(--muted)]">{activeTrainingPlan.nextSession.focus}</p>
+                    <p className="mt-5 text-xs text-[var(--subtle)]">
+                      Geplant für {formatDate(activeTrainingPlan.nextSession.scheduledFor)}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <h3 className="mt-3 text-2xl font-semibold">
+                      {activeTrainingPlan.totalSessions > 0
+                        && activeTrainingPlan.completedSessions === activeTrainingPlan.totalSessions
+                        ? "Plan abgeschlossen"
+                        : "Keine offene Einheit terminiert"}
+                    </h3>
+                    <p className="mt-2 text-sm text-[var(--muted)]">
+                      {activeTrainingPlan.completedSessions} von {activeTrainingPlan.totalSessions} Einheiten erledigt.
+                    </p>
+                  </>
+                )}
+                <Link
+                  href={`/trainingsplaene/${activeTrainingPlan.versionId}`}
+                  className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-[var(--accent)]"
+                >
+                  Trainingsplan öffnen <ArrowRight size={15} />
+                </Link>
               </div>
             </div>
           </section>
@@ -138,7 +180,12 @@ export function DashboardHome({
             </div>
             {swimTechniqueAxes && swimTechniqueAxes.length >= 3 ? (
               <div className="mt-2 flex justify-center">
-                <TechniqueSpiderChart axes={swimTechniqueAxes} />
+                <TechniqueSpiderChart
+                  axes={swimTechniqueAxes}
+                  focusGroup={activeTrainingPlan?.discipline === "swim"
+                    ? activeTrainingPlan.targetTechniqueAxis
+                    : null}
+                />
               </div>
             ) : (
               <div className="flex min-h-64 items-center justify-center py-8 text-center">
@@ -445,4 +492,45 @@ function NoActiveTrainingPlan({
       </span>
     </Link>
   );
+}
+
+function PlanProgress({ plan }: { plan: DashboardTrainingPlan }) {
+  const progress = plan.totalSessions > 0
+    ? Math.round((plan.completedSessions / plan.totalSessions) * 100)
+    : 0;
+
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-4 text-sm">
+        <span className="text-[var(--muted)]">
+          {plan.completedSessions} / {plan.totalSessions} Einheiten absolviert
+        </span>
+        <span className="font-medium text-[var(--foreground)]">{progress}%</span>
+      </div>
+      <div
+        className="mt-2 h-2 overflow-hidden rounded-full bg-[var(--raised-bg)]"
+        role="progressbar"
+        aria-label="Trainingsplan-Fortschritt"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={progress}
+      >
+        <div className="h-full bg-[var(--accent)]" style={{ width: `${progress}%` }} />
+      </div>
+      <p className="mt-3 text-xs text-[var(--subtle)]">
+        {plan.weeks} Wochen · gestartet am {formatDate(plan.startDate)}
+      </p>
+    </div>
+  );
+}
+
+function formatSessionDate(value: string) {
+  const today = new Date();
+  const currentDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const sessionDate = new Date(`${value}T00:00:00`);
+  const difference = Math.round((sessionDate.getTime() - currentDate.getTime()) / 86_400_000);
+  if (difference < 0) return "Überfällig";
+  if (difference === 0) return "Heute";
+  if (difference === 1) return "Morgen";
+  return formatDate(value);
 }

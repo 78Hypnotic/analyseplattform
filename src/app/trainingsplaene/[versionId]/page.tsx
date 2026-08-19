@@ -1,7 +1,11 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppHeader } from "@/components/app-header";
+import { TechniqueSpiderChart } from "@/components/technique-spider-chart";
 import { ActivatePlanForm } from "@/components/training-plans/activate-plan-form";
 import { TrainingPlanContentView } from "@/components/training-plans/training-plan-content-view";
+import { buildTechniqueProfile } from "@/lib/analysis/calculations";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isStructuredTrainingPlanContent } from "@/lib/training-plans/content";
 import {
   getAccessibleTrainingPlanVersionById,
@@ -16,9 +20,10 @@ export default async function TrainingPlanDetailPage({
   params: Promise<{ versionId: string }>;
 }) {
   const { versionId } = await params;
-  const [version, selectionState] = await Promise.all([
+  const [version, selectionState, techniqueAxes] = await Promise.all([
     getAccessibleTrainingPlanVersionById(versionId),
     getTrainingPlanSelectionState(versionId),
+    getCurrentTechniqueProfile(),
   ]);
   if (!version) notFound();
   const requiredTrainingDays = Math.max(
@@ -39,6 +44,7 @@ export default async function TrainingPlanDetailPage({
           <span>{version.weeks} Wochen</span>
           <span>{version.level}</span>
           <span>{version.target_distances.join(" · ")}</span>
+          {version.target_technique_axis ? <span>Technikfokus: {version.target_technique_axis}</span> : null}
           <span>Veröffentlicht am {new Date(version.published_at).toLocaleDateString("de-DE")}</span>
         </div>
 
@@ -72,8 +78,58 @@ export default async function TrainingPlanDetailPage({
           </div>
         ) : null}
 
+        {version.target_technique_axis ? (
+          <section className="surface mt-10 grid gap-6 p-5 sm:p-7 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-center">
+            <div>
+              <p className="mono text-xs uppercase tracking-[0.16em] text-[var(--accent)]">Technikfokus</p>
+              <h2 className="display-serif mt-2 text-3xl text-[var(--foreground)]">
+                Dieser Plan arbeitet an {version.target_technique_axis}
+              </h2>
+              <p className="mt-3 max-w-xl text-sm leading-6 text-[var(--muted)]">
+                Der gestrichelte Sektor markiert den Trainingsschwerpunkt im aktuellen Technikprofil. Er ist keine
+                Vorhersage eines Zielwerts. Eine tatsächliche Veränderung wird erst bei einem ReTest sichtbar.
+              </p>
+              {!techniqueAxes ? (
+                <Link href="/analyse" className="mt-5 inline-flex text-sm font-medium text-[var(--accent)] hover:underline">
+                  Schwimmdiagnostik durchführen
+                </Link>
+              ) : null}
+            </div>
+            {techniqueAxes ? (
+              <TechniqueSpiderChart axes={techniqueAxes} focusGroup={version.target_technique_axis} />
+            ) : null}
+          </section>
+        ) : null}
+
         <TrainingPlanContentView content={version.content} />
       </main>
     </>
+  );
+}
+
+async function getCurrentTechniqueProfile() {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data, error } = await supabase
+    .from("analyses")
+    .select("input")
+    .eq("user_id", user.id)
+    .eq("discipline", "swim")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+
+  const input = data?.input;
+  if (!input || typeof input !== "object") return null;
+  const challenges = (input as { challenges?: unknown }).challenges;
+  if (!Array.isArray(challenges)) return null;
+
+  return buildTechniqueProfile(
+    challenges.filter((challenge): challenge is string => typeof challenge === "string"),
   );
 }

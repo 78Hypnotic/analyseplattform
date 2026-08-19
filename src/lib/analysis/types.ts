@@ -116,9 +116,18 @@ export type TechniqueGateResult = {
 };
 
 export type TechniqueProfileStatus = "stark" | "offen" | "fokus";
+export type TechniqueProfileGroup =
+  | "Wasserlage"
+  | "Zugphase"
+  | "Druckphase"
+  | "Rückführung"
+  | "Rotation"
+  | "Atmung"
+  | "Beinarbeit"
+  | "Wassergefühl";
 
 export type TechniqueProfileAxis = {
-  group: string;
+  group: TechniqueProfileGroup;
   score: number;
   status: TechniqueProfileStatus;
   statement: string;

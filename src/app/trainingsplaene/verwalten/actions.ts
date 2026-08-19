@@ -56,6 +56,7 @@ export async function saveTrainingPlan(
       target_distances: parsed.data.target_distances,
       summary: parsed.data.summary,
       preview: parsed.data.preview,
+      target_technique_axis: parsed.data.target_technique_axis,
       content: parsed.data.content,
       content_schema_version: isStructuredTrainingPlanContent(parsed.data.content) ? 2 : 1,
       weeks: parsed.data.content.weeks.length,
@@ -178,6 +179,7 @@ function parseTrainingPlanForm(formData: FormData) {
     weeks: formData.get("weeks"),
     summary: formData.get("summary"),
     preview: formData.get("preview"),
+    target_technique_axis: emptyToNull(formData.get("target_technique_axis")),
     content: parseJson(formData.get("content")),
     is_active: formData.get("is_active") === "true",
   });
@@ -194,4 +196,8 @@ function parseJson(value: FormDataEntryValue | null): unknown {
 
 function emptyToUndefined(value: FormDataEntryValue | null) {
   return value === "" ? undefined : value;
+}
+
+function emptyToNull(value: FormDataEntryValue | null) {
+  return value === "" || value === null ? null : value;
 }

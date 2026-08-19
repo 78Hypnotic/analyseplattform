@@ -135,6 +135,17 @@ export const SWIM_REFERENCES = {
   },
 } satisfies Record<Exclude<Gender, "divers">, Record<50 | 200 | 400, number[]>>;
 
+export const TECHNIQUE_PROFILE_GROUPS = [
+  "Wasserlage",
+  "Zugphase",
+  "Druckphase",
+  "Rückführung",
+  "Rotation",
+  "Atmung",
+  "Beinarbeit",
+  "Wassergefühl",
+] as const;
+
 export const CHALLENGE_GROUPS = [
   {
     group: "Wasserlage",

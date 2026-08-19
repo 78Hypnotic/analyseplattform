@@ -45,6 +45,11 @@ mit datierten `user_plan_sessions` erzeugen. Die Dashboard-Kachel führt bei
 fehlendem aktivem Plan direkt in diese Bibliothek. Nutzer ohne Membership sehen
 statt der Inhalte weiterhin die Gruppencoaching-Sperrseite.
 
+Bei einem aktiven Plan zeigt die Kachel den persistierten Fortschritt aus den
+persönlichen Sessions und die nächste geplante Einheit. Erledigte Einheiten
+zählen zum Planfortschritt; eine technische Verbesserung wird davon getrennt
+erst durch einen ReTest festgestellt.
+
 Die Zahlungsintegration für das Gruppencoaching ist davon getrennt und noch
 nicht umgesetzt. Sie erzeugt beziehungsweise verlängert später ausschließlich
 die Membership; die Planaktivierung vertraut nicht auf einen Client-Abo-Status.

@@ -56,7 +56,7 @@ type VersionRow = Omit<TrainingPlanVersion, "content" | "target_distances"> & {
 };
 
 const VERSION_SUMMARY_COLUMNS =
-  "id,training_plan_id,version_number,discipline,slug,title,focus,phase,level,target_distances,weeks,summary,published_by,published_at";
+  "id,training_plan_id,version_number,discipline,slug,title,focus,phase,level,target_distances,weeks,summary,target_technique_axis,published_by,published_at";
 
 export async function getTrainingPlanLibraryHome(
   selectedLibraryId?: string,

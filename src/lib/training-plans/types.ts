@@ -1,4 +1,5 @@
 import type { SwimLevel, TargetDistance } from "@/lib/analysis/types";
+import type { TechniqueProfileGroup } from "@/lib/analysis/types";
 
 export type TrainingPlanBlock = {
   title: string;
@@ -100,6 +101,7 @@ export type TrainingPlan = {
   preview: string;
   content: AnyTrainingPlanContent;
   content_schema_version?: 1 | 2;
+  target_technique_axis?: TechniqueProfileGroup | null;
   is_active: boolean;
   created_by: string | null;
   created_at: string;
@@ -127,6 +129,7 @@ export type TrainingPlanVersion = {
   preview: string;
   content: AnyTrainingPlanContent;
   content_schema_version?: 1 | 2;
+  target_technique_axis?: TechniqueProfileGroup | null;
   published_by: string | null;
   published_at: string;
 };

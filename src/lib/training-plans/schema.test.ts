@@ -12,6 +12,7 @@ const validPlan = {
   weeks: 4,
   summary: "Ein fokussierter Plan für eine stabilere Wasserlage.",
   preview: "Vier Wochen mit progressiven Technikaufgaben und einem ReTest.",
+  target_technique_axis: null,
   content: {
     weeks: [
       {
@@ -61,5 +62,16 @@ describe("trainingPlanSchema", () => {
     expect(feedback.message).toBe("Titel: Bitte mindestens 3 Zeichen eingeben.");
     expect(feedback.fieldErrors.title).toBe("Bitte mindestens 3 Zeichen eingeben.");
     expect(feedback.fieldErrors.summary).toBe("Bitte mindestens 10 Zeichen eingeben.");
+  });
+
+  it("accepts only known optional technique target axes", () => {
+    expect(trainingPlanSchema.safeParse({
+      ...validPlan,
+      target_technique_axis: "Wasserlage",
+    }).success).toBe(true);
+    expect(trainingPlanSchema.safeParse({
+      ...validPlan,
+      target_technique_axis: "Armkraft",
+    }).success).toBe(false);
   });
 });

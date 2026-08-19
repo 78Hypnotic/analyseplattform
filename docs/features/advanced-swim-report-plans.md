@@ -50,21 +50,23 @@ Der Report zeigt:
 
 ## Radar-Darstellung
 
-Das Radar stellt zwei klar unterscheidbare Zustände dar:
+Das Radar stellt aktuell zwei klar unterscheidbare Ebenen dar:
 
 1. **Ist-Profil:** Werte aus der aktuellen Schwimmdiagnostik.
-2. **Erwartetes Profil:** coach-geprüfte Zielwerte nach Abschluss des
-   empfohlenen Plans.
+2. **Trainingsfokus:** gestrichelter Sektor für das am veröffentlichten Plan
+  gespeicherte Zielattribut.
 
 Das Zielattribut wird zusätzlich visuell markiert und in Textform benannt. Eine
-Legende unterscheidet Ist-Wert und Prognose; Farbe allein darf nicht die einzige
-Unterscheidung sein. Der Report formuliert die Veränderung als erwartetes
-Potenzial, nicht als zugesichertes Ergebnis.
+Legende unterscheidet Ist-Profil und Trainingsfokus; Farbe allein darf nicht die
+einzige Unterscheidung sein. Der Fokus ist ausdrücklich keine Prognose und
+verändert den aktuellen Score nicht. Eine Verbesserung wird erst im ReTest
+festgestellt.
 
-Die Prognose wird mit der veröffentlichten Planversion gespeichert. Sie darf
-nicht frei im Client berechnet oder nachträglich für bestehende Käufer verändert
-werden. Ihre Herleitung und zulässige Größenordnung werden vor der Umsetzung
-fachlich durch einen Coach definiert.
+Numerische Zielwerte können später mit der veröffentlichten Planversion
+gespeichert werden. Sie dürfen nicht frei im Client berechnet oder nachträglich
+für bestehende Käufer verändert werden. Ihre Herleitung und zulässige
+Größenordnung müssen vor der Umsetzung fachlich durch einen Coach definiert
+werden.
 
 ## Kauf, Abo und Profil
 

@@ -147,6 +147,11 @@ function PlanGrid({
           </p>
           <h2 className="mt-3 text-xl font-semibold">{version.title}</h2>
           <p className="mt-2 text-sm text-[var(--accent)]">{version.focus}</p>
+          {version.target_technique_axis ? (
+            <p className="mono mt-3 text-[9px] uppercase tracking-[0.14em] text-[var(--subtle)]">
+              Technikfokus · {version.target_technique_axis}
+            </p>
+          ) : null}
           <p className="mt-4 line-clamp-3 text-sm leading-6 text-[var(--muted)]">{version.summary}</p>
           <span className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-[var(--accent)]">
             {selectable ? "Ansehen & auswählen" : "Plan öffnen"} <ArrowRight size={15} />

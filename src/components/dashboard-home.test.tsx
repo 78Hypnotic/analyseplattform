@@ -53,11 +53,20 @@ describe("DashboardHome", () => {
         {...baseProps}
         activeTrainingPlan={{
           id: "plan-1",
+          versionId: "version-1",
           title: "Technik stabilisieren",
           focus: "Wasserlage und früher Catch",
           weeks: 4,
           discipline: "swim",
           startDate: "2026-08-17",
+          completedSessions: 3,
+          totalSessions: 12,
+          nextSession: {
+            title: "Aerobe Serie",
+            focus: "Z2-Umfang",
+            scheduledFor: "2026-08-21",
+          },
+          targetTechniqueAxis: "Wasserlage",
         }}
       />,
     );
@@ -65,6 +74,11 @@ describe("DashboardHome", () => {
     expect(screen.getByRole("heading", { name: "Technik stabilisieren" })).toBeTruthy();
     expect(screen.getByText("Wasserlage und früher Catch")).toBeTruthy();
     expect(screen.getByText(/4 Wochen/)).toBeTruthy();
+    expect(screen.getByText("3 / 12 Einheiten absolviert")).toBeTruthy();
+    expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("25");
+    expect(screen.getByText("Aerobe Serie")).toBeTruthy();
+    expect(screen.getByText("Z2-Umfang")).toBeTruthy();
+    expect(screen.getByRole("link", { name: /Trainingsplan öffnen/ }).getAttribute("href")).toBe("/trainingsplaene/version-1");
   });
 
   it("shows the athlete's key profile information", () => {
