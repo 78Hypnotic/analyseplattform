@@ -85,10 +85,21 @@ Testzeiten vor, entfällt zusätzlich die Schwimm-Mechanik-Karte.
 
 ## Planempfehlung
 
+Die aktuell implementierte Empfehlung verwendet folgende grobe Plan-Slugs:
+
 - Technik-Gate rot: `wasserlage-balance`
 - VO2-Proxy niedrig: `vo2max-builder`
 - VLa-Profil Sprinter: `vlamax-senker`
 - sonst: `tempohaerte`
+
+Im Zielmodell des fortgeschrittenen Schwimmreports wird diese grobe Zuordnung
+durch coach-geprüfte Pläne für die Radar-Attribute Wasserlage, Zugphase,
+Druckphase, Rückführung, Rotation, Atmung, Beinarbeit und Wassergefühl
+verfeinert. Der Report zeigt das als Nächstes priorisierte Attribut, den in der
+Regel vierwöchigen Plan und eine coach-geprüfte Zielkontur im Radar. Der Plan
+kostet einzeln 4,99 EUR oder ist bei aktivem Gruppencoaching-Abo für 12,99 EUR
+ohne weiteren Einzelkauf aus der Trainingsbibliothek wählbar. Details stehen in
+[Attributpläne im fortgeschrittenen Schwimmreport](advanced-swim-report-plans.md).
 
 Nach dem Speichern wird die letzte Swim-Summary zusätzlich in `profiles`
 gespiegelt, damit Profil und spätere Empfehlungen nicht die gesamte

@@ -204,6 +204,13 @@ Jede Verknüpfung benötigt:
 Ein importiertes Training wird nicht ohne nachvollziehbare Regeln automatisch
 als korrekt absolvierte Planeinheit bewertet.
 
+Im individuellen KI-Coaching können freigegebene Garmin-Daten zusätzlich in die
+wöchentliche Planung einfließen. Der Agent kombiniert sie mit dem historischen
+Athletenprofil und dem Samstags-Evaluationsbogen. Für jede erzeugte Woche wird
+gespeichert, welche Daten zum Planungszeitpunkt vorlagen; spätere Synchronisation
+ändert keine bereits veröffentlichte Woche rückwirkend. Fehlende Daten oder
+Gesundheitswarnzeichen dürfen keine automatische Belastungssteigerung auslösen.
+
 ## Phasen
 
 ### Phase 1: Web-Geschäftsmodell validieren
@@ -211,6 +218,7 @@ als korrekt absolvierte Planeinheit bewertet.
 - Diagnostik produktionsreif betreiben,
 - statische Schwimmpläne über Stripe verkaufen,
 - persönliche Pläne und Fortschritt im Web validieren,
+- Athletenansicht mit Wochen, Workout-Details und serverseitigem Abhaken von Einheiten bereitstellen,
 - provider-neutrale Freischaltungen und unveränderliche Planversionen verwenden.
 
 ### Phase 2: Mobile Foundation
@@ -233,7 +241,9 @@ als korrekt absolvierte Planeinheit bewertet.
 - aktuelle Apple-/Google-Commerce-Regeln prüfen,
 - erforderliche In-App-Käufe und Receipt-Verifikation implementieren,
 - provider-neutrale Freischaltungen mit Web-Käufen abgleichen,
-- Garmin und weitere Integrationen schrittweise anbinden.
+- Garmin und weitere Integrationen schrittweise anbinden. Dafür zuerst OAuth,
+  Einwilligung, minimale Scopes, verschlüsselte Token, idempotenten Import,
+  externe Aktivitäts-IDs und Regeln zur Zuordnung zu Planeinheiten umsetzen.
 
 ## Startkriterien für die Mobile-Umsetzung
 

@@ -1,6 +1,6 @@
 # Produktvision: Von der Diagnostik zur Trainingsplattform
 
-Stand: 18.08.2026
+Stand: 19.08.2026
 
 ## Zielbild
 
@@ -31,8 +31,11 @@ nicht deren fachliche Verantwortung verdecken.
 - **Besucher** lernen Methodik und Angebot kennen und sehen begrenzte Planvorschauen.
 - **Registrierte Athleten** speichern Diagnostiken und verwalten ihr Profil.
 - **Plankunden** erwerben einzelne Pläne und verfolgen ihre persönlichen Einheiten.
-- **Mitglieder** erhalten später im Monatsabo Zugang zu einer Planbibliothek und Community.
-- **Pro-Athleten** erhalten später individuelle Betreuung und 1:1-Coaching.
+- **Gruppencoaching-Mitglieder** wählen während ihres bezahlten Abos selbst aus
+	einer von Coaches aufgebauten Trainingsbibliothek.
+- **Individualcoaching-Athleten** erhalten eine wöchentlich angepasste Planung
+	durch einen KI-Agenten auf Basis ihres Profils, ihrer Rückmeldungen und
+	freigegebener Garmin-Daten.
 - **Coaches** betreuen zugeordnete Athleten, prüfen Planentwürfe und geben sie frei.
 - **Admins** verwalten Nutzer, Rollen, Planvorlagen, Veröffentlichungen und Produktangebote.
 
@@ -52,28 +55,40 @@ Startdatum und feste Trainingstage fest und sehen im Profil den aktuellen Plan,
 Fortschritt und die nächste Einheit. Nach Abschluss folgt die Aufforderung zur
 Re-Diagnostik oder zu einem passenden Folgeplan.
 
+Die Schwimm-Attributpläne dauern in der Regel vier Wochen und kosten im
+Einzelkauf 4,99 EUR. Im fortgeschrittenen Report werden das nächste
+Zielattribut und dessen coach-geprüfte erwartete Entwicklung im Radar gezeigt.
+
 Der verbindliche Umfang steht in
 [Statische Trainingspläne verkaufen](features/static-training-plan-sales.md).
 
-### 3. Membership und Community
+### 3. Gruppencoaching
 
-Ein späteres Monatsabo kann eine kuratierte Planbibliothek, laufende Inhalte,
-Community-Funktionen und gemeinsame Challenges bündeln. Paketnamen, Preise,
-Kündigungsregeln und konkrete Community-Funktionen werden erst nach Validierung
-des Einzelplanverkaufs festgelegt.
+Das Gruppencoaching-Abo kostet 12,99 EUR pro Monat. Während der aktiven Mitgliedschaft kann der
+Athlet frei aus einer von Coaches kuratierten Trainingsbibliothek wählen und
+Pläne seinem Profil hinzufügen. Der Zugriff auf Bibliotheksinhalte endet mit dem
+bezahlten Abozeitraum; Trainingshistorie und separat gekaufte Pläne bleiben
+erhalten. Community-Funktionen und gemeinsame Challenges sind ein eigener
+späterer Ausbau. Eine Garmin-Synchronisation ist für das Gruppencoaching keine
+Voraussetzung.
 
-### 4. KI-unterstützte Trainingsplanung
+### 4. Individuelles KI-Coaching
 
-KI kann Diagnostiken, Ziele, verfügbare Trainingstage und Trainingshistorie in
-einen Planentwurf übersetzen. Ein solcher Entwurf wird nicht ungeprüft
-veröffentlicht. Ein qualifizierter Coach prüft Änderungen, dokumentiert die
-Freigabe und bleibt fachlich verantwortlich. Herkunft, Modell-/Regelversion,
-Änderungen und Freigabe müssen nachvollziehbar bleiben.
+Ein KI-Agent plant Woche für Woche individuell anhand von Diagnostiken, Zielen,
+Verfügbarkeit, Trainingshistorie und freigegebenen Garmin-Daten. Jeden Samstag
+füllt der Athlet einen Evaluationsbogen zu Belastung, Erholung, Beschwerden,
+Motivation und Verfügbarkeit aus. Diese historische Rückmeldung erweitert das
+Athletenprofil und fließt in die nächste Woche ein.
 
-### 5. Pro-Coaching und Mentaltraining
+Jede erzeugte Woche und wesentliche Anpassung bleibt mit Eingabestand,
+Begründung sowie Modell- und Regelversion nachvollziehbar. Fachliche
+Belastungsgrenzen und definierte Eskalationsfälle verhindern, dass unvollständige
+Daten oder Gesundheitswarnzeichen unkontrolliert die Belastung erhöhen.
 
-Ein Pro-Abo kann individuelle Plananpassung, regelmäßige Coach-Reviews,
-1:1-Kommunikation und persönliche Zielsteuerung enthalten. Mentaltrainingspläne
+### 5. Menschliches Pro-Coaching und Mentaltraining
+
+Ein späteres Pro-Angebot kann regelmäßige menschliche Coach-Reviews,
+1:1-Kommunikation und persönliche Zielsteuerung ergänzen. Mentaltrainingspläne
 werden als eigener, fachlich verantworteter Inhaltstyp aufgebaut und nicht als
 unbelegte automatische Empfehlung in bestehende Diagnostiken gemischt.
 
@@ -91,13 +106,17 @@ Die Zielrichtung steht in der [Mobile-Roadmap](architecture/mobile-roadmap.md).
 
 Die geplante Entwicklung folgt drei Ebenen:
 
-1. **Einzelkauf:** ein veröffentlichter Trainingsplan wird einmalig erworben.
-2. **Membership:** wiederkehrender Zugang zu Plänen und Community.
-3. **Pro:** persönliche Betreuung, individuelle Planung und Coach-Leistungen.
+1. **Einzelkauf:** ein veröffentlichter Schwimm-Attributplan wird für 4,99 EUR
+	einmalig erworben.
+2. **Gruppencoaching:** für 12,99 EUR pro Monat zeitlich begrenzter Zugang zur
+	coach-kuratierten Trainingsbibliothek mit Selbstwahl.
+3. **Individuelles KI-Coaching:** wöchentlich adaptive persönliche Planung aus
+	Profil, Garmin-Daten, Trainingsverlauf und Samstags-Evaluation.
 
-Konkrete Preise, Produktnamen und Leistungsgrenzen sind noch nicht beschlossen.
-Sie werden versioniert am jeweiligen Angebot geführt und nicht fest in
-Planinhalte oder Client-Anwendungen eingebaut.
+Die Preise für Schwimm-Attributpläne und Gruppencoaching sind beschlossen. Der
+Preis des individuellen KI-Coachings, Produktnamen, steuerliche Darstellung und
+weitere Leistungsgrenzen bleiben offen. Preise werden versioniert am jeweiligen
+Angebot geführt und nicht fest in Planinhalte oder Client-Anwendungen eingebaut.
 
 ## Produktprinzipien
 
@@ -111,10 +130,16 @@ Planinhalte oder Client-Anwendungen eingebaut.
 - **Plattformunabhängige Fachlogik:** Berechnungen, Typen und Validierung bleiben von Web- und Mobile-Oberflächen getrennt.
 - **Messbarer Nutzen:** Produktentscheidungen orientieren sich an Aktivierung, Planfortschritt, Abschluss und Re-Diagnostik statt nur an Registrierungen.
 
+Der verbindliche Vertrag für Zugriffsfristen und adaptive Wochenplanung steht in
+[Trainingspläne, Gruppencoaching und individuelles KI-Coaching](features/coaching-business-model.md).
+
 ## Nicht-Ziele des nächsten Meilensteins
 
-Der Verkauf statischer Schwimmpläne implementiert noch kein Monatsabo, keine
+Der erste Verkauf statischer Schwimmpläne implementiert technisch noch kein Gruppencoaching-Abo, keine
 Community, keine KI-Generierung, kein 1:1-Coaching, kein Mentaltraining, keine
 Garmin-Synchronisierung und keine native App. Diese Fähigkeiten werden bei
 Datenmodell und Zugriffsrechten berücksichtigt, ohne den ersten Umsatzpfad zu
 überladen.
+
+Die fachliche Ausgestaltung der Attributpläne und der Radar-Prognose steht in
+[Attributpläne im fortgeschrittenen Schwimmreport](features/advanced-swim-report-plans.md).

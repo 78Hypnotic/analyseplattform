@@ -59,6 +59,29 @@ Die Analyse berechnet einen empfohlenen Plan-Slug:
 Der Report lädt die passende aktive Planvorlage und zeigt nur die gesperrte
 Vorschau. Der CTA besitzt noch keine Kauf- oder Freischaltungslogik.
 
+Für das beschlossene Zielmodell des fortgeschrittenen Schwimmreports erstellt
+beziehungsweise prüft ein Coach für jedes Radar-Attribut einen eigenen, in der
+Regel vierwöchigen Plan. Veröffentlichte Attributpläne benötigen Zielattribut,
+Coach-Autorenschaft, fachliche Freigabe und eine begründete Zielveränderung für
+die Radar-Prognose. Bis ein eigener Coach-Freigabeworkflow umgesetzt ist, bleibt
+die technische Veröffentlichung eine Admin-Aktion.
+
+Der vollständige fachliche Vertrag steht in
+[Attributpläne im fortgeschrittenen Schwimmreport](advanced-swim-report-plans.md).
+
+## Gruppenbibliothek
+
+Veröffentlichte Planversionen können später einer von Coaches kuratierten
+Gruppencoaching-Bibliothek zugeordnet werden. Die Bibliothek verweist auf
+unveränderliche Versionen und enthält Sichtbarkeit, Eignung und Sortierung; sie
+dupliziert keine Planinhalte. Coaches pflegen die fachliche Auswahl, während
+Abonnements ausschließlich das zeitlich begrenzte Zugriffsrecht steuern.
+
+Athleten wählen Bibliothekspläne selbst. Das Ende eines Abos entfernt keine
+Trainingshistorie, sperrt aber den weiteren Zugriff auf die über das Abo
+bereitgestellten Inhalte. Einzelkäufe bleiben davon unabhängig. Details stehen
+in [Trainingspläne, Gruppencoaching und individuelles KI-Coaching](coaching-business-model.md).
+
 ## Nächster Meilenstein
 
 Für den Verkauf wird die bestehende Vorlage nicht direkt an einen Käufer

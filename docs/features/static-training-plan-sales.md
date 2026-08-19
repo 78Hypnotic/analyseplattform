@@ -1,7 +1,7 @@
 # Statische Trainingspläne verkaufen
 
 Status: geplant  
-Stand: 18.08.2026
+Stand: 19.08.2026
 
 ## Ziel
 
@@ -10,14 +10,30 @@ gekauften, persönlich terminierten Trainingsplan. Im Profil sieht der Kunde den
 aktuellen Plan, den Fortschritt und die nächste Einheit. Nach Abschluss führt
 die Plattform zurück zur Schwimmdiagnostik oder zu einem passenden Folgeplan.
 
+Für den fortgeschrittenen Schwimmreport werden coach-geprüfte Attributpläne
+ergänzt. Sie dauern in der Regel vier Wochen und machen die erwartete
+Entwicklung des priorisierten Attributs bereits im Radar sichtbar. Der
+fachliche Vertrag steht in
+[Attributpläne im fortgeschrittenen Schwimmreport](advanced-swim-report-plans.md).
+
 Damit entsteht der erste kommerzielle Trainingskreislauf:
 
 `Diagnostik -> Empfehlung -> Kauf -> Terminierung -> Training -> Abschluss -> Re-Diagnostik/Folgeplan`
 
+Der persönliche Plan ist in der Plattform vollständig nutzbar: Der Athlet sieht
+seine Wochen und Einheiten, öffnet die Workout-Details, markiert absolvierte
+Workouts als erledigt und sieht den daraus berechneten Fortschritt. Eine Garmin-
+Synchronisation gehört nicht zu diesem Web-Meilenstein und folgt als eigener
+Integrationsschritt nach stabiler manueller Nutzung.
+
 ## Verbindliche Produktentscheidungen
 
 - Der erste verkaufte Plantyp ist **Schwimmen**.
-- Ein Plan wird **einmalig** gekauft; ein Monatsabo folgt frühestens in einem späteren Meilenstein.
+- Ein Schwimm-Attributplan kostet im Einzelkauf **4,99 EUR**.
+- Das beschlossene Zielmodell bietet alternativ ein Gruppencoaching-Abo für
+  **12,99 EUR** mit freier Wahl aus der coach-kuratierten Trainingsbibliothek.
+  Die technische Einführung wiederkehrender Zahlungen darf nach dem
+  Einzelkauf-Meilenstein erfolgen.
 - Der Web-Checkout läuft über **Stripe Checkout**.
 - Vor dem Checkout ist ein Benutzerkonto erforderlich.
 - Der Kunde wählt ein **Startdatum und feste Trainingstage**.
@@ -60,6 +76,11 @@ Nach einer gespeicherten Schwimmdiagnostik zeigt der Report den empfohlenen
 aktiven Plan. Die Vorschau enthält Titel, Ziel, Dauer, Trainingshäufigkeit,
 Kurzbeschreibung, Preis und einen klaren Kauf-CTA. Vollständige Wochen,
 Einheiten und Drills werden vor der Freischaltung nicht an den Client geliefert.
+
+Im fortgeschrittenen Schwimmreport stimmen Planempfehlung, hervorgehobenes
+Radar-Attribut und prognostizierte Zielkontur überein. Die Prognose ist
+coach-geprüft, an die unveränderliche Planversion gebunden und wird als
+erwartetes Potenzial statt als garantiertes Ergebnis bezeichnet.
 
 Ein Plan kann zusätzlich über eine eigene Angebotsseite aufgerufen werden. Ohne
 passende Diagnostik erklärt die Seite, für wen der Plan gedacht ist, und bietet
@@ -264,7 +285,8 @@ liegen und ist vor dem kommerziellen Go-live zu dokumentieren.
 ## Akzeptanzkriterien
 
 - Ein Admin kann aus einer vollständigen Vorlage eine unveränderliche Version veröffentlichen und ein aktives Angebot pflegen.
-- Ein angemeldeter Nutzer kann den empfohlenen Plan zum serverseitigen Preis über Stripe Checkout kaufen.
+- Ein angemeldeter Nutzer kann den empfohlenen Attributplan zum serverseitigen
+  Einzelpreis von 4,99 EUR über Stripe Checkout kaufen.
 - Manipulierte Plan-, Preis- oder Nutzerwerte im Client führen zu keiner falschen Bestellung.
 - Nur ein gültig signierter, passender Webhook erzeugt idempotent die Freischaltung.
 - Ein Käufer kann Startdatum und ausreichend viele feste Trainingstage wählen.
@@ -278,7 +300,8 @@ liegen und ist vor dem kommerziellen Go-live zu dokumentieren.
 
 ## Nicht im Umfang
 
-- Monatsabo und wiederkehrende Zahlungen,
+- technische Umsetzung des beschlossenen Gruppencoaching-Abos für 12,99 EUR und
+  wiederkehrender Zahlungen,
 - Community und Challenges,
 - Gutscheine, Bundles und dynamische Preise,
 - KI-generierte oder individuell durch Coaches bearbeitete Pläne,
@@ -293,7 +316,7 @@ Diese Fähigkeiten werden in der [Produktvision](../product-vision.md) und der
 
 ## Vor kommerziellem Go-live offen
 
-- konkreter Preis und Leistungsumfang,
+- steuerliche Darstellung der festgelegten Preise und genaue Leistungsgrenzen,
 - Widerrufs- und Erstattungsregel für digitale Inhalte,
 - AGB, Preisangaben und Zahlungsinformationen,
 - Stripe-Verträge, Datenschutzangaben und Steuer-/Belegprozess,
