@@ -41,11 +41,13 @@ type ActiveTrainingPlanRow = {
   id: string;
   discipline: DashboardTrainingPlan["discipline"];
   start_date: string;
-  training_plan_versions: {
-    title: string;
-    focus: string;
-    weeks: number;
-  } | null;
+  training_plan_version_id: string;
+};
+
+type TrainingPlanVersionRow = {
+  title: string;
+  focus: string;
+  weeks: number;
 };
 
 export async function getAuthenticatedHomeData(): Promise<DashboardHomeProps | null> {
@@ -80,7 +82,7 @@ export async function getAuthenticatedHomeData(): Promise<DashboardHomeProps | n
       .maybeSingle(),
     supabase
       .from("user_training_plans")
-      .select("id,discipline,start_date,training_plan_versions(title,focus,weeks)")
+      .select("id,discipline,start_date,training_plan_version_id")
       .eq("user_id", user.id)
       .eq("status", "active")
       .order("created_at", { ascending: false })
@@ -94,6 +96,23 @@ export async function getAuthenticatedHomeData(): Promise<DashboardHomeProps | n
   if (latestSwimResult.error) throw new Error(latestSwimResult.error.message);
   if (activePlanResult.error) throw new Error(activePlanResult.error.message);
   if (rolesResult.error) throw new Error(rolesResult.error.message);
+
+  const activePlanRow = activePlanResult.data as ActiveTrainingPlanRow | null;
+  let activeTrainingPlan: DashboardTrainingPlan | null = null;
+
+  if (activePlanRow) {
+    const { data: versionData, error: versionError } = await supabase
+      .from("training_plan_versions")
+      .select("title,focus,weeks")
+      .eq("id", activePlanRow.training_plan_version_id)
+      .maybeSingle();
+
+    if (versionError) throw new Error(versionError.message);
+    activeTrainingPlan = toActiveTrainingPlan(
+      activePlanRow,
+      versionData as TrainingPlanVersionRow | null,
+    );
+  }
 
   const roleValues = (rolesResult.data ?? []).map((row) => row.role);
   const isCoach = roleValues.includes("coach");
@@ -123,16 +142,18 @@ export async function getAuthenticatedHomeData(): Promise<DashboardHomeProps | n
       createdAt: analysis.created_at,
     })),
     swimTechniqueAxes: toTechniqueAxes((latestSwimResult.data as SwimAnalysisInputRow | null)?.input),
-    activeTrainingPlan: toActiveTrainingPlan(activePlanResult.data as ActiveTrainingPlanRow | null),
+    activeTrainingPlan,
     isCoach,
     isAdmin,
     coachAthleteCount,
   };
 }
 
-function toActiveTrainingPlan(row: ActiveTrainingPlanRow | null): DashboardTrainingPlan | null {
-  const version = row?.training_plan_versions;
-  if (!row || !version || !row.start_date) return null;
+function toActiveTrainingPlan(
+  row: ActiveTrainingPlanRow,
+  version: TrainingPlanVersionRow | null,
+): DashboardTrainingPlan | null {
+  if (!version || !row.start_date) return null;
 
   return {
     id: row.id,
