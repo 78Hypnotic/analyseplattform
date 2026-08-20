@@ -1,7 +1,10 @@
 import "server-only";
 
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { PlanLibrary } from "./library";
+
+const ATTACHMENT_MARKER_REGEX = /\n?\n?<!--community-attachments:([A-Za-z0-9_-]+)-->/g;
 
 export type CommunityRole = "member" | "coach" | "admin";
 
@@ -240,6 +243,7 @@ export async function getCommunityThread(threadId: string): Promise<CommunityThr
   if (!thread) return null;
 
   const threadRow = thread as ThreadRow;
+  const threadContent = parseContentAttachments(threadRow.content);
   const library = await getLibraryById(threadRow.library_id);
   if (!library) return null;
 
@@ -252,8 +256,12 @@ export async function getCommunityThread(threadId: string): Promise<CommunityThr
   if (repliesError) throw new Error(repliesError.message);
 
   const replyRows = (replies ?? []) as ReplyRow[];
+  const parsedReplies = replyRows.map((reply) => ({ ...reply, parsedContent: parseContentAttachments(reply.content) }));
   const authors = await getAuthors([threadRow.author_id, ...replyRows.map((reply) => reply.author_id)], library.coachId);
   const attachments = await getThreadAttachments(threadRow.id, replyRows.map((reply) => reply.id));
+  const embeddedThreadAttachments = await signStoredAttachments(threadContent.attachments);
+  const embeddedReplyAttachments = await signStoredAttachments(parsedReplies.flatMap((reply) => reply.parsedContent.attachments));
+  const embeddedReplyAttachmentsByPath = new Map(embeddedReplyAttachments.map((attachment) => [attachment.storagePath, attachment.attachment]));
   const publishedReplies = replyRows.filter((reply) => reply.status === "published");
   const lastReplyAt = publishedReplies.at(-1)?.created_at;
   const canModerate = await canModerateLibrary(library.id, user.id);
@@ -263,21 +271,26 @@ export async function getCommunityThread(threadId: string): Promise<CommunityThr
     libraryId: threadRow.library_id,
     librarySlug: library.slug,
     title: threadRow.title,
-    content: threadRow.content,
+    content: threadContent.content,
     status: threadRow.status,
     removedReason: threadRow.removed_reason,
-    attachments: attachments.threadAttachments,
+    attachments: [...attachments.threadAttachments, ...embeddedThreadAttachments.map((item) => item.attachment)],
     author: authors.get(threadRow.author_id) ?? unknownAuthor(),
     replyCount: publishedReplies.length,
     lastActivityAt: lastReplyAt ?? threadRow.created_at,
     createdAt: threadRow.created_at,
-    replies: replyRows.map((reply) => ({
+    replies: parsedReplies.map((reply) => ({
       id: reply.id,
       threadId: reply.thread_id,
-      content: reply.content,
+      content: reply.parsedContent.content,
       status: reply.status,
       removedReason: reply.removed_reason,
-      attachments: attachments.replyAttachments.get(reply.id) ?? [],
+      attachments: [
+        ...(attachments.replyAttachments.get(reply.id) ?? []),
+        ...reply.parsedContent.attachments
+          .map((attachment) => embeddedReplyAttachmentsByPath.get(attachment.storagePath))
+          .filter((attachment): attachment is CommunityAttachment => Boolean(attachment)),
+      ],
       author: authors.get(reply.author_id) ?? unknownAuthor(),
       createdAt: reply.created_at,
     })),
@@ -308,12 +321,13 @@ async function getLibraryCommunityThreads(libraryId: string): Promise<CommunityT
   const authors = await getAuthors(threadRows.map((thread) => thread.author_id), library.coachId);
   return threadRows.map((thread) => {
     const replyActivity = repliesByThread.get(thread.id);
+    const content = parseContentAttachments(thread.content).content;
     return {
       id: thread.id,
       libraryId: thread.library_id,
       librarySlug: library.slug,
       title: thread.title,
-      content: thread.content,
+      content,
       status: thread.status,
       author: authors.get(thread.author_id) ?? unknownAuthor(),
       replyCount: replyActivity?.count ?? 0,
@@ -343,6 +357,65 @@ async function getReplyActivity(threadIds: string[]) {
     });
   }
   return activity;
+}
+
+type StoredCommunityAttachment = {
+  id: string;
+  storagePath: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+};
+
+function parseContentAttachments(content: string) {
+  const attachments: StoredCommunityAttachment[] = [];
+  const cleanedContent = content.replace(ATTACHMENT_MARKER_REGEX, (_match, encoded: string) => {
+    try {
+      const decoded = Buffer.from(encoded, "base64url").toString("utf8");
+      const parsed = JSON.parse(decoded) as unknown;
+      if (Array.isArray(parsed)) {
+        attachments.push(...parsed.filter(isStoredCommunityAttachment));
+      }
+    } catch {
+      return "";
+    }
+    return "";
+  }).trimEnd();
+
+  return { content: cleanedContent, attachments };
+}
+
+function isStoredCommunityAttachment(value: unknown): value is StoredCommunityAttachment {
+  if (!value || typeof value !== "object") return false;
+  const item = value as Partial<StoredCommunityAttachment>;
+  return typeof item.id === "string"
+    && typeof item.storagePath === "string"
+    && typeof item.fileName === "string"
+    && typeof item.mimeType === "string"
+    && typeof item.sizeBytes === "number";
+}
+
+async function signStoredAttachments(rows: StoredCommunityAttachment[]) {
+  if (rows.length === 0) return [];
+
+  const supabase = createSupabaseAdminClient();
+  const signed = await Promise.all(rows.map(async (row) => {
+    const { data, error } = await supabase.storage.from("community-attachments").createSignedUrl(row.storagePath, 60 * 60);
+    if (error || !data?.signedUrl) return null;
+
+    return {
+      storagePath: row.storagePath,
+      attachment: {
+        id: row.id,
+        fileName: row.fileName,
+        mimeType: row.mimeType,
+        sizeBytes: row.sizeBytes,
+        url: data.signedUrl,
+      },
+    };
+  }));
+
+  return signed.filter((attachment): attachment is { storagePath: string; attachment: CommunityAttachment } => Boolean(attachment));
 }
 
 async function getThreadAttachments(threadId: string, replyIds: string[]) {

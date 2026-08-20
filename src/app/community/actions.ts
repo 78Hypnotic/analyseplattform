@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { assertRateLimit } from "@/lib/rate-limit/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   communityModerationSchema,
@@ -12,6 +13,8 @@ import {
 
 const MAX_COMMUNITY_ATTACHMENT_BYTES = 5 * 1024 * 1024;
 const MAX_COMMUNITY_ATTACHMENTS = 4;
+const ATTACHMENT_MARKER_PREFIX = "<!--community-attachments:";
+const ATTACHMENT_MARKER_SUFFIX = "-->";
 const ALLOWED_COMMUNITY_ATTACHMENT_TYPES = new Map([
   ["image/jpeg", "jpg"],
   ["image/png", "png"],
@@ -45,12 +48,18 @@ export async function createCommunityThread(formData: FormData) {
     .single();
   if (error) throw new Error(error.message);
 
-  await uploadCommunityAttachments({
-    supabase,
-    userId: user.id,
-    files: formData.getAll("images"),
-    threadId: data.id,
-  });
+  try {
+    await uploadCommunityAttachments({
+      supabase,
+      userId: user.id,
+      files: formData.getAll("images"),
+      threadId: data.id,
+      originalContent: parsed.data.content,
+    });
+  } catch (error) {
+    await supabase.from("community_threads").delete().eq("id", data.id);
+    throw error;
+  }
 
   const communitySlug = readCommunitySlug(formData.get("communitySlug"));
   revalidateCommunityPaths(data.id, communitySlug);
@@ -82,12 +91,18 @@ export async function createCommunityReply(formData: FormData) {
     .single();
   if (error) throw new Error(error.message);
 
-  await uploadCommunityAttachments({
-    supabase,
-    userId: user.id,
-    files: formData.getAll("images"),
-    replyId: data.id,
-  });
+  try {
+    await uploadCommunityAttachments({
+      supabase,
+      userId: user.id,
+      files: formData.getAll("images"),
+      replyId: data.id,
+      originalContent: parsed.data.content,
+    });
+  } catch (error) {
+    await supabase.from("community_replies").delete().eq("id", data.id);
+    throw error;
+  }
 
   revalidateCommunityPaths(parsed.data.threadId, readCommunitySlug(formData.get("communitySlug")));
 }
@@ -162,19 +177,35 @@ async function uploadCommunityAttachments({
   files,
   threadId,
   replyId,
+  originalContent,
 }: {
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
   userId: string;
   files: FormDataEntryValue[];
   threadId?: string;
   replyId?: string;
+  originalContent: string;
 }) {
   const images = files.filter((file): file is File => file instanceof File && file.size > 0);
   if (images.length === 0) return;
   if (images.length > MAX_COMMUNITY_ATTACHMENTS) throw new Error("Bitte maximal 4 Bilder anhängen.");
 
+  const fallbackAttachments: StoredCommunityAttachment[] = [];
+
   for (const file of images) {
-    await uploadCommunityAttachment({ supabase, userId, file, threadId, replyId });
+    const fallbackAttachment = await uploadCommunityAttachment({ supabase, userId, file, threadId, replyId });
+    if (fallbackAttachment) fallbackAttachments.push(fallbackAttachment);
+  }
+
+  if (fallbackAttachments.length > 0) {
+    const targetTable = threadId ? "community_threads" : "community_replies";
+    const targetId = threadId ?? replyId;
+    const admin = createSupabaseAdminClient();
+    const { error } = await admin
+      .from(targetTable)
+      .update({ content: appendAttachmentMarker(originalContent, fallbackAttachments) })
+      .eq("id", targetId);
+    if (error) throw new Error(error.message);
   }
 }
 
@@ -190,7 +221,7 @@ async function uploadCommunityAttachment({
   file: File;
   threadId?: string;
   replyId?: string;
-}) {
+}): Promise<StoredCommunityAttachment | null> {
   const extension = ALLOWED_COMMUNITY_ATTACHMENT_TYPES.get(file.type);
   if (!extension) throw new Error("Bitte JPG, PNG oder WebP hochladen.");
   if (file.size > MAX_COMMUNITY_ATTACHMENT_BYTES) throw new Error("Ein Bild darf maximal 5 MB groß sein.");
@@ -215,10 +246,20 @@ async function uploadCommunityAttachment({
   });
 
   if (attachmentError) {
+    if (isMissingAttachmentEndpointError(attachmentError)) {
+      return {
+        id: crypto.randomUUID(),
+        storagePath,
+        fileName: file.name || `Bild.${extension}`,
+        mimeType: file.type,
+        sizeBytes: file.size,
+      };
+    }
     await supabase.storage.from("community-attachments").remove([storagePath]);
-    if (isMissingAttachmentEndpointError(attachmentError)) return;
     throw new Error(attachmentError.message);
   }
+
+  return null;
 }
 
 function isMissingAttachmentEndpointError(error: { code?: string; message?: string }) {
@@ -227,4 +268,17 @@ function isMissingAttachmentEndpointError(error: { code?: string; message?: stri
     || error.message?.toLowerCase().includes("community_attachments")
     || error.message?.toLowerCase().includes("schema cache"),
   );
+}
+
+type StoredCommunityAttachment = {
+  id: string;
+  storagePath: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+};
+
+function appendAttachmentMarker(content: string, attachments: StoredCommunityAttachment[]) {
+  const marker = Buffer.from(JSON.stringify(attachments), "utf8").toString("base64url");
+  return `${content.trimEnd()}\n\n${ATTACHMENT_MARKER_PREFIX}${marker}${ATTACHMENT_MARKER_SUFFIX}`;
 }
