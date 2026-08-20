@@ -55,6 +55,9 @@ export async function AppHeader({ userEmail }: { userEmail?: string | null }) {
           <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/trainingsplaene">
             Trainingspläne
           </Link>
+          <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/trainingsplaene/community">
+            Community
+          </Link>
           {isCoach ? (
             <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/coach">
               Coach
