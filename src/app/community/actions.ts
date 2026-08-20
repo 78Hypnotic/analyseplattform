@@ -53,7 +53,7 @@ export async function createCommunityThread(formData: FormData) {
   });
 
   revalidateCommunityPaths(data.id);
-  redirect(`/trainingsplaene/community/${data.id}`);
+  redirect(`/community/${data.id}`);
 }
 
 export async function createCommunityReply(formData: FormData) {
@@ -151,9 +151,9 @@ export async function removeCommunityReply(formData: FormData) {
 }
 
 function revalidateCommunityPaths(threadId: string) {
+  revalidatePath("/community");
+  revalidatePath(`/community/${threadId}`);
   revalidatePath("/trainingsplaene");
-  revalidatePath("/trainingsplaene/community");
-  revalidatePath(`/trainingsplaene/community/${threadId}`);
 }
 
 async function uploadCommunityAttachments({

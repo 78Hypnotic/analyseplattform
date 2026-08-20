@@ -115,7 +115,7 @@ function LibraryView({
             Pläne verwalten
           </ButtonLink>
         ) : library ? (
-          <ButtonLink href="/trainingsplaene/community" variant="primary">
+          <ButtonLink href="/community" variant="primary">
             <MessageSquare size={16} />
             Community öffnen
           </ButtonLink>
@@ -127,7 +127,7 @@ function LibraryView({
             <h2 className="text-xl font-semibold">Community zur Bibliothek</h2>
             <p className="mt-1 text-sm text-[var(--muted)]">Aktive Gruppencoaching-Mitglieder können hier Themen starten und beantworten.</p>
           </div>
-          <ButtonLink href="/trainingsplaene/community" variant="secondary">
+          <ButtonLink href="/community" variant="secondary">
             <MessageSquare size={16} /> Community öffnen
           </ButtonLink>
         </section>
@@ -196,7 +196,7 @@ function AdminLibraries({
           <ButtonLink href="/trainingsplaene/verwalten" variant="primary">
             <BookOpen size={16} /> Pläne verwalten
           </ButtonLink>
-          <ButtonLink href="/trainingsplaene/community" variant="secondary">
+          <ButtonLink href="/community" variant="secondary">
             <MessageSquare size={16} /> Communities öffnen
           </ButtonLink>
         </div>
@@ -229,7 +229,7 @@ function AdminLibraries({
             Bibliothek von {selectedLibrary.coachName}
           </p>
           <h2 className="display-serif mt-3 text-4xl text-[var(--foreground)]">{selectedLibrary.name}</h2>
-          <ButtonLink href={`/trainingsplaene/community?libraryId=${selectedLibrary.id}`} variant="secondary" className="mt-5">
+          <ButtonLink href={`/community?libraryId=${selectedLibrary.id}`} variant="secondary" className="mt-5">
             <MessageSquare size={16} /> Community dieser Bibliothek öffnen
           </ButtonLink>
           <PlanGrid versions={versions} />

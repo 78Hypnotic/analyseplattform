@@ -63,7 +63,7 @@ export async function AppHeader({
               Trainingspläne
             </Link>
           ) : null}
-          <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/trainingsplaene/community">
+          <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/community">
             Community
           </Link>
           {isCoach ? (

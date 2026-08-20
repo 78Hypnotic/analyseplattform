@@ -70,7 +70,7 @@ export function MobileHeaderMenu({
             {!hideTrainingPlansLink ? (
               <MobileLink href="/trainingsplaene" label="Trainingspläne" onClick={() => setOpen(false)} />
             ) : null}
-            <MobileLink href="/trainingsplaene/community" label="Community" onClick={() => setOpen(false)} />
+            <MobileLink href="/community" label="Community" onClick={() => setOpen(false)} />
             {isCoach ? (
               <MobileLink href="/coach" label="Coach" onClick={() => setOpen(false)} />
             ) : null}
