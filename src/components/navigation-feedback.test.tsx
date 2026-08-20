@@ -9,7 +9,9 @@ vi.mock("next/navigation", () => ({ usePathname: vi.fn(), useSearchParams: vi.fn
 describe("NavigationFeedback", () => {
   beforeEach(() => {
     vi.mocked(usePathname).mockReturnValue("/community");
-    vi.mocked(useSearchParams).mockReturnValue(new URLSearchParams());
+    vi.mocked(useSearchParams).mockReturnValue(
+      new URLSearchParams() as unknown as ReturnType<typeof useSearchParams>,
+    );
   });
 
   it("shows immediate feedback for an internal route click", () => {
