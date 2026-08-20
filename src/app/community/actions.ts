@@ -127,7 +127,9 @@ export async function removeCommunityThread(formData: FormData) {
     .eq("id", parsed.data.id);
   if (error) throw new Error(error.message);
 
-  revalidateCommunityPaths(parsed.data.id, readCommunitySlug(formData.get("communitySlug")));
+  const communitySlug = readCommunitySlug(formData.get("communitySlug"));
+  revalidateCommunityPaths(parsed.data.id, communitySlug);
+  redirect(communitySlug ? `/community/${communitySlug}` : "/community");
 }
 
 export async function removeCommunityReply(formData: FormData) {
