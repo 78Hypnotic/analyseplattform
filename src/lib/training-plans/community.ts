@@ -292,6 +292,7 @@ async function getThreadAttachments(threadId: string, replyIds: string[]) {
     .select("id,thread_id,reply_id,storage_path,file_name,mime_type,size_bytes")
     .eq("thread_id", threadId)
     .order("created_at", { ascending: true });
+  if (isMissingAttachmentEndpointError(threadError)) return emptyAttachmentResult();
   if (threadError) throw new Error(threadError.message);
 
   const replyAttachmentsResult = replyIds.length > 0
@@ -301,6 +302,7 @@ async function getThreadAttachments(threadId: string, replyIds: string[]) {
         .in("reply_id", replyIds)
         .order("created_at", { ascending: true })
     : { data: [], error: null };
+  if (isMissingAttachmentEndpointError(replyAttachmentsResult.error)) return emptyAttachmentResult();
   if (replyAttachmentsResult.error) throw new Error(replyAttachmentsResult.error.message);
 
   const threadRows = (threadAttachments ?? []) as AttachmentRow[];
@@ -320,6 +322,24 @@ async function getThreadAttachments(threadId: string, replyIds: string[]) {
     threadAttachments: threadRows.map((row) => byId.get(row.id)).filter((attachment): attachment is CommunityAttachment => Boolean(attachment)),
     replyAttachments,
   };
+}
+
+function emptyAttachmentResult() {
+  return {
+    threadAttachments: [],
+    replyAttachments: new Map<string, CommunityAttachment[]>(),
+  };
+}
+
+function isMissingAttachmentEndpointError(error: { code?: string; message?: string } | null | undefined) {
+  return Boolean(
+    error
+    && (
+      error.code === "PGRST205"
+      || error.message?.toLowerCase().includes("community_attachments")
+      || error.message?.toLowerCase().includes("schema cache")
+    ),
+  );
 }
 
 async function signAttachments(rows: AttachmentRow[]): Promise<CommunityAttachment[]> {

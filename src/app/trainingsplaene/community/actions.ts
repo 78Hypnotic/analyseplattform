@@ -216,6 +216,15 @@ async function uploadCommunityAttachment({
 
   if (attachmentError) {
     await supabase.storage.from("community-attachments").remove([storagePath]);
+    if (isMissingAttachmentEndpointError(attachmentError)) return;
     throw new Error(attachmentError.message);
   }
+}
+
+function isMissingAttachmentEndpointError(error: { code?: string; message?: string }) {
+  return Boolean(
+    error.code === "PGRST205"
+    || error.message?.toLowerCase().includes("community_attachments")
+    || error.message?.toLowerCase().includes("schema cache"),
+  );
 }
