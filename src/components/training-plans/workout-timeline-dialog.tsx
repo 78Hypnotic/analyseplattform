@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Activity, Bike, BookOpen, Clock3, Maximize2, Ruler, Save, Trash2, Waves, X } from "lucide-react";
+import { Activity, Bike, BookOpen, Maximize2, Save, Trash2, Waves, X } from "lucide-react";
 import { Button } from "@/components/button";
 import { WorkoutTimelineBuilder } from "@/components/training-plans/workout-timeline-builder";
 import {
@@ -10,12 +10,10 @@ import {
   listWorkoutLibraryItems,
   saveWorkoutLibraryItem,
 } from "@/app/trainingsplaene/verwalten/workout-library-actions";
-import { convertWorkoutAxisMode, getWorkoutAxisMode } from "@/lib/training-plans/content";
 import type {
   AthleteBenchmarkSnapshot,
   StructuredTrainingPlanSession,
   TrainingPlanDiscipline,
-  WorkoutAxisMode,
   WorkoutContent,
   WorkoutLibraryItem,
 } from "@/lib/training-plans/types";
@@ -76,7 +74,6 @@ function WorkoutTimelineDialogContent({
   const [detailsDraft, setDetailsDraft] = useState<WorkoutSessionDetails | null>(
     () => sessionDetails ? structuredClone(sessionDetails) : null,
   );
-  const [pendingAxisMode, setPendingAxisMode] = useState<WorkoutAxisMode | null>(null);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [libraryItems, setLibraryItems] = useState<WorkoutLibraryItem[]>([]);
   const [libraryStatus, setLibraryStatus] = useState<"loading" | "ready" | "error">("loading");
@@ -156,11 +153,6 @@ function WorkoutTimelineDialogContent({
       : current);
   }
 
-  function requestAxisMode(axisMode: WorkoutAxisMode) {
-    if (getWorkoutAxisMode(draft) === axisMode) return;
-    setPendingAxisMode(axisMode);
-  }
-
   async function saveToLibrary() {
     const libraryTitle = detailsDraft?.title ?? getDisciplineTitle(title, draft.discipline);
     if (libraryTitle.trim().length < 3) {
@@ -183,7 +175,6 @@ function WorkoutTimelineDialogContent({
     setDetailsDraft((current) => current
       ? { ...current, title: isDefaultWorkoutTitle(current.title) ? item.title : current.title }
       : current);
-    setPendingAxisMode(null);
     setLibraryMessage(`„${item.title}“ geladen. Mit „Workout übernehmen“ in den Plan schreiben.`);
   }
 
@@ -226,24 +217,6 @@ function WorkoutTimelineDialogContent({
           <div className="ml-auto flex items-center gap-3">
             <div
               role="group"
-              aria-label="Workout-Achse"
-              className="flex rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-1"
-            >
-              <ModeButton
-                label="Dauer"
-                active={getWorkoutAxisMode(draft) === "time"}
-                onClick={() => requestAxisMode("time")}
-                icon={<Clock3 size={15} />}
-              />
-              <ModeButton
-                label="Distanz"
-                active={getWorkoutAxisMode(draft) === "distance"}
-                onClick={() => requestAxisMode("distance")}
-                icon={<Ruler size={15} />}
-              />
-            </div>
-            <div
-              role="group"
               aria-label="Sportart"
               className="flex rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-1"
             >
@@ -277,26 +250,6 @@ function WorkoutTimelineDialogContent({
             </button>
           </div>
         </header>
-
-        {pendingAxisMode ? (
-          <div className="flex shrink-0 flex-col gap-3 border-b border-[var(--warn)] bg-[var(--warn)]/10 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between sm:px-6">
-            <p>
-              Beim Wechsel zu {pendingAxisMode === "distance" ? "Distanz" : "Dauer"} werden alle Step-Werte auf editierbare Standardwerte gesetzt.
-            </p>
-            <div className="flex shrink-0 gap-2">
-              <Button type="button" variant="ghost" onClick={() => setPendingAxisMode(null)}>Abbrechen</Button>
-              <Button
-                type="button"
-                onClick={() => {
-                  setDraft((current) => convertWorkoutAxisMode(current, pendingAxisMode));
-                  setPendingAxisMode(null);
-                }}
-              >
-                Umstellen
-              </Button>
-            </div>
-          </div>
-        ) : null}
 
         <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-5 lg:p-6">
           {detailsDraft ? (
@@ -381,7 +334,7 @@ function WorkoutTimelineDialogContent({
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-[var(--foreground)]">{item.title}</p>
                       <p className="mt-0.5 text-xs text-[var(--subtle)]">
-                        {disciplineLabel(item.discipline)} · {getWorkoutAxisMode(item.content) === "distance" ? "Distanz" : "Dauer"} · {formatLibraryUpdatedAt(item.updated_at)}
+                        {disciplineLabel(item.discipline)} · {workoutModeLabel(item.content)} · {formatLibraryUpdatedAt(item.updated_at)}
                       </p>
                     </div>
                     <Button type="button" variant="ghost" onClick={() => loadFromLibrary(item)}>Laden</Button>
@@ -437,32 +390,6 @@ function DisciplineButton({
   );
 }
 
-function ModeButton({
-  label,
-  active,
-  icon,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  icon: React.ReactNode;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      aria-pressed={active}
-      onClick={onClick}
-      className={active
-        ? "inline-flex h-8 items-center gap-1.5 rounded-md bg-[var(--foreground)] px-2.5 text-xs font-medium text-[var(--background)]"
-        : "inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium text-[var(--muted)] hover:text-[var(--foreground)]"}
-    >
-      {icon}
-      <span className="hidden sm:inline">{label}</span>
-    </button>
-  );
-}
-
 function getDisciplineTitle(title: string | undefined, discipline: TrainingPlanDiscipline) {
   const defaultTitles = ["Neue Schwimmeinheit", "Neue Radeinheit", "Neue Laufeinheit"];
   if (title && !defaultTitles.includes(title)) return title;
@@ -479,6 +406,12 @@ function disciplineLabel(discipline: TrainingPlanDiscipline) {
   if (discipline === "bike") return "Rad";
   if (discipline === "run") return "Laufen";
   return "Schwimmen";
+}
+
+function workoutModeLabel(content: WorkoutContent) {
+  const modes = new Set(content.blocks.flatMap((block) => block.steps.map((step) => step.duration.type)));
+  if (modes.size > 1) return "Gemischt";
+  return modes.has("distance") ? "Distanz" : "Dauer";
 }
 
 function formatLibraryUpdatedAt(value: string) {

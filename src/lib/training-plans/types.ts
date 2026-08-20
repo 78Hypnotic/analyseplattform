@@ -35,7 +35,7 @@ export type WorkoutDuration =
   | { type: "time"; seconds: number }
   | { type: "distance"; meters: number };
 
-export type WorkoutAxisMode = "time" | "distance";
+export type WorkoutStepMode = "time" | "distance";
 
 export type WorkoutTarget =
   | { type: "threshold_power_percentage"; minPercent: number; maxPercent?: number }
@@ -62,7 +62,6 @@ export type WorkoutBlock = {
 export type WorkoutContent = {
   schemaVersion: 1;
   discipline: TrainingPlanDiscipline;
-  axisMode?: WorkoutAxisMode;
   blocks: WorkoutBlock[];
 };
 

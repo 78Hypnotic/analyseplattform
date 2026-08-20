@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Copy, GripVertical, Plus, Trash2 } from "lucide-react";
+import { Clock3, Copy, GripVertical, Plus, Ruler, Trash2 } from "lucide-react";
 import { Button } from "@/components/button";
 import { cn } from "@/lib/utils";
 import {
@@ -14,7 +14,7 @@ import {
   updateWorkoutBlock,
   updateWorkoutStep,
 } from "@/lib/training-plans/commands";
-import { createWorkoutBlock, createWorkoutStep, getWorkoutAxisMode } from "@/lib/training-plans/content";
+import { convertWorkoutStepDuration, createWorkoutBlock, createWorkoutStep } from "@/lib/training-plans/content";
 import { resolveWorkoutTargets } from "@/lib/training-plans/workout-targets";
 import type {
   AthleteBenchmarkSnapshot,
@@ -54,7 +54,7 @@ export function WorkoutTimelineBuilder({ content, onChange, benchmarks }: Workou
   );
 
   function insertBlock(kind: WorkoutBlock["kind"], index = content.blocks.length) {
-    const block = createWorkoutBlock(kind, getWorkoutAxisMode(content));
+    const block = createWorkoutBlock(kind, "time");
     onChange(addWorkoutBlock(content, block, index));
     setSelectedBlockId(block.id);
   }
@@ -152,14 +152,13 @@ function IntensityTimeline({
   onDuplicateBlock: (blockId: string) => void;
   onRemoveBlock: (blockId: string) => void;
 }) {
-  const axisMode = getWorkoutAxisMode(content);
-  const totalExtent = content.blocks.reduce((total, block) => total + getBlockExtent(block, axisMode), 0);
+  const totals = getWorkoutTotals(content);
 
   return (
     <div className="rounded-lg border border-[var(--line)] bg-[var(--soft-bg)]">
       <div className="flex items-center justify-between gap-3 border-b border-[var(--line)] px-3 py-2 text-xs text-[var(--muted)]">
-        <span>Breite = {axisMode === "distance" ? "Distanz" : "Dauer"} · Höhe = Intensität</span>
-        <span>{formatAxisExtent(totalExtent, axisMode)}</span>
+        <span>Breite = relative Dauer / Distanz · Höhe = Intensität</span>
+        <span>{formatMixedTotals(totals)}</span>
       </div>
       <div className="grid grid-cols-[2.75rem_minmax(0,1fr)]">
         <div className="relative h-72 border-r border-[var(--line)] text-[9px] text-[var(--subtle)]">
@@ -181,8 +180,9 @@ function IntensityTimeline({
             onDrop={(event) => onDropBlock(event, content.blocks.length)}
           >
             {content.blocks.map((block, blockIndex) => {
-              const segments = getTimelineSegments(block, axisMode);
+              const segments = getTimelineSegments(block);
               const blockExtent = segments.reduce((total, segment) => total + segment.extent, 0);
+              const blockTotals = getBlockTotals(block);
               return (
                 <div
                   key={block.id}
@@ -247,7 +247,7 @@ function IntensityTimeline({
                     />
                   ))}
                   <span className="absolute inset-x-1 bottom-1 truncate text-center text-[9px] text-[var(--subtle)]">
-                    {block.repeatCount > 1 ? `${block.repeatCount}x · ` : ""}{formatAxisExtent(blockExtent, axisMode)}
+                    {block.repeatCount > 1 ? `${block.repeatCount}x · ` : ""}{formatMixedTotals(blockTotals)}
                   </span>
                 </div>
               );
@@ -269,7 +269,7 @@ type TimelineSegment = {
   tone: "threshold" | "heart-rate" | "vo2max" | "recovery";
 };
 
-function getTimelineSegments(block: WorkoutBlock, axisMode: "time" | "distance"): TimelineSegment[] {
+function getTimelineSegments(block: WorkoutBlock): TimelineSegment[] {
   return Array.from({ length: block.repeatCount }, (_, repeatIndex) =>
     block.steps.flatMap((step) => {
       const target = step.targets[0];
@@ -281,8 +281,8 @@ function getTimelineSegments(block: WorkoutBlock, axisMode: "time" | "distance")
       const workSegment: TimelineSegment = {
         key: `${repeatIndex}-${step.id}-work`,
         label: block.repeatCount > 1 ? `${step.title} ${repeatIndex + 1}` : step.title,
-        extent: Math.max(1, getDurationExtent(step.duration, axisMode)),
-        display: formatAxisExtent(getDurationExtent(step.duration, axisMode), axisMode),
+        extent: normalizeTimelineExtent(step.duration),
+        display: formatWorkoutDuration(step.duration),
         minPercent: target?.minPercent ?? 50,
         maxPercent: target?.maxPercent ?? target?.minPercent ?? 50,
         tone,
@@ -294,7 +294,7 @@ function getTimelineSegments(block: WorkoutBlock, axisMode: "time" | "distance")
             {
               key: `${repeatIndex}-${step.id}-recovery`,
               label: "Erholung",
-              extent: axisMode === "time" ? recoverySeconds : 0,
+              extent: Math.max(0.25, recoverySeconds / 60),
               display: formatDuration(recoverySeconds),
               minPercent: 35,
               maxPercent: 45,
@@ -355,7 +355,15 @@ function BlockInspector({
       <div className="mt-5 space-y-3">
         <div className="flex items-center justify-between gap-3">
           <p className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--subtle)]">Steps</p>
-          <Button type="button" variant="ghost" onClick={() => onChange(addWorkoutStep(content, block.id, createWorkoutStep(block.kind, getWorkoutAxisMode(content))))}>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => onChange(addWorkoutStep(
+              content,
+              block.id,
+              createWorkoutStep(block.kind, block.steps.at(-1)?.duration.type ?? "time"),
+            ))}
+          >
             <Plus size={14} /> Step
           </Button>
         </div>
@@ -388,7 +396,6 @@ function StepEditor({
   onChange: (content: WorkoutContent) => void;
 }) {
   const target = step.targets[0] ?? { type: "threshold_power_percentage", minPercent: 70, maxPercent: 80 };
-  const axisMode = getWorkoutAxisMode(content);
   const [distanceUnit, setDistanceUnit] = useState<"m" | "km">(
     () => step.duration.type === "distance" && step.duration.meters >= 1000 && step.duration.meters % 1000 === 0
       ? "km"
@@ -427,8 +434,32 @@ function StepEditor({
           <Trash2 size={14} />
         </button>
       </div>
+      <div role="group" aria-label={`Vorgabe ${step.title}`} className="grid grid-cols-2 rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-1">
+        <button
+          type="button"
+          aria-pressed={step.duration.type === "time"}
+          onClick={() => updateStep((current) => convertWorkoutStepDuration(current, "time", block.kind))}
+          className={cn(
+            "inline-flex h-8 items-center justify-center gap-1.5 rounded-md text-xs font-medium",
+            step.duration.type === "time" ? "bg-[var(--foreground)] text-[var(--background)]" : "text-[var(--muted)]",
+          )}
+        >
+          <Clock3 size={14} /> Dauer
+        </button>
+        <button
+          type="button"
+          aria-pressed={step.duration.type === "distance"}
+          onClick={() => updateStep((current) => convertWorkoutStepDuration(current, "distance", block.kind))}
+          className={cn(
+            "inline-flex h-8 items-center justify-center gap-1.5 rounded-md text-xs font-medium",
+            step.duration.type === "distance" ? "bg-[var(--foreground)] text-[var(--background)]" : "text-[var(--muted)]",
+          )}
+        >
+          <Ruler size={14} /> Distanz
+        </button>
+      </div>
       <div className="grid grid-cols-2 gap-3">
-        {axisMode === "distance" ? (
+        {step.duration.type === "distance" ? (
           <Field label="Distanz">
             <div className="grid grid-cols-[minmax(0,1fr)_4.5rem] gap-2">
               <input
@@ -523,16 +554,28 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function getBlockExtent(block: WorkoutBlock, axisMode: "time" | "distance") {
-  return block.repeatCount * block.steps.reduce((total, step) => {
-    const recovery = axisMode === "time" ? step.recoverySeconds ?? 0 : 0;
-    return total + getDurationExtent(step.duration, axisMode) + recovery;
-  }, 0);
+type WorkoutTotals = { seconds: number; meters: number };
+
+function getWorkoutTotals(content: WorkoutContent): WorkoutTotals {
+  return content.blocks.reduce((totals, block) => addTotals(totals, getBlockTotals(block)), { seconds: 0, meters: 0 });
 }
 
-function getDurationExtent(duration: WorkoutDuration, axisMode: "time" | "distance") {
-  if (axisMode === "distance") return duration.type === "distance" ? duration.meters : 0;
-  return duration.type === "time" ? duration.seconds : 0;
+function getBlockTotals(block: WorkoutBlock): WorkoutTotals {
+  const totals = block.steps.reduce<WorkoutTotals>((current, step) => ({
+    seconds: current.seconds + (step.duration.type === "time" ? step.duration.seconds : 0) + (step.recoverySeconds ?? 0),
+    meters: current.meters + (step.duration.type === "distance" ? step.duration.meters : 0),
+  }), { seconds: 0, meters: 0 });
+  return { seconds: totals.seconds * block.repeatCount, meters: totals.meters * block.repeatCount };
+}
+
+function addTotals(first: WorkoutTotals, second: WorkoutTotals): WorkoutTotals {
+  return { seconds: first.seconds + second.seconds, meters: first.meters + second.meters };
+}
+
+function normalizeTimelineExtent(duration: WorkoutDuration) {
+  return duration.type === "time"
+    ? Math.max(1, duration.seconds / 60)
+    : Math.max(1, duration.meters / 100);
 }
 
 function getDurationSeconds(duration: WorkoutDuration) {
@@ -559,9 +602,19 @@ function clampNumber(value: number, minimum: number, maximum: number) {
   return Math.max(minimum, Math.min(value, maximum));
 }
 
-function formatAxisExtent(value: number, axisMode: "time" | "distance") {
-  if (axisMode === "time") return formatDuration(value);
-  return value >= 1000
-    ? `${(value / 1000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km`
-    : `${value} m`;
+function formatWorkoutDuration(duration: WorkoutDuration) {
+  return duration.type === "time" ? formatDuration(duration.seconds) : formatDistance(duration.meters);
+}
+
+function formatMixedTotals(totals: WorkoutTotals) {
+  const values = [];
+  if (totals.seconds > 0) values.push(formatDuration(totals.seconds));
+  if (totals.meters > 0) values.push(formatDistance(totals.meters));
+  return values.join(" · ") || "0 min";
+}
+
+function formatDistance(meters: number) {
+  return meters >= 1000
+    ? `${(meters / 1000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km`
+    : `${meters} m`;
 }

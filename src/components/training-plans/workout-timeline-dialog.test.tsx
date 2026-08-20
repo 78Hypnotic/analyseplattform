@@ -83,19 +83,16 @@ describe("WorkoutTimelineLauncher", () => {
     expect(onChange.mock.calls[0][0]).toEqual(expect.objectContaining({ discipline: "bike" }));
   });
 
-  it("confirms a switch to distance before resetting step values", () => {
+  it("switches an individual step from duration to distance", () => {
     const onChange = vi.fn();
     render(<WorkoutTimelineLauncher content={createEmptyWorkoutContent("bike")} onChange={onChange} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Workout Builder öffnen" }));
-    fireEvent.click(screen.getByRole("button", { name: "Distanz" }));
-
-    expect(screen.getByText(/alle Step-Werte/)).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Umstellen" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Distanz" })[0]);
     fireEvent.click(screen.getByRole("button", { name: "Workout übernehmen" }));
 
-    expect(onChange.mock.calls[0][0]).toEqual(expect.objectContaining({ axisMode: "distance" }));
     expect(onChange.mock.calls[0][0].blocks[0].steps[0].duration).toEqual({ type: "distance", meters: 2000 });
+    expect(onChange.mock.calls[0][0].blocks[1].steps[0].duration).toEqual({ type: "time", seconds: 300 });
   });
 
   it("saves the current draft to the workout library", async () => {
@@ -124,7 +121,7 @@ describe("WorkoutTimelineLauncher", () => {
     fireEvent.click(screen.getByRole("button", { name: /^Bibliothek/ }));
     expect(await screen.findByText(item.title)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Laden" }));
-    expect(screen.getByText("Breite = Distanz · Höhe = Intensität")).toBeTruthy();
+    expect(screen.getByText("Breite = relative Dauer / Distanz · Höhe = Intensität")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Löschen" }));
     fireEvent.click(screen.getByRole("button", { name: "Löschen bestätigen" }));
@@ -141,7 +138,6 @@ function libraryItem(): WorkoutLibraryItem {
     content: {
       schemaVersion: 1,
       discipline: "bike",
-      axisMode: "distance",
       blocks: [{
         id: "library-block",
         title: "Grundlage",

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { workoutContentSchema } from "./schema";
-import { convertWorkoutAxisMode, createEmptyWorkoutContent, getWorkoutAxisMode } from "./content";
+import { convertWorkoutStepDuration, createEmptyWorkoutContent } from "./content";
 import { resolveWorkoutTargets } from "./workout-targets";
 import type { AthleteBenchmarkSnapshot, WorkoutContent } from "./types";
 
@@ -54,22 +54,36 @@ describe("workoutContentSchema", () => {
     expect(result.success).toBe(false);
   });
 
-  it("treats existing workouts without an axis mode as time based", () => {
-    expect(getWorkoutAxisMode(workout)).toBe("time");
+  it("accepts existing time based workouts", () => {
     expect(workoutContentSchema.safeParse(workout).success).toBe(true);
   });
 
-  it("requires every step to match the workout axis mode", () => {
-    expect(workoutContentSchema.safeParse({ ...workout, axisMode: "distance" }).success).toBe(false);
+  it("accepts mixed time and distance steps", () => {
+    const mixedWorkout = {
+      ...workout,
+      blocks: [
+        workout.blocks[0],
+        {
+          ...workout.blocks[0],
+          id: "block-2",
+          steps: [{
+            ...workout.blocks[0].steps[0],
+            id: "step-2",
+            duration: { type: "distance" as const, meters: 1000 },
+          }],
+        },
+      ],
+    };
+
+    expect(workoutContentSchema.safeParse(mixedWorkout).success).toBe(true);
   });
 
-  it("converts steps to editable defaults when the axis mode changes", () => {
-    const distanceWorkout = convertWorkoutAxisMode(createEmptyWorkoutContent("bike"), "distance");
+  it("converts an individual step to editable defaults", () => {
+    const step = createEmptyWorkoutContent("bike").blocks[1].steps[0];
+    const distanceStep = convertWorkoutStepDuration(step, "distance", "interval");
 
-    expect(distanceWorkout.axisMode).toBe("distance");
-    expect(distanceWorkout.blocks[0].steps[0].duration).toEqual({ type: "distance", meters: 2000 });
-    expect(distanceWorkout.blocks[1].steps[0].duration).toEqual({ type: "distance", meters: 1000 });
-    expect(workoutContentSchema.safeParse(distanceWorkout).success).toBe(true);
+    expect(distanceStep.duration).toEqual({ type: "distance", meters: 1000 });
+    expect(step.duration).toEqual({ type: "time", seconds: 300 });
   });
 });
 

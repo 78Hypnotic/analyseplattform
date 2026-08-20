@@ -14,17 +14,18 @@ describe("WorkoutTimelineBuilder", () => {
     expect(workSegments).toHaveLength(3);
     expect(recoverySegments).toHaveLength(3);
     expect(workSegments[0].getAttribute("style")).toContain("height: 55%");
-    expect(workSegments[0].getAttribute("style")).toContain("flex-grow: 300");
+    expect(workSegments[0].getAttribute("style")).toContain("flex-grow: 5");
     expect(workSegments[0].className).toContain("workout-timeline-segment");
     expect(workSegments[1].style.animationDelay).toBe("56ms");
   });
 
-  it("edits distance in kilometers and scales the timeline by meters", () => {
+  it("mixes duration and distance steps and edits distance in kilometers", () => {
     render(<DistanceBuilderHarness />);
 
-    expect(screen.getByText("Breite = Distanz · Höhe = Intensität")).toBeTruthy();
-    expect(screen.getAllByText("3 km")).toHaveLength(2);
+    expect(screen.getByText("Breite = relative Dauer / Distanz · Höhe = Intensität")).toBeTruthy();
+    expect(screen.getByText("10 min · 3 km")).toBeTruthy();
 
+    fireEvent.click(screen.getByRole("button", { name: /Distanzblock: Grundlage, 3 km/ }));
     fireEvent.change(screen.getByLabelText("Distanzeinheit"), { target: { value: "km" } });
     fireEvent.change(screen.getByLabelText("Distanz"), { target: { value: "2.5" } });
 
@@ -36,21 +37,34 @@ function DistanceBuilderHarness() {
   const [content, setContent] = useState<WorkoutContent>({
     schemaVersion: 1,
     discipline: "bike",
-    axisMode: "distance",
-    blocks: [{
-      id: "distance-block",
-      title: "Distanzblock",
-      kind: "steady",
-      repeatCount: 1,
-      steps: [{
-        id: "distance-step",
-        title: "Grundlage",
-        duration: { type: "distance", meters: 3000 },
-        targets: [{ type: "threshold_power_percentage", minPercent: 65, maxPercent: 75 }],
-      }],
-    }],
+    blocks: [
+      {
+        id: "time-block",
+        title: "Warm-up",
+        kind: "warmup",
+        repeatCount: 1,
+        steps: [{
+          id: "time-step",
+          title: "Einrollen",
+          duration: { type: "time", seconds: 600 },
+          targets: [{ type: "threshold_power_percentage", minPercent: 55, maxPercent: 65 }],
+        }],
+      },
+      {
+        id: "distance-block",
+        title: "Distanzblock",
+        kind: "steady",
+        repeatCount: 1,
+        steps: [{
+          id: "distance-step",
+          title: "Grundlage",
+          duration: { type: "distance", meters: 3000 },
+          targets: [{ type: "threshold_power_percentage", minPercent: 65, maxPercent: 75 }],
+        }],
+      },
+    ],
   });
-  const duration = content.blocks[0].steps[0].duration;
+  const duration = content.blocks[1].steps[0].duration;
 
   return (
     <>

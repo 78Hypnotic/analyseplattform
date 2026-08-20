@@ -11,9 +11,9 @@ import type {
   TrainingPlanDiscipline,
   TrainingPlanDrill,
   WorkoutBlock,
-  WorkoutAxisMode,
   WorkoutContent,
   WorkoutStep,
+  WorkoutStepMode,
 } from "./types";
 
 const SET_PATTERN = /^\s*(\d+)\s*[x×]\s*(\d+)\s*m?\s*$/i;
@@ -123,7 +123,6 @@ export function createEmptyWorkoutContent(discipline: TrainingPlanDiscipline = "
   return {
     schemaVersion: 1,
     discipline,
-    axisMode: "time",
     blocks: [
       createWorkoutBlock("warmup", "time"),
       createWorkoutBlock("interval", "time"),
@@ -134,7 +133,7 @@ export function createEmptyWorkoutContent(discipline: TrainingPlanDiscipline = "
 
 export function createWorkoutBlock(
   kind: WorkoutBlock["kind"] = "steady",
-  axisMode: WorkoutAxisMode = "time",
+  stepMode: WorkoutStepMode = "time",
 ): WorkoutBlock {
   const titleByKind: Record<WorkoutBlock["kind"], string> = {
     warmup: "Warm-up",
@@ -149,13 +148,13 @@ export function createWorkoutBlock(
     title: titleByKind[kind],
     kind,
     repeatCount: kind === "interval" ? 4 : 1,
-    steps: [createWorkoutStep(kind, axisMode)],
+    steps: [createWorkoutStep(kind, stepMode)],
   };
 }
 
 export function createWorkoutStep(
   kind: WorkoutBlock["kind"] = "steady",
-  axisMode: WorkoutAxisMode = "time",
+  stepMode: WorkoutStepMode = "time",
 ): WorkoutStep {
   const targetByKind: WorkoutStep["targets"][number] = kind === "interval"
     ? { type: "vo2max_power_percentage", minPercent: 90, maxPercent: 100 }
@@ -164,7 +163,7 @@ export function createWorkoutStep(
   return {
     id: createPlanNodeId("step"),
     title: kind === "interval" ? "Belastung" : "Abschnitt",
-    duration: axisMode === "distance"
+    duration: stepMode === "distance"
       ? { type: "distance", meters: kind === "interval" ? 1000 : 2000 }
       : { type: "time", seconds: kind === "interval" ? 300 : 600 },
     targets: [targetByKind],
@@ -172,24 +171,17 @@ export function createWorkoutStep(
   };
 }
 
-export function getWorkoutAxisMode(content: WorkoutContent): WorkoutAxisMode {
-  return content.axisMode ?? "time";
-}
-
-export function convertWorkoutAxisMode(content: WorkoutContent, axisMode: WorkoutAxisMode): WorkoutContent {
-  if (getWorkoutAxisMode(content) === axisMode) return content;
+export function convertWorkoutStepDuration(
+  step: WorkoutStep,
+  mode: WorkoutStepMode,
+  blockKind: WorkoutBlock["kind"],
+): WorkoutStep {
+  if (step.duration.type === mode) return step;
   return {
-    ...content,
-    axisMode,
-    blocks: content.blocks.map((block) => ({
-      ...block,
-      steps: block.steps.map((step) => ({
-        ...step,
-        duration: axisMode === "distance"
-          ? { type: "distance" as const, meters: block.kind === "interval" ? 1000 : 2000 }
-          : { type: "time" as const, seconds: block.kind === "interval" ? 300 : 600 },
-      })),
-    })),
+    ...step,
+    duration: mode === "distance"
+      ? { type: "distance", meters: blockKind === "interval" ? 1000 : 2000 }
+      : { type: "time", seconds: blockKind === "interval" ? 300 : 600 },
   };
 }
 

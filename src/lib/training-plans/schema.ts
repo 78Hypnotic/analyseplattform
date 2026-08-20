@@ -92,22 +92,7 @@ export const workoutBlockSchema = z.object({
 export const workoutContentSchema = z.object({
   schemaVersion: z.literal(1),
   discipline: trainingPlanDisciplineSchema,
-  axisMode: z.enum(["time", "distance"]).optional(),
   blocks: z.array(workoutBlockSchema).min(1).max(32),
-}).superRefine((content, context) => {
-  const axisMode = content.axisMode ?? "time";
-  content.blocks.forEach((block, blockIndex) => {
-    block.steps.forEach((step, stepIndex) => {
-      if (step.duration.type === axisMode) return;
-      context.addIssue({
-        code: "custom",
-        path: ["blocks", blockIndex, "steps", stepIndex, "duration"],
-        message: axisMode === "time"
-          ? "Zeitbasierte Workouts benötigen eine Dauer je Schritt."
-          : "Distanzbasierte Workouts benötigen eine Distanz je Schritt.",
-      });
-    });
-  });
 });
 
 export const swimIntensitySchema = z.discriminatedUnion("type", [
