@@ -107,6 +107,11 @@ function CommunitySurface({
           <input type="hidden" name="libraryId" value={libraryId} />
           <input name="title" minLength={3} maxLength={120} placeholder="Titel" required />
           <textarea name="content" minLength={2} maxLength={3000} rows={5} placeholder="Worum geht es?" required />
+          <label className="grid gap-2 text-sm text-[var(--muted)]">
+            Bilder anhängen
+            <input name="images" type="file" accept="image/jpeg,image/png,image/webp" multiple />
+            <span className="text-xs text-[var(--subtle)]">Bis zu 4 Bilder, JPG, PNG oder WebP, jeweils maximal 5 MB.</span>
+          </label>
           <div className="flex justify-end">
             <button className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[var(--accent)] px-4 text-sm font-medium text-[var(--accent-foreground)] transition hover:bg-[var(--accent-hover)]" type="submit">
               Thema veröffentlichen

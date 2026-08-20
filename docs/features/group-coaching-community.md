@@ -19,6 +19,7 @@ Trainingsplänen.
 - eine Themenliste pro Coach-Bibliothek,
 - ein Startbeitrag pro Thema,
 - chronologische Antworten,
+- bis zu vier Bildanhänge pro Thema oder Antwort,
 - Formular zum Erstellen neuer Themen und Antworten,
 - Moderation durch Coach und Admin,
 - vollständige Sperre ohne aktive Gruppencoaching-Membership.
@@ -42,6 +43,9 @@ sind spätere Ausbaustufen.
 Der Zugriff wird serverseitig über Supabase RLS geprüft. Clients dürfen weder
 aus UI-Zustand noch aus einem lokalen Abo-Flag Community-Zugriff ableiten.
 
+Bildanhänge laufen über denselben Community-Zugriff und sind ohne aktive
+Berechtigung nicht als öffentliche Bucket-URL abrufbar.
+
 ## Datenmodell
 
 Die Migration `20260820103000_group_coaching_community.sql` führt zwei Tabellen
@@ -51,6 +55,16 @@ ein:
   `content`, `status` und Moderationsfeldern,
 - `community_replies` für Antworten mit `thread_id`, `author_id`, `content`,
   `status` und Moderationsfeldern.
+
+Die Migration `20260820143000_community_attachments.sql` ergänzt:
+
+- `community_attachments` für Bildanhänge an Themen oder Antworten,
+- den privaten Storage-Bucket `community-attachments`,
+- Storage- und Tabellen-RLS über denselben Community-Zugriff,
+- Signed URLs für die Darstellung in der UI.
+
+Erlaubt sind JPG, PNG und WebP bis 5 MB pro Datei. Pro Thema oder Antwort sind
+maximal vier Bilder vorgesehen.
 
 Entfernte Inhalte werden nicht hart gelöscht. Sie bleiben als `removed`
 markiert, speichern optional einen Moderationsgrund und werden in der UI als
@@ -65,5 +79,7 @@ neutraler Platzhalter angezeigt.
 - Ein Admin kann Bibliotheken auswählen und deren Communities moderieren.
 - Neue Themen und Antworten laufen über Server Actions mit Zod-Validierung,
   Rate Limit und Supabase RLS.
+- Bildanhänge werden privat gespeichert und nur über berechtigte Signed URLs
+  ausgeliefert.
 - Entfernte Inhalte bleiben auditierbar, werden aber nicht mehr als Beitragstext
   dargestellt.

@@ -2,7 +2,7 @@ import { ArrowLeft, MessageSquare, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppHeader } from "@/components/app-header";
-import { getCommunityThread, type CommunityReply, type CommunityThreadDetail } from "@/lib/training-plans/community";
+import { getCommunityThread, type CommunityAttachment, type CommunityReply, type CommunityThreadDetail } from "@/lib/training-plans/community";
 import { createCommunityReply, removeCommunityReply, removeCommunityThread } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -53,7 +53,10 @@ function ThreadPost({ thread }: { thread: CommunityThreadDetail }) {
       {thread.status === "removed" ? (
         <RemovedNotice reason={thread.removedReason} />
       ) : (
-        <p className="mt-5 whitespace-pre-wrap text-base leading-7 text-[var(--muted)]">{thread.content}</p>
+        <>
+          <p className="mt-5 whitespace-pre-wrap text-base leading-7 text-[var(--muted)]">{thread.content}</p>
+          <AttachmentGrid attachments={thread.attachments} />
+        </>
       )}
       {thread.canModerate && thread.status === "published" ? <ModerateThreadForm threadId={thread.id} /> : null}
     </article>
@@ -72,7 +75,10 @@ function ReplyPost({ reply, threadId, canModerate }: { reply: CommunityReply; th
       {reply.status === "removed" ? (
         <RemovedNotice reason={reply.removedReason} />
       ) : (
-        <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-[var(--muted)]">{reply.content}</p>
+        <>
+          <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-[var(--muted)]">{reply.content}</p>
+          <AttachmentGrid attachments={reply.attachments} compact />
+        </>
       )}
     </article>
   );
@@ -85,6 +91,11 @@ function ReplyForm({ threadId }: { threadId: string }) {
       <form action={createCommunityReply} className="mt-4 grid gap-3">
         <input type="hidden" name="threadId" value={threadId} />
         <textarea name="content" minLength={2} maxLength={2000} rows={5} placeholder="Deine Antwort" required />
+        <label className="grid gap-2 text-sm text-[var(--muted)]">
+          Bilder anhängen
+          <input name="images" type="file" accept="image/jpeg,image/png,image/webp" multiple />
+          <span className="text-xs text-[var(--subtle)]">Bis zu 4 Bilder, JPG, PNG oder WebP, jeweils maximal 5 MB.</span>
+        </label>
         <div className="flex justify-end">
           <button className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[var(--accent)] px-4 text-sm font-medium text-[var(--accent-foreground)] transition hover:bg-[var(--accent-hover)]" type="submit">
             Antwort veröffentlichen
@@ -92,6 +103,33 @@ function ReplyForm({ threadId }: { threadId: string }) {
         </div>
       </form>
     </section>
+  );
+}
+
+function AttachmentGrid({ attachments, compact = false }: { attachments: CommunityAttachment[]; compact?: boolean }) {
+  if (attachments.length === 0) return null;
+
+  return (
+    <div className={compact ? "mt-4 grid gap-3 sm:grid-cols-2" : "mt-6 grid gap-3 sm:grid-cols-2"}>
+      {attachments.map((attachment) => (
+        <a
+          key={attachment.id}
+          href={attachment.url}
+          target="_blank"
+          rel="noreferrer"
+          className="group block overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--panel-2)]"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={attachment.url}
+            alt={attachment.fileName}
+            className="aspect-[4/3] w-full object-cover transition group-hover:scale-[1.02]"
+            loading="lazy"
+          />
+          <span className="block truncate px-3 py-2 text-xs text-[var(--muted)]">{attachment.fileName}</span>
+        </a>
+      ))}
+    </div>
   );
 }
 

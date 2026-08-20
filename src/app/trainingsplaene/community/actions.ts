@@ -10,6 +10,14 @@ import {
   communityThreadSchema,
 } from "@/lib/training-plans/community-schema";
 
+const MAX_COMMUNITY_ATTACHMENT_BYTES = 5 * 1024 * 1024;
+const MAX_COMMUNITY_ATTACHMENTS = 4;
+const ALLOWED_COMMUNITY_ATTACHMENT_TYPES = new Map([
+  ["image/jpeg", "jpg"],
+  ["image/png", "png"],
+  ["image/webp", "webp"],
+]);
+
 export async function createCommunityThread(formData: FormData) {
   await assertRateLimit("community-thread-create", 8, 60_000);
   const supabase = await createSupabaseServerClient();
@@ -37,6 +45,13 @@ export async function createCommunityThread(formData: FormData) {
     .single();
   if (error) throw new Error(error.message);
 
+  await uploadCommunityAttachments({
+    supabase,
+    userId: user.id,
+    files: formData.getAll("images"),
+    threadId: data.id,
+  });
+
   revalidateCommunityPaths(data.id);
   redirect(`/trainingsplaene/community/${data.id}`);
 }
@@ -55,12 +70,23 @@ export async function createCommunityReply(formData: FormData) {
   });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Antwort konnte nicht erstellt werden.");
 
-  const { error } = await supabase.from("community_replies").insert({
-    thread_id: parsed.data.threadId,
-    author_id: user.id,
-    content: parsed.data.content,
-  });
+  const { data, error } = await supabase
+    .from("community_replies")
+    .insert({
+      thread_id: parsed.data.threadId,
+      author_id: user.id,
+      content: parsed.data.content,
+    })
+    .select("id")
+    .single();
   if (error) throw new Error(error.message);
+
+  await uploadCommunityAttachments({
+    supabase,
+    userId: user.id,
+    files: formData.getAll("images"),
+    replyId: data.id,
+  });
 
   revalidateCommunityPaths(parsed.data.threadId);
 }
@@ -128,4 +154,68 @@ function revalidateCommunityPaths(threadId: string) {
   revalidatePath("/trainingsplaene");
   revalidatePath("/trainingsplaene/community");
   revalidatePath(`/trainingsplaene/community/${threadId}`);
+}
+
+async function uploadCommunityAttachments({
+  supabase,
+  userId,
+  files,
+  threadId,
+  replyId,
+}: {
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
+  userId: string;
+  files: FormDataEntryValue[];
+  threadId?: string;
+  replyId?: string;
+}) {
+  const images = files.filter((file): file is File => file instanceof File && file.size > 0);
+  if (images.length === 0) return;
+  if (images.length > MAX_COMMUNITY_ATTACHMENTS) throw new Error("Bitte maximal 4 Bilder anhängen.");
+
+  for (const file of images) {
+    await uploadCommunityAttachment({ supabase, userId, file, threadId, replyId });
+  }
+}
+
+async function uploadCommunityAttachment({
+  supabase,
+  userId,
+  file,
+  threadId,
+  replyId,
+}: {
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
+  userId: string;
+  file: File;
+  threadId?: string;
+  replyId?: string;
+}) {
+  const extension = ALLOWED_COMMUNITY_ATTACHMENT_TYPES.get(file.type);
+  if (!extension) throw new Error("Bitte JPG, PNG oder WebP hochladen.");
+  if (file.size > MAX_COMMUNITY_ATTACHMENT_BYTES) throw new Error("Ein Bild darf maximal 5 MB groß sein.");
+
+  const storagePath = `${userId}/${crypto.randomUUID()}.${extension}`;
+  const { error: uploadError } = await supabase.storage.from("community-attachments").upload(storagePath, file, {
+    cacheControl: "3600",
+    contentType: file.type,
+    upsert: false,
+  });
+
+  if (uploadError) throw new Error(uploadError.message);
+
+  const { error: attachmentError } = await supabase.from("community_attachments").insert({
+    thread_id: threadId ?? null,
+    reply_id: replyId ?? null,
+    uploaded_by: userId,
+    storage_path: storagePath,
+    file_name: file.name || `Bild.${extension}`,
+    mime_type: file.type,
+    size_bytes: file.size,
+  });
+
+  if (attachmentError) {
+    await supabase.storage.from("community-attachments").remove([storagePath]);
+    throw new Error(attachmentError.message);
+  }
 }

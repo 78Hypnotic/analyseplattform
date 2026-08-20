@@ -29,12 +29,22 @@ export type CommunityReply = {
   content: string;
   status: "published" | "removed";
   author: CommunityAuthor;
+  attachments: CommunityAttachment[];
   removedReason: string | null;
   createdAt: string;
 };
 
+export type CommunityAttachment = {
+  id: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+  url: string;
+};
+
 export type CommunityThreadDetail = CommunityThreadSummary & {
   removedReason: string | null;
+  attachments: CommunityAttachment[];
   replies: CommunityReply[];
   canModerate: boolean;
 };
@@ -73,6 +83,16 @@ type ReplyRow = {
   status: "published" | "removed";
   removed_reason: string | null;
   created_at: string;
+};
+
+type AttachmentRow = {
+  id: string;
+  thread_id: string | null;
+  reply_id: string | null;
+  storage_path: string;
+  file_name: string;
+  mime_type: string;
+  size_bytes: number;
 };
 
 type ProfileRow = {
@@ -176,6 +196,7 @@ export async function getCommunityThread(threadId: string): Promise<CommunityThr
 
   const replyRows = (replies ?? []) as ReplyRow[];
   const authors = await getAuthors([threadRow.author_id, ...replyRows.map((reply) => reply.author_id)], library.coachId);
+  const attachments = await getThreadAttachments(threadRow.id, replyRows.map((reply) => reply.id));
   const publishedReplies = replyRows.filter((reply) => reply.status === "published");
   const lastReplyAt = publishedReplies.at(-1)?.created_at;
   const canModerate = await canModerateLibrary(library.id, user.id);
@@ -187,6 +208,7 @@ export async function getCommunityThread(threadId: string): Promise<CommunityThr
     content: threadRow.content,
     status: threadRow.status,
     removedReason: threadRow.removed_reason,
+    attachments: attachments.threadAttachments,
     author: authors.get(threadRow.author_id) ?? unknownAuthor(),
     replyCount: publishedReplies.length,
     lastActivityAt: lastReplyAt ?? threadRow.created_at,
@@ -197,6 +219,7 @@ export async function getCommunityThread(threadId: string): Promise<CommunityThr
       content: reply.content,
       status: reply.status,
       removedReason: reply.removed_reason,
+      attachments: attachments.replyAttachments.get(reply.id) ?? [],
       author: authors.get(reply.author_id) ?? unknownAuthor(),
       createdAt: reply.created_at,
     })),
@@ -260,6 +283,63 @@ async function getReplyActivity(threadIds: string[]) {
     });
   }
   return activity;
+}
+
+async function getThreadAttachments(threadId: string, replyIds: string[]) {
+  const supabase = await createSupabaseServerClient();
+  const { data: threadAttachments, error: threadError } = await supabase
+    .from("community_attachments")
+    .select("id,thread_id,reply_id,storage_path,file_name,mime_type,size_bytes")
+    .eq("thread_id", threadId)
+    .order("created_at", { ascending: true });
+  if (threadError) throw new Error(threadError.message);
+
+  const replyAttachmentsResult = replyIds.length > 0
+    ? await supabase
+        .from("community_attachments")
+        .select("id,thread_id,reply_id,storage_path,file_name,mime_type,size_bytes")
+        .in("reply_id", replyIds)
+        .order("created_at", { ascending: true })
+    : { data: [], error: null };
+  if (replyAttachmentsResult.error) throw new Error(replyAttachmentsResult.error.message);
+
+  const threadRows = (threadAttachments ?? []) as AttachmentRow[];
+  const replyRows = (replyAttachmentsResult.data ?? []) as AttachmentRow[];
+  const signedAttachments = await signAttachments([...threadRows, ...replyRows]);
+  const byId = new Map(signedAttachments.map((attachment) => [attachment.id, attachment]));
+  const replyAttachments = new Map<string, CommunityAttachment[]>();
+
+  for (const row of replyRows) {
+    if (!row.reply_id) continue;
+    const attachment = byId.get(row.id);
+    if (!attachment) continue;
+    replyAttachments.set(row.reply_id, [...(replyAttachments.get(row.reply_id) ?? []), attachment]);
+  }
+
+  return {
+    threadAttachments: threadRows.map((row) => byId.get(row.id)).filter((attachment): attachment is CommunityAttachment => Boolean(attachment)),
+    replyAttachments,
+  };
+}
+
+async function signAttachments(rows: AttachmentRow[]): Promise<CommunityAttachment[]> {
+  if (rows.length === 0) return [];
+
+  const supabase = await createSupabaseServerClient();
+  const signed = await Promise.all(rows.map(async (row) => {
+    const { data, error } = await supabase.storage.from("community-attachments").createSignedUrl(row.storage_path, 60 * 60);
+    if (error || !data?.signedUrl) return null;
+
+    return {
+      id: row.id,
+      fileName: row.file_name,
+      mimeType: row.mime_type,
+      sizeBytes: row.size_bytes,
+      url: data.signedUrl,
+    };
+  }));
+
+  return signed.filter((attachment): attachment is CommunityAttachment => Boolean(attachment));
 }
 
 async function getActiveMemberLibrary(userId: string) {
