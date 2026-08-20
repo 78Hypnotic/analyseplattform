@@ -39,13 +39,6 @@ export default async function CommunityPage({
                 <h1 className="display-serif mt-3 text-5xl text-[var(--foreground)] sm:text-6xl">Gruppencoaching-Communities.</h1>
               </div>
             </header>
-            <section className="mt-8 flex flex-wrap gap-2">
-              {home.libraries.map((library) => (
-                <ButtonLink key={library.id} href={`/trainingsplaene/community?libraryId=${library.id}`} variant={library.id === home.selectedLibrary?.id ? "primary" : "secondary"}>
-                  {library.name}
-                </ButtonLink>
-              ))}
-            </section>
             {home.selectedLibrary ? (
               <CommunitySurface
                 eyebrow={`Admin · ${home.selectedLibrary.coachName}`}
