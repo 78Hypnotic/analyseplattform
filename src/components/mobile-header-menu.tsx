@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChevronDown, Menu, UserRound, X } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { signOut } from "@/app/login/actions";
 import { Button } from "./button";
 import { ThemeToggle } from "./theme-toggle";
@@ -128,13 +129,18 @@ function MobileLink({
   onClick: () => void;
   nested?: boolean;
 }) {
+  const pathname = usePathname();
+  const active = href === "/" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
   return (
     <Link
       href={href}
+      aria-current={active ? "page" : undefined}
       onClick={onClick}
-      className={nested
-        ? "flex items-center gap-2 rounded-lg px-3 py-2.5 text-[var(--muted)] hover:bg-[var(--panel)] hover:text-[var(--foreground)]"
-        : "flex items-center gap-2 rounded-lg px-3 py-3 text-[var(--muted)] hover:bg-[var(--panel)] hover:text-[var(--foreground)]"}
+      className={active
+        ? "flex items-center gap-2 rounded-lg bg-[var(--panel)] px-3 py-3 text-[var(--foreground)]"
+        : nested
+          ? "flex items-center gap-2 rounded-lg px-3 py-2.5 text-[var(--muted)] hover:bg-[var(--panel)] hover:text-[var(--foreground)]"
+          : "flex items-center gap-2 rounded-lg px-3 py-3 text-[var(--muted)] hover:bg-[var(--panel)] hover:text-[var(--foreground)]"}
     >
       {icon}
       {label}

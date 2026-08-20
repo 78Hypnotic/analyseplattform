@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
-import { ArrowLeft, FileText, Pencil } from "lucide-react";
+import { FileText, Pencil } from "lucide-react";
 import { DeleteAnalysisForm } from "@/app/analyse/delete-analysis-form";
 import { DeleteRunAnalysisForm } from "@/app/lauf/delete-analysis-form";
 import { ProfileForm } from "@/app/profile/profile-form";
 import { DeleteBikeAnalysisForm } from "@/app/rad/delete-analysis-form";
 import { ButtonLink } from "@/components/button";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import { formatPace } from "@/lib/analysis/calculations";
 import { getCoachAthleteDetail } from "@/lib/coach-athletes";
 
@@ -30,10 +31,11 @@ export default async function CoachAthleteDetailPage({
   return (
     <>
       <main className="mx-auto w-full max-w-6xl space-y-8 px-5 py-10">
-        <Link href="/coach" className="inline-flex items-center gap-2 text-sm text-[var(--muted)] hover:text-[var(--foreground)]">
-          <ArrowLeft size={16} />
-          Zurück zur Athletenliste
-        </Link>
+        <Breadcrumbs items={[
+          { label: "Coach", href: "/coach" },
+          { label: "Athleten", href: "/coach" },
+          { label: athlete.fullName },
+        ]} />
 
         <section className="surface p-6">
           <div className="flex flex-col justify-between gap-6 md:flex-row md:items-start">

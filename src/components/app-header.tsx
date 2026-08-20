@@ -1,9 +1,11 @@
-import { Activity, Bike, ChevronDown, Footprints, LogOut, Waves } from "lucide-react";
+import { LogOut, Waves } from "lucide-react";
 import Link from "next/link";
 import { signOut } from "@/app/login/actions";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { AppRole } from "@/lib/auth/roles";
+import { ActiveNavLink } from "./active-nav-link";
 import { Button } from "./button";
+import { DiagnosticsMenu } from "./diagnostics-menu";
 import { MobileHeaderMenu } from "./mobile-header-menu";
 import { ThemeToggle } from "./theme-toggle";
 
@@ -33,9 +35,9 @@ export async function AppHeader() {
         <nav className="hidden items-center gap-1 text-sm md:flex">
           {resolvedUserEmail ? (
             <>
-              <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/">
+              <ActiveNavLink exact className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/">
                 Übersicht
-              </Link>
+              </ActiveNavLink>
               <DiagnosticsMenu />
             </>
           ) : (
@@ -49,28 +51,29 @@ export async function AppHeader() {
               </Link>
             </>
           )}
-          <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/trainingsplaene">
+          <ActiveNavLink className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/trainingsplaene">
             Trainingspläne
-          </Link>
-          <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/community">
+          </ActiveNavLink>
+          <ActiveNavLink className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/community">
             Community
-          </Link>
+          </ActiveNavLink>
           {isCoach ? (
-            <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/coach">
+            <ActiveNavLink className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/coach">
               Coach
-            </Link>
+            </ActiveNavLink>
           ) : null}
           {isAdmin ? (
-            <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/admin">
+            <ActiveNavLink className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/admin">
               Admin
-            </Link>
+            </ActiveNavLink>
           ) : null}
           <ThemeToggle />
           {resolvedUserEmail ? (
             <div className="flex items-center gap-2">
-              <Link
+              <ActiveNavLink
                 href="/profile"
                 className="flex items-center gap-2 rounded-lg border border-[var(--line)] bg-[var(--panel-2)] px-3 py-2 text-[var(--muted)] transition hover:border-[var(--accent)] hover:text-[var(--foreground)]"
+                activeClassName="border-[var(--accent)] text-[var(--foreground)]"
                 title="Profil bearbeiten"
               >
                 <span className="flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--raised-bg)] text-[10px] font-semibold text-[var(--foreground)]">
@@ -84,7 +87,7 @@ export async function AppHeader() {
                 <span className="mono hidden max-w-44 truncate text-xs sm:block">
                   {profileLabel}
                 </span>
-              </Link>
+              </ActiveNavLink>
               <form action={signOut}>
                 <Button variant="ghost" className="px-2" title="Abmelden">
                   <LogOut size={16} />
@@ -92,9 +95,9 @@ export async function AppHeader() {
               </form>
             </div>
           ) : (
-            <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/login">
+            <ActiveNavLink exact className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/login">
               Login
-            </Link>
+            </ActiveNavLink>
           )}
         </nav>
         <MobileHeaderMenu
@@ -106,42 +109,6 @@ export async function AppHeader() {
         />
       </div>
     </header>
-  );
-}
-
-function DiagnosticsMenu() {
-  return (
-    <div className="group relative">
-      <button
-        type="button"
-        aria-haspopup="menu"
-        className="flex items-center gap-1 rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)] focus-visible:text-[var(--foreground)]"
-      >
-        Diagnostik
-        <ChevronDown size={14} className="transition group-hover:rotate-180 group-focus-within:rotate-180" />
-      </button>
-      <div
-        role="menu"
-        className="invisible absolute left-0 top-full z-50 w-52 translate-y-1 rounded-lg border border-[var(--line)] bg-[var(--overlay-bg)] p-2 opacity-0 shadow-[0_18px_50px_var(--shadow-color)] transition group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100"
-      >
-        <DiagnosticsLink href="/analyse" icon={<Activity size={16} />} label="Schwimmen" />
-        <DiagnosticsLink href="/lauf" icon={<Footprints size={16} />} label="Laufen" />
-        <DiagnosticsLink href="/rad" icon={<Bike size={16} />} label="Radfahren" />
-      </div>
-    </div>
-  );
-}
-
-function DiagnosticsLink({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
-  return (
-    <Link
-      href={href}
-      role="menuitem"
-      className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-[var(--muted)] hover:bg-[var(--panel)] hover:text-[var(--foreground)]"
-    >
-      <span className="text-[var(--accent)]">{icon}</span>
-      {label}
-    </Link>
   );
 }
 

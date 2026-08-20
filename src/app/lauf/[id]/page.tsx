@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { AnalysisAttribution } from "@/components/analysis-attribution";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import { PdfExportButton } from "@/components/pdf-export-button";
 import { RunningReportView } from "@/components/running-report-view";
 import { getRunAnalysisById } from "@/lib/run-analyses";
@@ -26,6 +27,10 @@ export default async function RunAnalysisDetailPage({
   return (
     <>
       <main className="print-report mx-auto w-full max-w-6xl px-5 py-10">
+        <Breadcrumbs
+          className="no-print mb-5"
+          items={[{ label: "Diagnostik" }, { label: "Laufen", href: "/lauf" }, { label: analysis.title }]}
+        />
         <div className="no-print mb-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
           <div>
             <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--accent)]">
