@@ -122,6 +122,7 @@ export function cloneSession(session: StructuredTrainingPlanSession): Structured
     ...session,
     id: createPlanNodeId("workout"),
     title: `${session.title} (Kopie)`,
+    timelineWorkout: session.timelineWorkout ? cloneWorkoutContent(session.timelineWorkout) : undefined,
     blocks: session.blocks.map(cloneBlock),
   };
 }
@@ -150,6 +151,10 @@ function cloneWorkoutBlock(block: WorkoutBlock): WorkoutBlock {
     title: `${block.title} (Kopie)`,
     steps: block.steps.map(cloneWorkoutStep),
   };
+}
+
+function cloneWorkoutContent(content: WorkoutContent): WorkoutContent {
+  return { ...content, blocks: content.blocks.map(cloneWorkoutBlock) };
 }
 
 function cloneWorkoutStep(step: WorkoutStep): WorkoutStep {

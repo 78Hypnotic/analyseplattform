@@ -14,11 +14,13 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/button";
+import { WorkoutTimelineLauncher } from "@/components/training-plans/workout-timeline-dialog";
 import { cn } from "@/lib/utils";
 import { duplicateSession, duplicateWeek, moveItem, moveSession } from "@/lib/training-plans/commands";
 import {
   createEmptyStructuredSession,
   createEmptyStructuredStep,
+  createEmptyWorkoutContent,
   createPlanNodeId,
 } from "@/lib/training-plans/content";
 import { getPlanMetrics, getSessionMeters, getWeekMeters } from "@/lib/training-plans/metrics";
@@ -442,6 +444,23 @@ function WorkoutInspector({ session, onChange, onMovePreviousWeek, onMoveNextWee
       <div className="mt-4 flex gap-2">
         <Button type="button" variant="ghost" className="flex-1 px-2" disabled={!canMovePreviousWeek} onClick={onMovePreviousWeek}><ArrowLeft size={14} /> Woche</Button>
         <Button type="button" variant="ghost" className="flex-1 px-2" disabled={!canMoveNextWeek} onClick={onMoveNextWeek}>Woche <ArrowRight size={14} /></Button>
+      </div>
+
+      <div className="mt-5 rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-3">
+        <p className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--subtle)]">Timeline</p>
+        <p className="mt-1 text-sm text-[var(--muted)]">
+          {session.timelineWorkout
+            ? `${session.timelineWorkout.blocks.length} Blöcke im Workout Builder`
+            : "Noch keine Timeline für dieses Workout angelegt"}
+        </p>
+        <div className="mt-3">
+          <WorkoutTimelineLauncher
+            content={session.timelineWorkout ?? createEmptyWorkoutContent("swim")}
+            onChange={(timelineWorkout) => onChange({ timelineWorkout })}
+            title={session.title}
+            buttonLabel={session.timelineWorkout ? "Timeline bearbeiten" : "Workout Builder öffnen"}
+          />
+        </div>
       </div>
 
       <div className="mt-6 space-y-4">

@@ -141,6 +141,7 @@ export const structuredTrainingPlanSessionSchema = z.object({
     z.literal(5), z.literal(6), z.literal(7),
   ]).optional(),
   estimatedDurationMinutes: z.number().int().min(1).max(600).optional(),
+  timelineWorkout: workoutContentSchema.optional(),
   blocks: z.array(structuredSwimBlockSchema).min(1).max(12),
 });
 

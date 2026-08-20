@@ -106,6 +106,7 @@ export type StructuredTrainingPlanSession = {
   focus: string;
   preferredWeekday?: 1 | 2 | 3 | 4 | 5 | 6 | 7;
   estimatedDurationMinutes?: number;
+  timelineWorkout?: WorkoutContent;
   blocks: StructuredSwimBlock[];
 };
 

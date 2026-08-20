@@ -52,12 +52,22 @@ describe("structured training plan content", () => {
 
   it("duplicates nested nodes with new ids", () => {
     const content = fixture();
+    content.weeks[0].sessions[0].timelineWorkout = workoutFixture();
     const duplicated = duplicateWeek(content, "week-1");
 
     expect(duplicated.weeks).toHaveLength(2);
     expect(duplicated.weeks[1].id).not.toBe("week-1");
     expect(duplicated.weeks[1].sessions[0].id).not.toBe("workout-1");
     expect(duplicated.weeks[1].sessions[0].blocks[0].steps[0].id).not.toBe("step-1");
+    expect(duplicated.weeks[1].sessions[0].timelineWorkout?.blocks[0].id).not.toBe("block-1");
+    expect(duplicated.weeks[1].sessions[0].timelineWorkout?.blocks[0].steps[0].id).not.toBe("step-1");
+  });
+
+  it("accepts a timeline workout inside a structured plan session", () => {
+    const content = fixture();
+    content.weeks[0].sessions[0].timelineWorkout = workoutFixture();
+
+    expect(() => assertPublishableTrainingPlanContent(content)).not.toThrow();
   });
 
   it("duplicates and moves workouts between weeks", () => {
