@@ -54,6 +54,12 @@ Die Zahlungsintegration für das Gruppencoaching ist davon getrennt und noch
 nicht umgesetzt. Sie erzeugt beziehungsweise verlängert später ausschließlich
 die Membership; die Planaktivierung vertraut nicht auf einen Client-Abo-Status.
 
+Zum Gruppencoaching gehört zusätzlich eine Community pro Coach-Bibliothek. Sie
+ist als ruhiges Forum mit Themen und Antworten angelegt, nicht als Echtzeit-Chat.
+Aktive Mitglieder können Themen lesen, erstellen und beantworten. Der Coach der
+Bibliothek und Admins können Beiträge moderieren und entfernen. Nach Ablauf oder
+Kündigung des Abos ist auch der Community-Zugriff vollständig gesperrt.
+
 Die Selbstwahl erfolgt aus einer gefilterten Bibliothek. Disziplin, Ziel,
 Leistungsniveau, Dauer und Trainingshäufigkeit müssen sichtbar sein. Pläne, die
 für das Profil des Athleten ungeeignet oder ausdrücklich ausgeschlossen sind,
@@ -109,10 +115,14 @@ aus einer erfolgreichen Checkout-Rückleitung ableiten.
 - Ein Coach kann veröffentlichte Planversionen einer Gruppenbibliothek
   hinzufügen und daraus entfernen.
 - Nur ein aktives, bezahltes Gruppencoaching-Abo gewährt Zugriff auf die
-  vollständigen Bibliotheksinhalte.
+  vollständigen Bibliotheks- und Community-Inhalte.
 - Ein Athlet kann geeignete Bibliothekspläne selbst auswählen und seinem Profil
   hinzufügen.
 - Das Aboende sperrt Bibliotheksinhalte, löscht aber keine Trainingshistorie.
+- Das Aboende sperrt die Community vollständig, inklusive alter Themen und
+  Antworten.
+- Coach und Admin können Community-Beiträge entfernen; entfernte Inhalte werden
+  nicht hart gelöscht, sondern als moderiert markiert.
 - Separat gekaufte Pläne bleiben nach Aboende zugänglich.
 - Im individuellen Coaching wird jede Trainingswoche versioniert aus den
   zu diesem Zeitpunkt verfügbaren Daten erzeugt.
@@ -134,7 +144,8 @@ aus einer erfolgreichen Checkout-Rückleitung ableiten.
 - fachliche Belastungsgrenzen und Regeln für automatische Anpassungen,
 - Fälle, in denen ein menschlicher Coach prüfen oder übernehmen muss,
 - Umfang, Aufbewahrung und Löschung von Garmin- und Evaluationsdaten,
-- Kommunikation, Support und Gruppenbestandteile zusätzlich zur Planbibliothek.
+- Ausbau der Community über den MVP hinaus, zum Beispiel Benachrichtigungen,
+  angepinnte Coach-Posts, Challenges, Reactions oder Direktnachrichten.
 
 Der Einzelverkauf baut auf
 [Statische Trainingspläne verkaufen](static-training-plan-sales.md) auf. Die

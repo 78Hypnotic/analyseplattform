@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Activity, Bike, ChevronDown, Footprints, LayoutDashboard, LogOut, Menu, ShieldCheck, UserRound, UsersRound, X } from "lucide-react";
+import { ChevronDown, Menu, UserRound, X } from "lucide-react";
 import Link from "next/link";
 import { signOut } from "@/app/login/actions";
 import { Button } from "./button";
@@ -40,7 +40,7 @@ export function MobileHeaderMenu({
         <div className="absolute inset-x-0 top-16 z-50 border-b border-[var(--line)] bg-[var(--overlay-bg)] px-5 py-4 shadow-[0_24px_60px_var(--shadow-color)]">
           <nav className="mx-auto grid max-w-6xl gap-2 text-sm">
             {isAuthenticated ? (
-              <MobileLink href="/" label="Übersicht" icon={<LayoutDashboard size={16} />} onClick={() => setOpen(false)} />
+              <MobileLink href="/" label="Übersicht" onClick={() => setOpen(false)} />
             ) : (
               <>
                 <MobileLink href="/#methodik" label="Methodik" onClick={() => setOpen(false)} />
@@ -54,26 +54,23 @@ export function MobileHeaderMenu({
                 aria-expanded={diagnosticsOpen}
                 className="flex w-full items-center justify-between gap-2 px-3 py-3 text-left text-[var(--muted)] hover:text-[var(--foreground)]"
               >
-                <span className="flex items-center gap-2">
-                  <Activity size={16} className="text-[var(--accent)]" />
-                  Diagnostik
-                </span>
+                <span>Diagnostik</span>
                 <ChevronDown size={16} className={diagnosticsOpen ? "rotate-180 transition" : "transition"} />
               </button>
               {diagnosticsOpen ? (
                 <div className="grid gap-1 border-t border-[var(--line)] p-2">
-                  <MobileLink href="/analyse" label="Schwimmen" icon={<Activity size={16} />} onClick={() => setOpen(false)} nested />
-                  <MobileLink href="/lauf" label="Laufen" icon={<Footprints size={16} />} onClick={() => setOpen(false)} nested />
-                  <MobileLink href="/rad" label="Radfahren" icon={<Bike size={16} />} onClick={() => setOpen(false)} nested />
+                  <MobileLink href="/analyse" label="Schwimmen" onClick={() => setOpen(false)} nested />
+                  <MobileLink href="/lauf" label="Laufen" onClick={() => setOpen(false)} nested />
+                  <MobileLink href="/rad" label="Radfahren" onClick={() => setOpen(false)} nested />
                 </div>
               ) : null}
             </div>
             <MobileLink href="/trainingsplaene" label="Trainingspläne" onClick={() => setOpen(false)} />
             {isCoach ? (
-              <MobileLink href="/coach" label="Coach" icon={<UsersRound size={16} />} onClick={() => setOpen(false)} />
+              <MobileLink href="/coach" label="Coach" onClick={() => setOpen(false)} />
             ) : null}
             {isAdmin ? (
-              <MobileLink href="/admin" label="Admin" icon={<ShieldCheck size={16} />} onClick={() => setOpen(false)} />
+              <MobileLink href="/admin" label="Admin" onClick={() => setOpen(false)} />
             ) : null}
             <div className="flex items-center justify-between rounded-lg px-3 py-2 text-[var(--muted)]">
               <span>Theme</span>
@@ -89,7 +86,6 @@ export function MobileHeaderMenu({
                 />
                 <form action={signOut}>
                   <Button variant="ghost" className="w-full justify-start px-3">
-                    <LogOut size={16} />
                     Abmelden
                   </Button>
                 </form>

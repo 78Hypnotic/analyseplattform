@@ -1,4 +1,4 @@
-import { ArrowRight, BookOpen, LockKeyhole, Plus, UsersRound } from "lucide-react";
+import { ArrowRight, BookOpen, LockKeyhole, MessageSquare, Plus, UsersRound } from "lucide-react";
 import Link from "next/link";
 import { AppHeader } from "@/components/app-header";
 import { ButtonLink } from "@/components/button";
@@ -114,8 +114,24 @@ function LibraryView({
             <Plus size={16} />
             Pläne verwalten
           </ButtonLink>
+        ) : library ? (
+          <ButtonLink href="/trainingsplaene/community" variant="primary">
+            <MessageSquare size={16} />
+            Community öffnen
+          </ButtonLink>
         ) : null}
       </header>
+      {manage && library ? (
+        <section className="surface mt-8 flex flex-col justify-between gap-4 p-5 sm:flex-row sm:items-center">
+          <div>
+            <h2 className="text-xl font-semibold">Community zur Bibliothek</h2>
+            <p className="mt-1 text-sm text-[var(--muted)]">Aktive Gruppencoaching-Mitglieder können hier Themen starten und beantworten.</p>
+          </div>
+          <ButtonLink href="/trainingsplaene/community" variant="secondary">
+            <MessageSquare size={16} /> Community öffnen
+          </ButtonLink>
+        </section>
+      ) : null}
       <PlanGrid versions={versions} selectable={selectable} />
     </>
   );
@@ -176,9 +192,14 @@ function AdminLibraries({
       <header>
         <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--accent)]">Admin · Trainingspläne</p>
         <h1 className="display-serif mt-3 text-5xl text-[var(--foreground)] sm:text-6xl">Coach-Bibliotheken.</h1>
-        <ButtonLink href="/trainingsplaene/verwalten" variant="primary" className="mt-6">
-          <BookOpen size={16} /> Pläne verwalten
-        </ButtonLink>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <ButtonLink href="/trainingsplaene/verwalten" variant="primary">
+            <BookOpen size={16} /> Pläne verwalten
+          </ButtonLink>
+          <ButtonLink href="/trainingsplaene/community" variant="secondary">
+            <MessageSquare size={16} /> Communities öffnen
+          </ButtonLink>
+        </div>
       </header>
       <section className="mt-8 grid gap-4 md:grid-cols-2">
         {libraries.length === 0 ? (
@@ -208,6 +229,9 @@ function AdminLibraries({
             Bibliothek von {selectedLibrary.coachName}
           </p>
           <h2 className="display-serif mt-3 text-4xl text-[var(--foreground)]">{selectedLibrary.name}</h2>
+          <ButtonLink href={`/trainingsplaene/community?libraryId=${selectedLibrary.id}`} variant="secondary" className="mt-5">
+            <MessageSquare size={16} /> Community dieser Bibliothek öffnen
+          </ButtonLink>
           <PlanGrid versions={versions} />
         </section>
       ) : null}
