@@ -20,6 +20,11 @@ const baseProps: DashboardHomeProps = {
     latestBikeFtpWatt: null,
   },
   analyses: [],
+  improvements: {
+    swimCss: null,
+    runCs: null,
+    bikeFtp: null,
+  },
   swimTechniqueAxes: null,
   activeTrainingPlan: null,
   trainingPlanAccess: "locked",
@@ -119,6 +124,23 @@ describe("DashboardHome", () => {
           latestBikeAnalyzedAt: "2026-08-16T08:00:00Z",
           latestBikeFtpWatt: 238,
         }}
+        improvements={{
+          swimCss: {
+            testCount: 3,
+            latestVsPrevious: buildMetricDelta(105, 108, true),
+            latestVsFirst: buildMetricDelta(105, 112, true),
+          },
+          runCs: {
+            testCount: 2,
+            latestVsPrevious: buildMetricDelta(286, 300, true),
+            latestVsFirst: buildMetricDelta(286, 300, true),
+          },
+          bikeFtp: {
+            testCount: 2,
+            latestVsPrevious: buildMetricDelta(238, 228, false),
+            latestVsFirst: buildMetricDelta(238, 228, false),
+          },
+        }}
         swimTechniqueAxes={[
           { group: "Wasserlage", score: 85, status: "stark", statement: "Stabil" },
           { group: "Atmung", score: 55, status: "offen", statement: "Offen" },
@@ -130,6 +152,8 @@ describe("DashboardHome", () => {
     expect(screen.getByRole("img", { name: /Technikprofil/ })).toBeTruthy();
     expect(screen.getByText("4:46")).toBeTruthy();
     expect(screen.getByText("238")).toBeTruthy();
+    expect(screen.getByText("3 s schneller (2,8 %)")).toBeTruthy();
+    expect(screen.getByText("10 W mehr (4,4 %)")).toBeTruthy();
     expect(screen.queryByText("Schnellstart")).toBeNull();
   });
 
@@ -166,3 +190,20 @@ describe("DashboardHome", () => {
     expect(screen.getByText("Bibliotheken öffnen")).toBeTruthy();
   });
 });
+
+function buildMetricDelta(latestValue: number, comparisonValue: number, lowerIsBetter: boolean) {
+  const valueDelta = latestValue - comparisonValue;
+  const improvementValue = lowerIsBetter ? comparisonValue - latestValue : valueDelta;
+
+  return {
+    direction: improvementValue > 0 ? "improved" as const : improvementValue < 0 ? "declined" as const : "unchanged" as const,
+    latestValue,
+    comparisonValue,
+    valueDelta,
+    improvementValue,
+    percentDelta: (improvementValue / comparisonValue) * 100,
+    latestDate: "2026-08-18T08:00:00Z",
+    comparisonDate: "2026-07-18T08:00:00Z",
+    lowerIsBetter,
+  };
+}

@@ -1,10 +1,22 @@
 import { notFound } from "next/navigation";
 import { DashboardHome } from "@/components/dashboard-home";
+import { buildDashboardImprovements } from "@/lib/dashboard/improvements";
 
 export const dynamic = "force-dynamic";
 
 export default function DashboardPreviewPage() {
   if (process.env.NODE_ENV === "production") notFound();
+
+  const improvements = buildDashboardImprovements([
+    { discipline: "swim", result: { cssPace: 112 }, created_at: "2026-06-18T08:00:00Z" },
+    { discipline: "swim", result: { cssPace: 108 }, created_at: "2026-07-18T08:00:00Z" },
+    { discipline: "swim", result: { cssPace: 105 }, created_at: "2026-08-18T08:00:00Z" },
+    { discipline: "run", result: { csPaceSecPerKm: 300 }, created_at: "2026-07-12T08:00:00Z" },
+    { discipline: "run", result: { csPaceSecPerKm: 286 }, created_at: "2026-08-12T08:00:00Z" },
+    { discipline: "bike", result: { ftpWatt: 224 }, created_at: "2026-06-29T08:00:00Z" },
+    { discipline: "bike", result: { ftpWatt: 232 }, created_at: "2026-07-29T08:00:00Z" },
+    { discipline: "bike", result: { ftpWatt: 238 }, created_at: "2026-08-19T08:00:00Z" },
+  ]);
 
   return (
     <DashboardHome
@@ -44,6 +56,7 @@ export default function DashboardPreviewPage() {
           createdAt: "2026-07-29T08:00:00Z",
         },
       ]}
+      improvements={improvements}
       swimTechniqueAxes={[
         { group: "Wasserlage", score: 85, status: "stark", statement: "Stabile Wasserlage" },
         { group: "Atmung", score: 55, status: "offen", statement: "Keine Angabe im Kontext" },

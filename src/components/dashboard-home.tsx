@@ -13,6 +13,7 @@ import {
 import Link from "next/link";
 import { formatPace } from "@/lib/analysis/calculations";
 import type { TechniqueProfileAxis, TechniqueProfileGroup } from "@/lib/analysis/types";
+import type { DashboardImprovements, DashboardMetricDelta, DashboardMetricImprovement } from "@/lib/dashboard/improvements";
 import { ButtonLink } from "./button";
 import { TechniqueSpiderChart } from "./technique-spider-chart";
 
@@ -61,6 +62,7 @@ export type DashboardTrainingPlan = {
 export type DashboardHomeProps = {
   profile: DashboardProfile;
   analyses: DashboardAnalysis[];
+  improvements: DashboardImprovements;
   swimTechniqueAxes: TechniqueProfileAxis[] | null;
   activeTrainingPlan: DashboardTrainingPlan | null;
   trainingPlanAccess: "locked" | "member" | "coach" | "admin";
@@ -72,6 +74,7 @@ export type DashboardHomeProps = {
 export function DashboardHome({
   profile,
   analyses,
+  improvements,
   swimTechniqueAxes,
   activeTrainingPlan,
   trainingPlanAccess,
@@ -197,12 +200,13 @@ export function DashboardHome({
                 </div>
               </div>
             )}
-            <div className="flex items-end justify-between gap-4 border-t border-[var(--line)] pt-4">
+            <div className="grid gap-4 border-t border-[var(--line)] pt-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
               <div>
                 <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--subtle)]">Aktuelle CSS</p>
                 <p className="mt-1 text-2xl font-semibold">
                   {profile.latestSwimCssPaceSec === null ? "-" : `${formatPace(profile.latestSwimCssPaceSec)} / 100 m`}
                 </p>
+                <MetricImprovementSummary improvement={improvements.swimCss} metricKind="pace" />
               </div>
               <DashboardLink href={profile.latestSwimAnalyzedAt ? "/analyse" : "/analyse/new"}>
                 {profile.latestSwimAnalyzedAt ? "Schwimmen öffnen" : "Analyse starten"}
@@ -219,6 +223,8 @@ export function DashboardHome({
               unit="min/km"
               date={profile.latestRunAnalyzedAt}
               emptyText="Laufdiagnostik starten"
+              improvement={improvements.runCs}
+              metricKind="pace"
             />
 
             <DisciplineMetric
@@ -229,6 +235,8 @@ export function DashboardHome({
               unit="W FTP"
               date={profile.latestBikeAnalyzedAt}
               emptyText="Raddiagnostik starten"
+              improvement={improvements.bikeFtp}
+              metricKind="power"
             />
           </div>
         </div>
@@ -337,6 +345,8 @@ function DisciplineMetric({
   unit,
   date,
   emptyText,
+  improvement,
+  metricKind,
 }: {
   href: string;
   icon: React.ReactNode;
@@ -345,6 +355,8 @@ function DisciplineMetric({
   unit: string;
   date: string | null;
   emptyText: string;
+  improvement: DashboardMetricImprovement | null;
+  metricKind: "pace" | "power";
 }) {
   return (
     <section className="surface flex min-h-44 flex-col p-6">
@@ -356,12 +368,69 @@ function DisciplineMetric({
         <p className="display-serif text-5xl leading-none text-[var(--foreground)]">{value}</p>
         <p className="pb-1 text-sm text-[var(--muted)]">{unit}</p>
       </div>
+      <MetricImprovementSummary improvement={improvement} metricKind={metricKind} />
       <div className="flex items-center justify-between gap-3 border-t border-[var(--line)] pt-4">
         <p className="text-xs text-[var(--subtle)]">{date ? `Stand ${formatDate(date)}` : "Noch keine Analyse"}</p>
         <DashboardLink href={href}>{date ? "Öffnen" : emptyText}</DashboardLink>
       </div>
     </section>
   );
+}
+
+function MetricImprovementSummary({
+  improvement,
+  metricKind,
+}: {
+  improvement: DashboardMetricImprovement | null;
+  metricKind: "pace" | "power";
+}) {
+  if (!improvement) {
+    return <p className="mt-3 text-xs text-[var(--subtle)]">Fortschritt ab 2 Tests sichtbar.</p>;
+  }
+
+  return (
+    <div className="mt-3 grid gap-2 text-xs">
+      <ImprovementLine label="Zum letzten Test" delta={improvement.latestVsPrevious} metricKind={metricKind} />
+      <ImprovementLine label="Seit erstem Test" delta={improvement.latestVsFirst} metricKind={metricKind} />
+    </div>
+  );
+}
+
+function ImprovementLine({
+  label,
+  delta,
+  metricKind,
+}: {
+  label: string;
+  delta: DashboardMetricDelta;
+  metricKind: "pace" | "power";
+}) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] px-3 py-2">
+      <span className="text-[var(--subtle)]">{label}</span>
+      <span className={delta.direction === "declined" ? "font-medium text-[var(--warn)]" : delta.direction === "improved" ? "font-medium text-[var(--accent)]" : "font-medium text-[var(--muted)]"}>
+        {formatImprovementDelta(delta, metricKind)}
+      </span>
+    </div>
+  );
+}
+
+function formatImprovementDelta(delta: DashboardMetricDelta, metricKind: "pace" | "power") {
+  if (delta.direction === "unchanged") return "unverändert";
+  const amount = Math.abs(delta.improvementValue);
+  const percent = Math.abs(delta.percentDelta).toLocaleString("de-DE", { maximumFractionDigits: 1 });
+
+  if (metricKind === "pace") {
+    const seconds = amount.toLocaleString("de-DE", { maximumFractionDigits: 1 });
+    return delta.direction === "improved"
+      ? `${seconds} s schneller (${percent} %)`
+      : `${seconds} s langsamer (${percent} %)`;
+  }
+
+  const watts = Math.round(amount).toLocaleString("de-DE");
+  return delta.direction === "improved"
+    ? `${watts} W mehr (${percent} %)`
+    : `${watts} W weniger (${percent} %)`;
 }
 
 function DashboardLink({ href, children }: { href: string; children: React.ReactNode }) {

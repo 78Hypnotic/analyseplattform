@@ -8,6 +8,10 @@ import type {
 } from "@/components/dashboard-home";
 import { buildTechniqueProfile } from "@/lib/analysis/calculations";
 import type { TechniqueProfileGroup } from "@/lib/analysis/types";
+import {
+  buildDashboardImprovements,
+  type DashboardImprovementAnalysisRow,
+} from "@/lib/dashboard/improvements";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { parseTrainingPlanContent } from "@/lib/training-plans/content";
 
@@ -34,6 +38,8 @@ type AnalysisRow = {
   discipline: DashboardAnalysis["discipline"];
   created_at: string;
 };
+
+type ImprovementAnalysisRow = DashboardImprovementAnalysisRow;
 
 type SwimAnalysisInputRow = {
   input: unknown;
@@ -71,7 +77,15 @@ export async function getAuthenticatedHomeData(): Promise<DashboardHomeProps | n
   if (!user) return null;
 
   const now = new Date().toISOString();
-  const [profileResult, analysesResult, latestSwimResult, activePlanResult, membershipResult, rolesResult] = await Promise.all([
+  const [
+    profileResult,
+    analysesResult,
+    latestSwimResult,
+    activePlanResult,
+    membershipResult,
+    rolesResult,
+    improvementAnalysesResult,
+  ] = await Promise.all([
     supabase
       .from("profiles")
       .select(
@@ -111,6 +125,13 @@ export async function getAuthenticatedHomeData(): Promise<DashboardHomeProps | n
       .limit(1)
       .maybeSingle(),
     supabase.from("user_roles").select("role").eq("user_id", user.id),
+    supabase
+      .from("analyses")
+      .select("discipline,result,created_at")
+      .eq("user_id", user.id)
+      .in("discipline", ["swim", "run", "bike"])
+      .order("created_at", { ascending: false })
+      .limit(100),
   ]);
 
   if (profileResult.error) throw new Error(profileResult.error.message);
@@ -119,6 +140,7 @@ export async function getAuthenticatedHomeData(): Promise<DashboardHomeProps | n
   if (activePlanResult.error) throw new Error(activePlanResult.error.message);
   if (membershipResult.error) throw new Error(membershipResult.error.message);
   if (rolesResult.error) throw new Error(rolesResult.error.message);
+  if (improvementAnalysesResult.error) throw new Error(improvementAnalysesResult.error.message);
 
   const activePlanRow = activePlanResult.data as ActiveTrainingPlanRow | null;
   let activeTrainingPlan: DashboardTrainingPlan | null = null;
@@ -173,6 +195,7 @@ export async function getAuthenticatedHomeData(): Promise<DashboardHomeProps | n
       discipline: analysis.discipline,
       createdAt: analysis.created_at,
     })),
+    improvements: buildDashboardImprovements((improvementAnalysesResult.data ?? []) as ImprovementAnalysisRow[]),
     swimTechniqueAxes: toTechniqueAxes((latestSwimResult.data as SwimAnalysisInputRow | null)?.input),
     activeTrainingPlan,
     trainingPlanAccess: isAdmin
