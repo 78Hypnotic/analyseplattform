@@ -181,8 +181,8 @@ function TrainingZonesCard({ result }: { result: BikeResult }) {
 
 function ZoneRow({ zone }: { zone: BikeZone }) {
   const pctLabel = zone.maxPct === null
-    ? `> ${Math.round(zone.minPct * 100)} %`
-    : `${Math.round(zone.minPct * 100)}–${Math.round(zone.maxPct * 100)} %`;
+    ? `> ${formatFtpPercentage(zone.minPct)} %`
+    : `${formatFtpPercentage(zone.minPct)}–${formatFtpPercentage(zone.maxPct)} %`;
   const wattLabel = zone.maxWatt === null ? `> ${zone.minWatt} W` : `${zone.minWatt}–${zone.maxWatt} W`;
 
   return (
@@ -195,6 +195,10 @@ function ZoneRow({ zone }: { zone: BikeZone }) {
       <p className="text-right text-sm font-medium text-[var(--accent)]">{wattLabel}</p>
     </div>
   );
+}
+
+function formatFtpPercentage(value: number) {
+  return Math.round(Math.abs(value) <= 2 ? value * 100 : value);
 }
 
 function DisclaimerCard() {

@@ -47,6 +47,25 @@ describe("CyclingReportView", () => {
     expect(screen.queryByRole("status")).toBeNull();
   });
 
+  it("formats current and legacy FTP zone percentages correctly", () => {
+    const current = validResult();
+    const legacy: BikeResult = {
+      ...current,
+      zones: current.zones.map((zone) => ({
+        ...zone,
+        minPct: zone.minPct * 100,
+        maxPct: zone.maxPct === null ? null : zone.maxPct * 100,
+      })),
+    };
+
+    const { rerender } = render(<CyclingReportView input={DEFAULT_BIKE_INPUT} result={current} />);
+    expect(screen.getByText("56–75 %")).toBeTruthy();
+
+    rerender(<CyclingReportView input={DEFAULT_BIKE_INPUT} result={legacy} />);
+    expect(screen.getByText("56–75 %")).toBeTruthy();
+    expect(screen.queryByText("5600–7500 %")).toBeNull();
+  });
+
   it("warns when a persisted report cannot be migrated", () => {
     const current = validResult();
     const legacy: BikeResult = {
