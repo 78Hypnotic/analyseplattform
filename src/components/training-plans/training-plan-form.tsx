@@ -11,6 +11,11 @@ import {
   isStructuredTrainingPlanContent,
   upgradeLegacyTrainingPlanContent,
 } from "@/lib/training-plans/content";
+import {
+  formatTrainingPlanValidationError,
+  trainingPlanSchema,
+  type TrainingPlanFieldName,
+} from "@/lib/training-plans/schema";
 import type { TrainingPlan, TrainingPlanContent, TrainingPlanContentV2 } from "@/lib/training-plans/types";
 import { StructuredPlanBuilder } from "./structured-plan-builder";
 
@@ -41,6 +46,7 @@ export function TrainingPlanForm({ plan }: TrainingPlanFormProps) {
   const [targetDistances, setTargetDistances] = useState<Array<(typeof TARGET_DISTANCES)[number]>>(
     () => plan?.target_distances ?? [...TARGET_DISTANCES],
   );
+  const [touchedFields, setTouchedFields] = useState<Set<TrainingPlanFieldName>>(() => new Set());
   const [content, setContent] = useState<TrainingPlanContentV2>(() => {
     if (!plan?.content) return createEmptyStructuredPlan();
     return isStructuredTrainingPlanContent(plan.content)
@@ -48,6 +54,27 @@ export function TrainingPlanForm({ plan }: TrainingPlanFormProps) {
       : upgradeLegacyTrainingPlanContent(plan.content as TrainingPlanContent);
   });
   const contentJson = useMemo(() => JSON.stringify(content), [content]);
+  const clientValidation = useMemo(() => trainingPlanSchema.safeParse({
+    id: plan?.id,
+    discipline: "swim",
+    slug: details.slug,
+    title: details.title,
+    focus: details.focus,
+    phase: details.phase,
+    level: details.level,
+    target_distances: targetDistances,
+    weeks: content.weeks.length,
+    summary: details.summary,
+    preview: details.preview,
+    target_technique_axis: details.targetTechniqueAxis || null,
+    content,
+    is_active: plan?.is_active ?? false,
+  }), [content, details, plan?.id, plan?.is_active, targetDistances]);
+  const clientFieldErrors = useMemo(
+    () => clientValidation.success ? {} : formatTrainingPlanValidationError(clientValidation.error).fieldErrors,
+    [clientValidation],
+  );
+  const isFormValid = clientValidation.success;
 
   useEffect(() => {
     if (state.status !== "error" || !state.fieldErrors) return;
@@ -74,9 +101,18 @@ export function TrainingPlanForm({ plan }: TrainingPlanFormProps) {
   }
 
   function toggleTargetDistance(distance: (typeof TARGET_DISTANCES)[number], checked: boolean) {
+    markTouched("target_distances");
     setTargetDistances((current) => checked
       ? Array.from(new Set([...current, distance]))
       : current.filter((item) => item !== distance));
+  }
+
+  function markTouched(field: TrainingPlanFieldName) {
+    setTouchedFields((current) => new Set(current).add(field));
+  }
+
+  function fieldError(field: TrainingPlanFieldName) {
+    return state.fieldErrors?.[field] ?? (touchedFields.has(field) ? clientFieldErrors[field] : undefined);
   }
 
   return (
@@ -105,7 +141,15 @@ export function TrainingPlanForm({ plan }: TrainingPlanFormProps) {
               <span>{state.message}</span>
             </div>
           ) : null}
-          <Button type="submit" variant="primary" disabled={isPending}>
+          {!isFormValid && !isPending ? (
+            <span className="text-xs text-[var(--subtle)]">Pflichtfelder vervollständigen</span>
+          ) : null}
+          <Button
+            type="submit"
+            variant="primary"
+            disabled={isPending || !isFormValid}
+            title={!isFormValid ? "Bitte zuerst alle Pflichtfelder vervollständigen" : undefined}
+          >
             <Save size={16} />
             {isPending ? "Speichert..." : "Speichern"}
           </Button>
@@ -113,18 +157,20 @@ export function TrainingPlanForm({ plan }: TrainingPlanFormProps) {
       </div>
 
       <section className="surface grid gap-x-4 gap-y-3 p-4 md:grid-cols-2 xl:grid-cols-3">
-        <Field label="Titel" name="title" value={details.title} error={state.fieldErrors?.title} onChange={(value) => updateDetail("title", value)} placeholder="z. B. Wasserlage & Balance" />
-        <Field label="Slug" name="slug" value={details.slug} error={state.fieldErrors?.slug} onChange={(value) => updateDetail("slug", value)} placeholder="wasserlage-balance" />
-        <Field label="Fokus" name="focus" value={details.focus} error={state.fieldErrors?.focus} onChange={(value) => updateDetail("focus", value)} placeholder="Technik-Fundament" />
-        <Field label="Phase" name="phase" value={details.phase} error={state.fieldErrors?.phase} onChange={(value) => updateDetail("phase", value)} placeholder="Basephase" />
+        <Field required label="Titel" name="title" value={details.title} error={fieldError("title")} onBlur={() => markTouched("title")} onChange={(value) => updateDetail("title", value)} placeholder="z. B. Wasserlage & Balance" />
+        <Field required label="Slug" name="slug" value={details.slug} error={fieldError("slug")} onBlur={() => markTouched("slug")} onChange={(value) => updateDetail("slug", value)} placeholder="wasserlage-balance" />
+        <Field required label="Fokus" name="focus" value={details.focus} error={fieldError("focus")} onBlur={() => markTouched("focus")} onChange={(value) => updateDetail("focus", value)} placeholder="Technik-Fundament" />
+        <Field required label="Phase" name="phase" value={details.phase} error={fieldError("phase")} onBlur={() => markTouched("phase")} onChange={(value) => updateDetail("phase", value)} placeholder="Basephase" />
         <label className="grid gap-1 text-sm">
-          Niveau
+          <RequiredLabel label="Niveau" />
           <select
+            required
             name="level"
             value={details.level}
-            aria-invalid={Boolean(state.fieldErrors?.level)}
-            className={cn("h-10 px-3 !py-0 leading-normal", state.fieldErrors?.level && "border-[var(--warn)]")}
+            aria-invalid={Boolean(fieldError("level"))}
+            className={cn("h-10 px-3 !py-0 leading-normal", fieldError("level") && "border-[var(--warn)]")}
             onChange={(event) => updateDetail("level", event.target.value)}
+            onBlur={() => markTouched("level")}
           >
             {LEVELS.map((level) => (
               <option key={level} value={level}>
@@ -132,7 +178,7 @@ export function TrainingPlanForm({ plan }: TrainingPlanFormProps) {
               </option>
             ))}
           </select>
-          <FieldError message={state.fieldErrors?.level} />
+          <FieldError message={fieldError("level")} />
         </label>
         <div className="grid gap-1 text-sm">
           Wochen
@@ -142,59 +188,67 @@ export function TrainingPlanForm({ plan }: TrainingPlanFormProps) {
         </div>
         <div className="grid gap-3 md:col-span-2 md:grid-cols-2 xl:col-span-3">
           <label className="grid gap-1 text-sm">
-            Zusammenfassung
+            <RequiredLabel label="Zusammenfassung" />
             <textarea
+              required
               name="summary"
               value={details.summary}
-              aria-invalid={Boolean(state.fieldErrors?.summary)}
-              className={cn("min-h-20 px-3 py-2", state.fieldErrors?.summary && "border-[var(--warn)]")}
+              aria-invalid={Boolean(fieldError("summary"))}
+              className={cn("min-h-20 px-3 py-2", fieldError("summary") && "border-[var(--warn)]")}
               onChange={(event) => updateDetail("summary", event.target.value)}
+              onBlur={() => markTouched("summary")}
               rows={2}
               placeholder="Kurze interne Beschreibung des Plans."
             />
-            <FieldError message={state.fieldErrors?.summary} />
+            <FieldError message={fieldError("summary")} />
           </label>
           <label className="grid gap-1 text-sm">
-            Gesperrte Vorschau
+            <RequiredLabel label="Gesperrte Vorschau" />
             <textarea
+              required
               name="preview"
               value={details.preview}
-              aria-invalid={Boolean(state.fieldErrors?.preview)}
-              className={cn("min-h-20 px-3 py-2", state.fieldErrors?.preview && "border-[var(--warn)]")}
+              aria-invalid={Boolean(fieldError("preview"))}
+              className={cn("min-h-20 px-3 py-2", fieldError("preview") && "border-[var(--warn)]")}
               onChange={(event) => updateDetail("preview", event.target.value)}
+              onBlur={() => markTouched("preview")}
               rows={2}
               placeholder="Dieser Text erscheint im Report, bevor der Plan freigeschaltet ist."
             />
-            <FieldError message={state.fieldErrors?.preview} />
+            <FieldError message={fieldError("preview")} />
           </label>
         </div>
-        <label className="grid gap-1 text-sm md:col-span-2 xl:col-span-3">
-          Technik-Zielattribut
-          <select
-            name="target_technique_axis"
-            value={details.targetTechniqueAxis}
-            aria-invalid={Boolean(state.fieldErrors?.target_technique_axis)}
-            className={cn("h-10 px-3 !py-0 leading-normal", state.fieldErrors?.target_technique_axis && "border-[var(--warn)]")}
-            onChange={(event) => updateDetail("targetTechniqueAxis", event.target.value)}
-          >
-            <option value="">Kein Technikfokus</option>
-            {TECHNIQUE_PROFILE_GROUPS.map((group) => (
-              <option key={group} value={group}>{group}</option>
-            ))}
-          </select>
-          <p className="text-[11px] leading-4 text-[var(--subtle)]">
-            Wird mit der nächsten Veröffentlichung unveränderlich in die Planversion übernommen und markiert dort
-            den Fokus im Athleten-Radar. Bereits veröffentlichte oder aktive Pläne ändern sich nicht. Dies ist keine
-            Ergebnisprognose.
-          </p>
-          <FieldError message={state.fieldErrors?.target_technique_axis} />
-        </label>
+        <details
+          className="rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] md:col-span-2 xl:col-span-3"
+          defaultOpen={Boolean(details.targetTechniqueAxis || state.fieldErrors?.target_technique_axis)}
+        >
+          <summary className="cursor-pointer px-3 py-2 text-sm font-medium text-[var(--muted)]">Weitere Einstellungen</summary>
+          <label className="grid gap-1 border-t border-[var(--line)] p-3 text-sm">
+            Technik-Zielattribut
+            <select
+              name="target_technique_axis"
+              value={details.targetTechniqueAxis}
+              aria-invalid={Boolean(fieldError("target_technique_axis"))}
+              className={cn("h-10 px-3 !py-0 leading-normal", fieldError("target_technique_axis") && "border-[var(--warn)]")}
+              onChange={(event) => updateDetail("targetTechniqueAxis", event.target.value)}
+            >
+              <option value="">Kein Technikfokus</option>
+              {TECHNIQUE_PROFILE_GROUPS.map((group) => (
+                <option key={group} value={group}>{group}</option>
+              ))}
+            </select>
+            <p className="text-[11px] leading-4 text-[var(--subtle)]">
+              Wird mit der nächsten Veröffentlichung unveränderlich in die Planversion übernommen und markiert dort den Fokus im Athleten-Radar.
+            </p>
+            <FieldError message={fieldError("target_technique_axis")} />
+          </label>
+        </details>
       </section>
 
       <section className="surface p-5">
         <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
           <div>
-            <h2 className="text-xl font-semibold">Zielstrecken</h2>
+            <h2 className="text-xl font-semibold"><RequiredLabel label="Zielstrecken" /></h2>
             <p className="muted mt-1 text-sm">Mindestens eine Zielstrecke auswählen.</p>
           </div>
           <p className="text-sm text-[var(--subtle)]">Veröffentlichen erfolgt nach dem Speichern als eigene Version.</p>
@@ -214,7 +268,7 @@ export function TrainingPlanForm({ plan }: TrainingPlanFormProps) {
             </label>
           ))}
         </div>
-        <FieldError message={state.fieldErrors?.target_distances} />
+        <FieldError message={fieldError("target_distances")} />
       </section>
 
       <div id="training-plan-content">
@@ -229,6 +283,7 @@ function Field({
   label,
   onChange,
   error,
+  required,
   className,
   ...props
 }: {
@@ -238,9 +293,10 @@ function Field({
 } & Omit<React.ComponentProps<"input">, "onChange">) {
   return (
     <label className="grid gap-1 text-sm">
-      {label}
+      <RequiredLabel label={label} required={required} />
       <input
         {...props}
+        required={required}
         aria-invalid={Boolean(error)}
         className={cn("h-9 px-3 py-1.5", className, error && "border-[var(--warn)]")}
         onChange={onChange ? (event) => onChange(event.target.value) : undefined}
@@ -248,6 +304,10 @@ function Field({
       <FieldError message={error} />
     </label>
   );
+}
+
+function RequiredLabel({ label, required = true }: { label: string; required?: boolean }) {
+  return <span>{label}{required ? <span className="ml-1 text-[var(--warn)]" aria-hidden="true">*</span> : null}</span>;
 }
 
 function FieldError({ message }: { message?: string }) {
