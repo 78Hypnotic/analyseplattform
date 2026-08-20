@@ -1,4 +1,3 @@
-import { AppHeader } from "@/components/app-header";
 import { LegalPage } from "@/components/legal-page";
 
 export const metadata = {
@@ -8,7 +7,6 @@ export const metadata = {
 export default function CookiesPage() {
   return (
     <>
-      <AppHeader />
       <LegalPage title="Cookie- und Tracking-Entscheidung" eyebrow="Rechtliches">
         <section>
           <h2>Aktueller Stand</h2>

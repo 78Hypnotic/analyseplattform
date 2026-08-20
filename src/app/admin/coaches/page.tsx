@@ -1,5 +1,4 @@
 import { Link2, ShieldCheck, Trash2, UserCheck, Users } from "lucide-react";
-import { AppHeader } from "@/components/app-header";
 import { Button } from "@/components/button";
 import { requireAdmin } from "@/lib/auth/roles";
 import { removeCoachAssignment, setCoachRole } from "./actions";
@@ -53,7 +52,6 @@ export default async function AdminCoachesPage() {
 
   return (
     <>
-      <AppHeader />
       <main className="mx-auto w-full max-w-6xl space-y-8 px-5 py-10">
         <section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>

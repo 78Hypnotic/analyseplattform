@@ -124,7 +124,7 @@ export async function updateProfile(
     return { message: profileError.message };
   }
 
-  revalidatePath("/");
+  revalidatePath("/", "layout");
   revalidatePath("/profile");
   revalidatePath("/analyse");
 
@@ -250,7 +250,7 @@ export async function removeAvatar(): Promise<AvatarActionState> {
 }
 
 function revalidateProfileSurfaces() {
-  revalidatePath("/");
+  revalidatePath("/", "layout");
   revalidatePath("/profile");
   revalidatePath("/analyse");
   revalidatePath("/admin");

@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import { AppHeader } from "@/components/app-header";
 import { TrainingPlanForm } from "@/components/training-plans/training-plan-form";
 import { requireCoachAccess } from "@/lib/auth/roles";
 import { getManageableTrainingPlanById } from "@/lib/training-plans/data";
@@ -19,7 +18,6 @@ export default async function EditTrainingPlanPage({
 
   return (
     <>
-      <AppHeader />
       <main className="mx-auto w-full max-w-6xl px-5 py-10">
         <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--accent)]">
           {currentUser.isAdmin ? "Admin" : "Coach"} / Plan bearbeiten

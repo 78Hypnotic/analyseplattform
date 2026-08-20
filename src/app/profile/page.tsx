@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { AppHeader } from "@/components/app-header";
 import { Button } from "@/components/button";
 import { parseBodyType } from "@/lib/body-type";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -86,7 +85,6 @@ export default async function ProfilePage() {
 
   return (
     <>
-      <AppHeader />
       <main className="mx-auto w-full max-w-6xl space-y-8 px-5 py-10 pb-24">
         <section className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
           <div>

@@ -1,6 +1,5 @@
 import { ArrowRight, BookOpen, LockKeyhole, MessageSquare, Plus, UsersRound } from "lucide-react";
 import Link from "next/link";
-import { AppHeader } from "@/components/app-header";
 import { ButtonLink } from "@/components/button";
 import {
   getTrainingPlanLibraryHome,
@@ -21,7 +20,6 @@ export default async function TrainingPlansPage({
 
   return (
     <>
-      <AppHeader />
       <main className="mx-auto w-full max-w-6xl px-5 py-10 pb-24">
         {home.kind === "signed-out" ? <SignedOutLibrary /> : null}
         {home.kind === "locked" ? <LockedLibrary /> : null}

@@ -6,7 +6,6 @@ import { DeleteAnalysisForm } from "@/app/analyse/delete-analysis-form";
 import { DeleteRunAnalysisForm } from "@/app/lauf/delete-analysis-form";
 import { ProfileForm } from "@/app/profile/profile-form";
 import { DeleteBikeAnalysisForm } from "@/app/rad/delete-analysis-form";
-import { AppHeader } from "@/components/app-header";
 import { ButtonLink } from "@/components/button";
 import { formatPace } from "@/lib/analysis/calculations";
 import { getCoachAthleteDetail } from "@/lib/coach-athletes";
@@ -30,7 +29,6 @@ export default async function CoachAthleteDetailPage({
 
   return (
     <>
-      <AppHeader />
       <main className="mx-auto w-full max-w-6xl space-y-8 px-5 py-10">
         <Link href="/coach" className="inline-flex items-center gap-2 text-sm text-[var(--muted)] hover:text-[var(--foreground)]">
           <ArrowLeft size={16} />

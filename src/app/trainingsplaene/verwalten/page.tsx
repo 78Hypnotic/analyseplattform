@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Plus, Send, Trash2 } from "lucide-react";
-import { AppHeader } from "@/components/app-header";
 import { Button, ButtonLink } from "@/components/button";
 import { requireCoachAccess } from "@/lib/auth/roles";
 import { getManageableTrainingPlans } from "@/lib/training-plans/data";
@@ -14,7 +13,6 @@ export default async function ManageTrainingPlansPage() {
 
   return (
     <>
-      <AppHeader />
       <main className="mx-auto w-full max-w-6xl px-5 py-10">
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>

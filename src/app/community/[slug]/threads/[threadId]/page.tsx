@@ -1,7 +1,6 @@
 import { ArrowLeft, MessageSquare, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { AppHeader } from "@/components/app-header";
 import { getCommunityThread, type CommunityAttachment, type CommunityReply, type CommunityThreadDetail } from "@/lib/training-plans/community";
 import { createCommunityReply, removeCommunityReply, removeCommunityThread } from "../../../actions";
 
@@ -19,7 +18,6 @@ export default async function CommunityThreadPage({
 
   return (
     <>
-      <AppHeader />
       <main className="mx-auto w-full max-w-4xl px-5 py-10 pb-24">
         <Link href={`/community/${thread.librarySlug}`} className="inline-flex items-center gap-2 text-sm font-medium text-[var(--accent)] hover:underline">
           <ArrowLeft size={15} /> Zur Community

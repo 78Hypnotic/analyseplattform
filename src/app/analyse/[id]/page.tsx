@@ -1,5 +1,4 @@
 import { notFound, redirect } from "next/navigation";
-import { AppHeader } from "@/components/app-header";
 import { AnalysisAttribution } from "@/components/analysis-attribution";
 import { PdfExportButton } from "@/components/pdf-export-button";
 import { ReportView } from "@/components/report-view";
@@ -28,7 +27,6 @@ export default async function AnalysisDetailPage({
 
   return (
     <>
-      <AppHeader />
       <main className="print-report mx-auto w-full max-w-6xl px-5 py-10">
         <div className="no-print mb-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
           <div>

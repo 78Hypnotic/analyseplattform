@@ -1,6 +1,5 @@
 import { ArrowRight, MessageSquare } from "lucide-react";
 import Link from "next/link";
-import { AppHeader } from "@/components/app-header";
 import { ButtonLink } from "@/components/button";
 import { getTrainingPlanCommunityHome } from "@/lib/training-plans/community";
 import type { PlanLibrary } from "@/lib/training-plans/library";
@@ -12,7 +11,6 @@ export default async function CommunityOverviewPage() {
 
   return (
     <>
-      <AppHeader />
       <main className="mx-auto w-full max-w-6xl px-5 py-10 pb-24">
         {home.kind === "signed-out" ? <LockedCommunity action={<ButtonLink href="/login" variant="primary">Anmelden</ButtonLink>} /> : null}
         {home.kind === "locked" ? <LockedCommunity /> : null}

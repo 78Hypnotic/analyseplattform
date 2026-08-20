@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { ArrowUpRight, BookOpen, ClipboardList, ShieldCheck, UsersRound } from "lucide-react";
-import { AppHeader } from "@/components/app-header";
 import { ButtonLink } from "@/components/button";
 import { requireAdmin } from "@/lib/auth/roles";
 import { getTrainingPlans } from "@/lib/training-plans/data";
@@ -22,7 +21,6 @@ export default async function AdminPage() {
 
   return (
     <>
-      <AppHeader />
       <main className="mx-auto w-full max-w-6xl px-5 py-10">
         <p className="mono inline-flex items-center gap-2 rounded-full border border-[var(--line)] px-3 py-2 text-xs uppercase tracking-[0.18em] text-[var(--accent)]">
           <ShieldCheck size={14} />

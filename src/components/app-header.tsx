@@ -7,17 +7,8 @@ import { Button } from "./button";
 import { MobileHeaderMenu } from "./mobile-header-menu";
 import { ThemeToggle } from "./theme-toggle";
 
-export async function AppHeader({
-  userEmail,
-  hideTrainingPlansLink = false,
-}: {
-  userEmail?: string | null;
-  hideTrainingPlansLink?: boolean;
-}) {
-  const currentUser =
-    userEmail === undefined
-      ? await getCurrentUserProfile()
-      : { email: userEmail, name: null, roles: [] as AppRole[], avatarUrl: null };
+export async function AppHeader() {
+  const currentUser = await getCurrentUserProfile();
   const resolvedUserEmail = currentUser.email;
   const profileLabel = currentUser.name || currentUser.email;
   const isAdmin = currentUser.roles.includes("admin");
@@ -58,11 +49,9 @@ export async function AppHeader({
               </Link>
             </>
           )}
-          {!hideTrainingPlansLink ? (
-            <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/trainingsplaene">
-              Trainingspläne
-            </Link>
-          ) : null}
+          <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/trainingsplaene">
+            Trainingspläne
+          </Link>
           <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/community">
             Community
           </Link>
@@ -114,7 +103,6 @@ export async function AppHeader({
           isCoach={isCoach}
           profileLabel={profileLabel}
           avatarUrl={currentUser.avatarUrl}
-          hideTrainingPlansLink={hideTrainingPlansLink}
         />
       </div>
     </header>

@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Plus } from "lucide-react";
-import { AppHeader } from "@/components/app-header";
 import { AnalysisAttribution } from "@/components/analysis-attribution";
 import { ButtonLink } from "@/components/button";
 import { getUserBikeAnalyses } from "@/lib/bike-analyses";
@@ -23,7 +22,6 @@ export default async function BikeAnalysesPage() {
 
   return (
     <>
-      <AppHeader />
       <main className="mx-auto w-full max-w-6xl px-5 py-10">
         <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>

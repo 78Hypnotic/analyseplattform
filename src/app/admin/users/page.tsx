@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Bike, Footprints, ShieldCheck, Waves } from "lucide-react";
-import { AppHeader } from "@/components/app-header";
 import { requireAdmin } from "@/lib/auth/roles";
 import { CreateUserForm } from "./create-user-form";
 import { DeleteUserForm } from "./delete-user-form";
@@ -67,7 +66,6 @@ export default async function AdminUsersPage({
 
   return (
     <>
-      <AppHeader />
       <main className="mx-auto w-full max-w-6xl px-5 py-10">
         <p className="mono inline-flex items-center gap-2 rounded-full border border-[var(--line)] px-3 py-2 text-xs uppercase tracking-[0.18em] text-[var(--accent)]">
           <ShieldCheck size={14} />

@@ -13,7 +13,6 @@ import {
   Triangle,
   Waves,
 } from "lucide-react";
-import { AppHeader } from "@/components/app-header";
 import { ButtonLink } from "@/components/button";
 import { DashboardHome } from "@/components/dashboard-home";
 import { HeroDisciplinePreview } from "@/components/hero-discipline-preview";
@@ -26,7 +25,6 @@ export default async function Home() {
 
   return (
     <>
-      <AppHeader />
       {dashboardData ? <DashboardHome {...dashboardData} /> : <MarketingHome />}
     </>
   );

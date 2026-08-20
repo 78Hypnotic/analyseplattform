@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Activity, ArrowRight, BookOpen, UsersRound } from "lucide-react";
-import { AppHeader } from "@/components/app-header";
 import { ButtonLink } from "@/components/button";
 import { formatPace } from "@/lib/analysis/calculations";
 import { getCurrentUserRole } from "@/lib/auth/roles";
@@ -20,7 +19,6 @@ export default async function CoachPage() {
 
   return (
     <>
-      <AppHeader />
       <main className="mx-auto w-full max-w-6xl px-5 py-10">
         <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>

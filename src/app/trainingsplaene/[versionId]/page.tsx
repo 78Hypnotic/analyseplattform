@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AppHeader } from "@/components/app-header";
 import { TechniqueSpiderChart } from "@/components/technique-spider-chart";
 import { ActivatePlanForm } from "@/components/training-plans/activate-plan-form";
 import { TrainingPlanContentView } from "@/components/training-plans/training-plan-content-view";
@@ -33,7 +32,6 @@ export default async function TrainingPlanDetailPage({
 
   return (
     <>
-      <AppHeader />
       <main className="mx-auto w-full max-w-6xl px-5 py-10 pb-24">
         <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--accent)]">
           Schwimmplan · Version {version.version_number}

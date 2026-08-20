@@ -1,6 +1,5 @@
 import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
-import { AppHeader } from "@/components/app-header";
 import type { AnalysisInput } from "@/lib/analysis/types";
 import { parseBodyType } from "@/lib/body-type";
 import { getAthleteMutationContext, getEditableAnalysis } from "@/lib/coach-mutations";
@@ -40,7 +39,6 @@ export default async function NewAnalysisPage({
 
   return (
     <>
-      <AppHeader />
       <main className="mx-auto w-full max-w-6xl px-5 py-10">
         <AnalysisFlow
           initialInput={context.initialInput}

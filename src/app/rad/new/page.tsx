@@ -1,6 +1,5 @@
 import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
-import { AppHeader } from "@/components/app-header";
 import { getAthleteMutationContext, getEditableAnalysis } from "@/lib/coach-mutations";
 import type { BikeInput } from "@/lib/cycling/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -38,7 +37,6 @@ export default async function NewBikeAnalysisPage({
 
   return (
     <>
-      <AppHeader />
       <main className="mx-auto w-full max-w-6xl px-5 py-10">
         <CyclingFlow
           initialInput={context.initialInput}

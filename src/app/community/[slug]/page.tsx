@@ -1,7 +1,6 @@
 import { MessageSquare, Plus, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { AppHeader } from "@/components/app-header";
 import { ButtonLink } from "@/components/button";
 import { getCommunityBySlug, getCommunityThread, type CommunityThreadSummary } from "@/lib/training-plans/community";
 import { createCommunityThread } from "../actions";
@@ -24,7 +23,6 @@ export default async function CommunitySlugPage({
 
   return (
     <>
-      <AppHeader />
       <main className="mx-auto w-full max-w-6xl px-5 py-10 pb-24">
         {home.kind === "signed-out" ? <LockedCommunity action={<ButtonLink href="/login" variant="primary">Anmelden</ButtonLink>} /> : null}
         {home.kind === "locked" ? notFound() : null}

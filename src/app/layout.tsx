@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Instrument_Serif, Inter_Tight, JetBrains_Mono } from "next/font/google";
 import Script from "next/script";
 import { AppFooter } from "@/components/app-footer";
+import { AppHeader } from "@/components/app-header";
+import { AppHeaderShell } from "@/components/app-header-shell";
 import "./globals.css";
 
 const themeInitScript = `
@@ -56,6 +58,9 @@ export default function RootLayout({
           strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: themeInitScript }}
         />
+        <AppHeaderShell>
+          <AppHeader />
+        </AppHeaderShell>
         {children}
         <AppFooter />
       </body>

@@ -1,4 +1,3 @@
-import { AppHeader } from "@/components/app-header";
 import { LegalPage } from "@/components/legal-page";
 import { getLegalOperator } from "@/lib/legal";
 
@@ -11,7 +10,6 @@ export default function DatenschutzPage() {
 
   return (
     <>
-      <AppHeader />
       <LegalPage title="Datenschutzerklärung" eyebrow="Rechtliches">
         <section>
           <h2>1. Verantwortlicher</h2>

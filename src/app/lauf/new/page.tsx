@@ -1,6 +1,5 @@
 import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
-import { AppHeader } from "@/components/app-header";
 import { getAthleteMutationContext, getEditableAnalysis } from "@/lib/coach-mutations";
 import type { RunInput } from "@/lib/running/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -38,7 +37,6 @@ export default async function NewRunAnalysisPage({
 
   return (
     <>
-      <AppHeader />
       <main className="mx-auto w-full max-w-6xl px-5 py-10">
         <RunningFlow
           initialInput={context.initialInput}
