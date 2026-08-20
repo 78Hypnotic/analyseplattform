@@ -123,7 +123,7 @@ export function TrainingPlanForm({ plan }: TrainingPlanFormProps) {
             name="level"
             value={details.level}
             aria-invalid={Boolean(state.fieldErrors?.level)}
-            className={cn("h-9 px-3 py-1.5", state.fieldErrors?.level && "border-[var(--warn)]")}
+            className={cn("h-10 px-3 !py-0 leading-normal", state.fieldErrors?.level && "border-[var(--warn)]")}
             onChange={(event) => updateDetail("level", event.target.value)}
           >
             {LEVELS.map((level) => (
@@ -174,7 +174,7 @@ export function TrainingPlanForm({ plan }: TrainingPlanFormProps) {
             name="target_technique_axis"
             value={details.targetTechniqueAxis}
             aria-invalid={Boolean(state.fieldErrors?.target_technique_axis)}
-            className={cn("h-9 px-3 py-1.5", state.fieldErrors?.target_technique_axis && "border-[var(--warn)]")}
+            className={cn("h-10 px-3 !py-0 leading-normal", state.fieldErrors?.target_technique_axis && "border-[var(--warn)]")}
             onChange={(event) => updateDetail("targetTechniqueAxis", event.target.value)}
           >
             <option value="">Kein Technikfokus</option>
