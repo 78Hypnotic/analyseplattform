@@ -7,6 +7,9 @@ import type { TrainingPlanContentV2 } from "@/lib/training-plans/types";
 vi.mock("@/app/trainingsplaene/verwalten/workout-library-actions", () => ({
   listWorkoutLibraryItems: vi.fn().mockResolvedValue({ status: "success", items: [] }),
   saveWorkoutLibraryItem: vi.fn(),
+  updateWorkoutLibraryItem: vi.fn(),
+  setWorkoutLibraryFavorite: vi.fn(),
+  markWorkoutLibraryItemUsed: vi.fn(),
   deleteWorkoutLibraryItem: vi.fn(),
 }));
 

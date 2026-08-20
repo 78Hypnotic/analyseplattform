@@ -6,6 +6,9 @@ import type { WorkoutLibraryItem } from "@/lib/training-plans/types";
 const libraryActions = vi.hoisted(() => ({
   listWorkoutLibraryItems: vi.fn(),
   saveWorkoutLibraryItem: vi.fn(),
+  updateWorkoutLibraryItem: vi.fn(),
+  setWorkoutLibraryFavorite: vi.fn(),
+  markWorkoutLibraryItemUsed: vi.fn(),
   deleteWorkoutLibraryItem: vi.fn(),
 }));
 
@@ -16,6 +19,9 @@ import { WorkoutTimelineLauncher } from "./workout-timeline-dialog";
 beforeEach(() => {
   libraryActions.listWorkoutLibraryItems.mockResolvedValue({ status: "success", items: [] });
   libraryActions.saveWorkoutLibraryItem.mockResolvedValue({ status: "error", message: "Nicht konfiguriert." });
+  libraryActions.updateWorkoutLibraryItem.mockResolvedValue({ status: "error", message: "Nicht konfiguriert." });
+  libraryActions.setWorkoutLibraryFavorite.mockResolvedValue({ status: "error", message: "Nicht konfiguriert." });
+  libraryActions.markWorkoutLibraryItemUsed.mockResolvedValue({ status: "error", message: "Nicht konfiguriert." });
   libraryActions.deleteWorkoutLibraryItem.mockResolvedValue({ status: "error", message: "Nicht konfiguriert." });
 });
 
@@ -148,6 +154,7 @@ describe("WorkoutTimelineLauncher", () => {
   it("loads and deletes a saved library workout", async () => {
     const item = libraryItem();
     libraryActions.listWorkoutLibraryItems.mockResolvedValue({ status: "success", items: [item] });
+    libraryActions.markWorkoutLibraryItemUsed.mockResolvedValue({ status: "success", message: "Aktualisiert.", item: { ...item, last_used_at: "2026-08-20T12:00:00.000Z" } });
     libraryActions.deleteWorkoutLibraryItem.mockResolvedValue({ status: "success", message: "Workout gelöscht.", deletedId: item.id });
     render(<WorkoutTimelineLauncher content={createEmptyWorkoutContent("swim")} onChange={() => {}} />);
 
@@ -162,6 +169,76 @@ describe("WorkoutTimelineLauncher", () => {
     fireEvent.click(screen.getByRole("button", { name: "Löschen bestätigen" }));
     await waitFor(() => expect(libraryActions.deleteWorkoutLibraryItem).toHaveBeenCalledWith(item.id));
     expect(screen.queryByText(item.title)).toBeNull();
+  });
+
+  it("filters the library and renders compact workout previews", async () => {
+    const bike = libraryItem();
+    const swim = {
+      ...libraryItem(),
+      id: "22222222-2222-4222-8222-222222222222",
+      title: "CSS Intervalle",
+      discipline: "swim" as const,
+      content: {
+        ...libraryItem().content,
+        discipline: "swim" as const,
+        blocks: [
+          ...libraryItem().content.blocks,
+          {
+            id: "time-block",
+            title: "Zeitserie",
+            kind: "interval" as const,
+            repeatCount: 1,
+            steps: [{
+              id: "time-step",
+              title: "Belastung",
+              duration: { type: "time" as const, seconds: 300 },
+              targets: [{ type: "max_heart_rate_percentage" as const, minPercent: 85, maxPercent: 90 }],
+            }],
+          },
+        ],
+      },
+    };
+    libraryActions.listWorkoutLibraryItems.mockResolvedValue({ status: "success", items: [bike, swim] });
+    render(<WorkoutTimelineLauncher content={createEmptyWorkoutContent("swim")} onChange={() => {}} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Workout Builder öffnen" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: /^Bibliothek/ }).textContent).toContain("2"));
+    fireEvent.click(screen.getByRole("button", { name: /^Bibliothek/ }));
+    expect(screen.getAllByLabelText("Workout-Vorschau")).toHaveLength(2);
+
+    fireEvent.change(screen.getByLabelText("Workout-Bibliothek durchsuchen"), { target: { value: "CSS" } });
+    expect(screen.getByText("CSS Intervalle")).toBeTruthy();
+    expect(screen.queryByText(bike.title)).toBeNull();
+    fireEvent.change(screen.getByLabelText("Workout-Bibliothek durchsuchen"), { target: { value: "" } });
+    fireEvent.change(screen.getByRole("combobox", { name: "Sportart" }), { target: { value: "bike" } });
+    expect(screen.getByText(bike.title)).toBeTruthy();
+    expect(screen.queryByText("CSS Intervalle")).toBeNull();
+    fireEvent.change(screen.getByRole("combobox", { name: "Sportart" }), { target: { value: "all" } });
+    fireEvent.change(screen.getByRole("combobox", { name: "Vorgabe" }), { target: { value: "mixed" } });
+    expect(screen.getByText("CSS Intervalle")).toBeTruthy();
+    expect(screen.queryByText(bike.title)).toBeNull();
+    fireEvent.change(screen.getByRole("combobox", { name: "Intensität" }), { target: { value: "max_heart_rate_percentage" } });
+    expect(screen.getByText("CSS Intervalle")).toBeTruthy();
+  });
+
+  it("favorites, loads, and updates an existing library workout", async () => {
+    const item = libraryItem();
+    const favorite = { ...item, is_favorite: true };
+    libraryActions.listWorkoutLibraryItems.mockResolvedValue({ status: "success", items: [item] });
+    libraryActions.setWorkoutLibraryFavorite.mockResolvedValue({ status: "success", message: "Favorit gespeichert.", item: favorite });
+    libraryActions.markWorkoutLibraryItemUsed.mockResolvedValue({ status: "success", message: "Aktualisiert.", item });
+    libraryActions.updateWorkoutLibraryItem.mockResolvedValue({ status: "success", message: "Aktualisiert.", item });
+    render(<WorkoutTimelineLauncher content={createEmptyWorkoutContent("bike")} onChange={() => {}} title={item.title} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Workout Builder öffnen" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: /^Bibliothek/ }).textContent).toContain("1"));
+    fireEvent.click(screen.getByRole("button", { name: /^Bibliothek/ }));
+    fireEvent.click(screen.getByRole("button", { name: `${item.title} als Favorit markieren` }));
+    await waitFor(() => expect(libraryActions.setWorkoutLibraryFavorite).toHaveBeenCalledWith({ id: item.id, isFavorite: true }));
+    fireEvent.click(screen.getByRole("button", { name: "Laden" }));
+    await waitFor(() => expect(libraryActions.markWorkoutLibraryItemUsed).toHaveBeenCalledWith(item.id));
+    fireEvent.click(screen.getByRole("button", { name: "Bibliothek aktualisieren" }));
+    await waitFor(() => expect(libraryActions.updateWorkoutLibraryItem).toHaveBeenCalledWith({ id: item.id, title: item.title, content: item.content }));
   });
 });
 
@@ -186,6 +263,8 @@ function libraryItem(): WorkoutLibraryItem {
         }],
       }],
     },
+    is_favorite: false,
+    last_used_at: null,
     created_at: "2026-08-20T10:00:00.000Z",
     updated_at: "2026-08-20T10:00:00.000Z",
   };

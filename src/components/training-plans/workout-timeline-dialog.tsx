@@ -1,14 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Activity, Bike, BookOpen, Maximize2, Redo2, Save, Trash2, Undo2, Waves, X } from "lucide-react";
+import { Activity, Bike, BookOpen, Maximize2, Redo2, Save, Search, Star, Trash2, Undo2, Waves, X } from "lucide-react";
 import { Button } from "@/components/button";
 import { WorkoutTimelineBuilder } from "@/components/training-plans/workout-timeline-builder";
 import {
   deleteWorkoutLibraryItem,
   listWorkoutLibraryItems,
+  markWorkoutLibraryItemUsed,
   saveWorkoutLibraryItem,
+  setWorkoutLibraryFavorite,
+  updateWorkoutLibraryItem,
 } from "@/app/trainingsplaene/verwalten/workout-library-actions";
 import type {
   AthleteBenchmarkSnapshot,
@@ -79,11 +82,25 @@ function WorkoutTimelineDialogContent({
   const [libraryStatus, setLibraryStatus] = useState<"loading" | "ready" | "error">("loading");
   const [libraryMessage, setLibraryMessage] = useState<string | null>(null);
   const [savingLibraryItem, setSavingLibraryItem] = useState(false);
+  const [activeLibraryItemId, setActiveLibraryItemId] = useState<string | null>(null);
+  const [libraryQuery, setLibraryQuery] = useState("");
+  const [disciplineFilter, setDisciplineFilter] = useState<"all" | TrainingPlanDiscipline>("all");
+  const [modeFilter, setModeFilter] = useState<"all" | "time" | "distance" | "mixed">("all");
+  const [intensityFilter, setIntensityFilter] = useState<"all" | "threshold_power_percentage" | "max_heart_rate_percentage" | "vo2max_power_percentage">("all");
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [deletingLibraryItemId, setDeletingLibraryItemId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const deferredLibraryQuery = useDeferredValue(libraryQuery);
+  const filteredLibraryItems = useMemo(() => filterLibraryItems(libraryItems, {
+    query: deferredLibraryQuery,
+    discipline: disciplineFilter,
+    mode: modeFilter,
+    intensity: intensityFilter,
+    favoritesOnly,
+  }), [deferredLibraryQuery, disciplineFilter, favoritesOnly, intensityFilter, libraryItems, modeFilter]);
 
   useEffect(() => {
     const previousActiveElement = document.activeElement instanceof HTMLElement
@@ -166,7 +183,7 @@ function WorkoutTimelineDialogContent({
       : current);
   }
 
-  async function saveToLibrary() {
+  async function saveToLibrary(forceNew = false) {
     const libraryTitle = detailsDraft?.title ?? getDisciplineTitle(title, draft.discipline);
     if (libraryTitle.trim().length < 3) {
       setLibraryMessage("Bitte einen Workout-Titel mit mindestens 3 Zeichen eingeben.");
@@ -174,21 +191,37 @@ function WorkoutTimelineDialogContent({
     }
     setSavingLibraryItem(true);
     setLibraryMessage(null);
-    const result = await saveWorkoutLibraryItem({ title: libraryTitle, content: draft });
+    const result = activeLibraryItemId && !forceNew
+      ? await updateWorkoutLibraryItem({ id: activeLibraryItemId, title: libraryTitle, content: draft })
+      : await saveWorkoutLibraryItem({ title: libraryTitle, content: draft });
     setSavingLibraryItem(false);
     setLibraryMessage(result.message);
     if (result.status === "success" && result.item) {
       setLibraryItems((current) => [result.item!, ...current.filter((item) => item.id !== result.item?.id)]);
+      setActiveLibraryItemId(result.item.id);
       setLibraryOpen(true);
     }
   }
 
-  function loadFromLibrary(item: WorkoutLibraryItem) {
+  async function loadFromLibrary(item: WorkoutLibraryItem) {
     setDraft(structuredClone(item.content));
+    setActiveLibraryItemId(item.id);
     setDetailsDraft((current) => current
       ? { ...current, title: isDefaultWorkoutTitle(current.title) ? item.title : current.title }
       : current);
     setLibraryMessage(`„${item.title}“ geladen. Mit „Workout übernehmen“ in den Plan schreiben.`);
+    const result = await markWorkoutLibraryItemUsed(item.id);
+    if (result.status === "success" && result.item) {
+      setLibraryItems((current) => [result.item!, ...current.filter((entry) => entry.id !== item.id)]);
+    }
+  }
+
+  async function toggleFavorite(item: WorkoutLibraryItem) {
+    const result = await setWorkoutLibraryFavorite({ id: item.id, isFavorite: !item.is_favorite });
+    setLibraryMessage(result.message);
+    if (result.status === "success" && result.item) {
+      setLibraryItems((current) => [result.item!, ...current.filter((entry) => entry.id !== item.id)]);
+    }
   }
 
   async function deleteFromLibrary(id: string) {
@@ -350,28 +383,78 @@ function WorkoutTimelineDialogContent({
                 <BookOpen size={16} /> Bibliothek
                 <span className="text-xs font-normal text-[var(--subtle)]">{libraryItems.length}</span>
               </button>
-              <Button type="button" variant="ghost" disabled={savingLibraryItem} onClick={saveToLibrary}>
-                <Save size={15} /> {savingLibraryItem ? "Speichert..." : "In Bibliothek speichern"}
-              </Button>
+              <div className="flex flex-wrap gap-1">
+                {activeLibraryItemId ? (
+                  <Button type="button" variant="ghost" disabled={savingLibraryItem} onClick={() => saveToLibrary(true)}>
+                    Als neu speichern
+                  </Button>
+                ) : null}
+                <Button type="button" variant="ghost" disabled={savingLibraryItem} onClick={() => saveToLibrary(false)}>
+                  <Save size={15} /> {savingLibraryItem ? "Speichert..." : activeLibraryItemId ? "Bibliothek aktualisieren" : "In Bibliothek speichern"}
+                </Button>
+              </div>
             </div>
             {libraryMessage ? (
               <p role="status" className="border-t border-[var(--line)] px-3 py-2 text-xs text-[var(--muted)]">{libraryMessage}</p>
             ) : null}
             {libraryOpen ? (
               <div className="border-t border-[var(--line)]">
+                <div className="grid gap-2 border-b border-[var(--line)] p-3 lg:grid-cols-[minmax(12rem,1fr)_repeat(3,auto)_auto]">
+                  <label className="relative">
+                    <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--subtle)]" />
+                    <input
+                      aria-label="Workout-Bibliothek durchsuchen"
+                      value={libraryQuery}
+                      onChange={(event) => setLibraryQuery(event.target.value)}
+                      placeholder="Workout suchen"
+                      className="h-9 w-full py-1.5 pl-9 pr-3 text-sm"
+                    />
+                  </label>
+                  <LibraryFilter label="Sportart" value={disciplineFilter} onChange={(value) => setDisciplineFilter(value as typeof disciplineFilter)} options={[
+                    ["all", "Alle Sportarten"], ["swim", "Schwimmen"], ["bike", "Rad"], ["run", "Laufen"],
+                  ]} />
+                  <LibraryFilter label="Vorgabe" value={modeFilter} onChange={(value) => setModeFilter(value as typeof modeFilter)} options={[
+                    ["all", "Dauer & Distanz"], ["time", "Dauer"], ["distance", "Distanz"], ["mixed", "Gemischt"],
+                  ]} />
+                  <LibraryFilter label="Intensität" value={intensityFilter} onChange={(value) => setIntensityFilter(value as typeof intensityFilter)} options={[
+                    ["all", "Alle Intensitäten"], ["threshold_power_percentage", "FTP/FSL"], ["max_heart_rate_percentage", "HFmax"], ["vo2max_power_percentage", "VO2max"],
+                  ]} />
+                  <button
+                    type="button"
+                    aria-pressed={favoritesOnly}
+                    onClick={() => setFavoritesOnly((current) => !current)}
+                    className={favoritesOnly
+                      ? "inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-[var(--accent)] px-3 text-xs text-[var(--accent)]"
+                      : "inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-[var(--line)] px-3 text-xs text-[var(--muted)]"}
+                  >
+                    <Star size={14} fill={favoritesOnly ? "currentColor" : "none"} /> Favoriten
+                  </button>
+                </div>
                 {libraryStatus === "loading" ? <p className="px-3 py-4 text-sm text-[var(--muted)]">Bibliothek wird geladen...</p> : null}
                 {libraryStatus === "error" ? <p className="px-3 py-4 text-sm text-[var(--warn)]">Bibliothek ist derzeit nicht verfügbar.</p> : null}
                 {libraryStatus === "ready" && libraryItems.length === 0 ? (
                   <p className="px-3 py-4 text-sm text-[var(--muted)]">Noch keine Workouts gespeichert.</p>
                 ) : null}
-                {libraryItems.map((item) => (
-                  <div key={item.id} className="grid gap-2 border-b border-[var(--line)] px-3 py-3 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center">
+                {libraryStatus === "ready" && libraryItems.length > 0 && filteredLibraryItems.length === 0 ? (
+                  <p className="px-3 py-4 text-sm text-[var(--muted)]">Keine Workouts passen zu den Filtern.</p>
+                ) : null}
+                {filteredLibraryItems.map((item) => (
+                  <div key={item.id} className="grid gap-3 border-b border-[var(--line)] px-3 py-3 last:border-b-0 sm:grid-cols-[auto_minmax(0,1fr)_8rem_auto_auto] sm:items-center">
+                    <button
+                      type="button"
+                      aria-label={item.is_favorite ? `${item.title} aus Favoriten entfernen` : `${item.title} als Favorit markieren`}
+                      onClick={() => toggleFavorite(item)}
+                      className={item.is_favorite ? "text-[var(--accent)]" : "text-[var(--subtle)] hover:text-[var(--foreground)]"}
+                    >
+                      <Star size={16} fill={item.is_favorite ? "currentColor" : "none"} />
+                    </button>
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-[var(--foreground)]">{item.title}</p>
                       <p className="mt-0.5 text-xs text-[var(--subtle)]">
-                        {disciplineLabel(item.discipline)} · {workoutModeLabel(item.content)} · {formatLibraryUpdatedAt(item.updated_at)}
+                        {disciplineLabel(item.discipline)} · {workoutModeLabel(item.content)} · {item.last_used_at ? `Zuletzt ${formatLibraryUpdatedAt(item.last_used_at)}` : formatLibraryUpdatedAt(item.updated_at)}
                       </p>
                     </div>
+                    <WorkoutMiniPreview content={item.content} />
                     <Button type="button" variant="ghost" onClick={() => loadFromLibrary(item)}>Laden</Button>
                     <button
                       type="button"
@@ -447,6 +530,81 @@ function workoutModeLabel(content: WorkoutContent) {
   const modes = new Set(content.blocks.flatMap((block) => block.steps.map((step) => step.duration.type)));
   if (modes.size > 1) return "Gemischt";
   return modes.has("distance") ? "Distanz" : "Dauer";
+}
+
+type LibraryFilters = {
+  query: string;
+  discipline: "all" | TrainingPlanDiscipline;
+  mode: "all" | "time" | "distance" | "mixed";
+  intensity: "all" | "threshold_power_percentage" | "max_heart_rate_percentage" | "vo2max_power_percentage";
+  favoritesOnly: boolean;
+};
+
+function filterLibraryItems(items: WorkoutLibraryItem[], filters: LibraryFilters) {
+  const normalizedQuery = filters.query.trim().toLocaleLowerCase("de-DE");
+  return items
+    .filter((item) => !normalizedQuery || item.title.toLocaleLowerCase("de-DE").includes(normalizedQuery))
+    .filter((item) => filters.discipline === "all" || item.discipline === filters.discipline)
+    .filter((item) => filters.mode === "all" || workoutMode(item.content) === filters.mode)
+    .filter((item) => filters.intensity === "all" || workoutIntensities(item.content).has(filters.intensity))
+    .filter((item) => !filters.favoritesOnly || item.is_favorite)
+    .sort((left, right) => {
+      if (left.is_favorite !== right.is_favorite) return left.is_favorite ? -1 : 1;
+      return (right.last_used_at ?? right.updated_at).localeCompare(left.last_used_at ?? left.updated_at);
+    });
+}
+
+function workoutMode(content: WorkoutContent): "time" | "distance" | "mixed" {
+  const modes = new Set(content.blocks.flatMap((block) => block.steps.map((step) => step.duration.type)));
+  if (modes.size > 1) return "mixed";
+  return modes.has("distance") ? "distance" : "time";
+}
+
+function workoutIntensities(content: WorkoutContent) {
+  return new Set(content.blocks.flatMap((block) => block.steps.flatMap((step) => step.targets.map((target) => target.type))));
+}
+
+function LibraryFilter({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: Array<readonly [string, string]>;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <select
+      aria-label={label}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      className="h-9 min-w-32 px-2 !py-0 text-xs"
+    >
+      {options.map(([optionValue, optionLabel]) => <option key={optionValue} value={optionValue}>{optionLabel}</option>)}
+    </select>
+  );
+}
+
+function WorkoutMiniPreview({ content }: { content: WorkoutContent }) {
+  const segments = content.blocks.flatMap((block) => Array.from({ length: block.repeatCount }, () => block.steps).flat());
+  return (
+    <div aria-label="Workout-Vorschau" className="flex h-9 items-end gap-px overflow-hidden rounded border border-[var(--line)] bg-[var(--soft-bg)] p-1">
+      {segments.slice(0, 18).map((step, index) => {
+        const target = step.targets[0];
+        const intensity = target?.maxPercent ?? target?.minPercent ?? 50;
+        const extent = step.duration.type === "time" ? step.duration.seconds / 60 : step.duration.meters / 100;
+        return (
+          <span
+            key={`${step.id}-${index}`}
+            className="min-w-1 flex-1 rounded-[2px] bg-[var(--accent)]/65"
+            style={{ height: `${Math.max(15, Math.min(100, intensity / 1.5))}%`, flexGrow: Math.max(1, extent) }}
+          />
+        );
+      })}
+    </div>
+  );
 }
 
 function formatLibraryUpdatedAt(value: string) {

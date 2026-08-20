@@ -70,6 +70,8 @@ export type WorkoutLibraryItem = {
   title: string;
   discipline: TrainingPlanDiscipline;
   content: WorkoutContent;
+  is_favorite: boolean;
+  last_used_at: string | null;
   created_at: string;
   updated_at: string;
 };
