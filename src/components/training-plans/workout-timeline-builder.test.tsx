@@ -14,6 +14,8 @@ describe("WorkoutTimelineBuilder", () => {
     expect(recoverySegments).toHaveLength(3);
     expect(workSegments[0].getAttribute("style")).toContain("height: 55%");
     expect(workSegments[0].getAttribute("style")).toContain("flex-grow: 300");
+    expect(workSegments[0].className).toContain("workout-timeline-segment");
+    expect(workSegments[1].style.animationDelay).toBe("56ms");
   });
 });
 

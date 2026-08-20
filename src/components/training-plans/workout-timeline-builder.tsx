@@ -223,7 +223,7 @@ function IntensityTimeline({
                       </button>
                     </span>
                   </div>
-                  {segments.map((segment) => (
+                  {segments.map((segment, segmentIndex) => (
                     <button
                       key={segment.key}
                       type="button"
@@ -231,7 +231,7 @@ function IntensityTimeline({
                       title={`${segment.label} · ${formatDuration(segment.seconds)} · ${segment.minPercent}-${segment.maxPercent}%`}
                       onClick={(event) => { event.stopPropagation(); onSelectBlock(block.id); }}
                       className={cn(
-                        "relative min-w-5 rounded-[4px] border transition hover:brightness-110",
+                        "workout-timeline-segment relative min-w-5 rounded-[4px] border",
                         segment.tone === "heart-rate" && "border-[var(--warn)] bg-[var(--warn)]/50",
                         segment.tone === "vo2max" && "border-[var(--accent-2)] bg-[var(--accent-2)]/50",
                         segment.tone === "threshold" && "border-[var(--accent)] bg-[var(--accent)]/55",
@@ -241,6 +241,7 @@ function IntensityTimeline({
                         flexGrow: segment.seconds,
                         flexBasis: 0,
                         height: `${Math.max(6, Math.min(100, segment.maxPercent / 2))}%`,
+                        animationDelay: `${Math.min(360, blockIndex * 55 + segmentIndex * 28)}ms`,
                       }}
                     />
                   ))}
