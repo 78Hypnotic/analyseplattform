@@ -24,7 +24,7 @@ export default async function CommunitySlugPage({
 
   return (
     <>
-      <AppHeader hideTrainingPlansLink />
+      <AppHeader />
       <main className="mx-auto w-full max-w-6xl px-5 py-10 pb-24">
         {home.kind === "signed-out" ? <LockedCommunity action={<ButtonLink href="/login" variant="primary">Anmelden</ButtonLink>} /> : null}
         {home.kind === "locked" ? notFound() : null}

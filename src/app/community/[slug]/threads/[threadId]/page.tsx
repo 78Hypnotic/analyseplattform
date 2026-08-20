@@ -19,7 +19,7 @@ export default async function CommunityThreadPage({
 
   return (
     <>
-      <AppHeader hideTrainingPlansLink />
+      <AppHeader />
       <main className="mx-auto w-full max-w-4xl px-5 py-10 pb-24">
         <Link href={`/community/${thread.librarySlug}`} className="inline-flex items-center gap-2 text-sm font-medium text-[var(--accent)] hover:underline">
           <ArrowLeft size={15} /> Zur Community

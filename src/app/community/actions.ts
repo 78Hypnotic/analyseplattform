@@ -226,8 +226,9 @@ async function uploadCommunityAttachment({
   if (!extension) throw new Error("Bitte JPG, PNG oder WebP hochladen.");
   if (file.size > MAX_COMMUNITY_ATTACHMENT_BYTES) throw new Error("Ein Bild darf maximal 5 MB groß sein.");
 
+  const admin = createSupabaseAdminClient();
   const storagePath = `${userId}/${crypto.randomUUID()}.${extension}`;
-  const { error: uploadError } = await supabase.storage.from("community-attachments").upload(storagePath, file, {
+  const { error: uploadError } = await admin.storage.from("community-attachments").upload(storagePath, file, {
     cacheControl: "3600",
     contentType: file.type,
     upsert: false,
@@ -235,7 +236,7 @@ async function uploadCommunityAttachment({
 
   if (uploadError) throw new Error(uploadError.message);
 
-  const { error: attachmentError } = await supabase.from("community_attachments").insert({
+  const { error: attachmentError } = await admin.from("community_attachments").insert({
     thread_id: threadId ?? null,
     reply_id: replyId ?? null,
     uploaded_by: userId,
@@ -255,7 +256,7 @@ async function uploadCommunityAttachment({
         sizeBytes: file.size,
       };
     }
-    await supabase.storage.from("community-attachments").remove([storagePath]);
+    await admin.storage.from("community-attachments").remove([storagePath]);
     throw new Error(attachmentError.message);
   }
 
