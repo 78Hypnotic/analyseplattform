@@ -64,6 +64,6 @@ describe("WorkoutTimelineLauncher", () => {
     expect(screen.getByRole("heading", { name: "Neue Radeinheit" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Workout übernehmen" }));
 
-    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ discipline: "bike" }));
+    expect(onChange.mock.calls[0][0]).toEqual(expect.objectContaining({ discipline: "bike" }));
   });
 });

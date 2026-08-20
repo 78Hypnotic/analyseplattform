@@ -5,14 +5,30 @@ import { createPortal } from "react-dom";
 import { Activity, Bike, Maximize2, Waves, X } from "lucide-react";
 import { Button } from "@/components/button";
 import { WorkoutTimelineBuilder } from "@/components/training-plans/workout-timeline-builder";
-import type { AthleteBenchmarkSnapshot, TrainingPlanDiscipline, WorkoutContent } from "@/lib/training-plans/types";
+import type {
+  AthleteBenchmarkSnapshot,
+  StructuredTrainingPlanSession,
+  TrainingPlanDiscipline,
+  WorkoutContent,
+} from "@/lib/training-plans/types";
+
+export type WorkoutSessionDetails = Pick<
+  StructuredTrainingPlanSession,
+  "title" | "focus" | "preferredWeekday" | "estimatedDurationMinutes"
+>;
+
+const WEEKDAYS = [
+  [1, "Montag"], [2, "Dienstag"], [3, "Mittwoch"], [4, "Donnerstag"],
+  [5, "Freitag"], [6, "Samstag"], [7, "Sonntag"],
+] as const;
 
 type WorkoutTimelineDialogProps = {
   open: boolean;
   content: WorkoutContent;
   onOpenChange: (open: boolean) => void;
-  onSave: (content: WorkoutContent) => void;
+  onSave: (content: WorkoutContent, sessionDetails?: WorkoutSessionDetails) => void;
   benchmarks?: AthleteBenchmarkSnapshot;
+  sessionDetails?: WorkoutSessionDetails;
   title?: string;
 };
 
@@ -22,6 +38,7 @@ export function WorkoutTimelineDialog({
   onOpenChange,
   onSave,
   benchmarks,
+  sessionDetails,
   title = "Workout bearbeiten",
 }: WorkoutTimelineDialogProps) {
   if (!open) return null;
@@ -32,6 +49,7 @@ export function WorkoutTimelineDialog({
       onOpenChange={onOpenChange}
       onSave={onSave}
       benchmarks={benchmarks}
+      sessionDetails={sessionDetails}
       title={title}
     />,
     document.body,
@@ -43,9 +61,13 @@ function WorkoutTimelineDialogContent({
   onOpenChange,
   onSave,
   benchmarks,
+  sessionDetails,
   title,
 }: Omit<WorkoutTimelineDialogProps, "open">) {
   const [draft, setDraft] = useState(() => structuredClone(content));
+  const [detailsDraft, setDetailsDraft] = useState<WorkoutSessionDetails | null>(
+    () => sessionDetails ? structuredClone(sessionDetails) : null,
+  );
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -88,8 +110,15 @@ function WorkoutTimelineDialogContent({
   }, [onOpenChange]);
 
   function save() {
-    onSave(draft);
+    onSave(draft, detailsDraft ?? undefined);
     onOpenChange(false);
+  }
+
+  function selectDiscipline(discipline: TrainingPlanDiscipline) {
+    setDraft((current) => ({ ...current, discipline }));
+    setDetailsDraft((current) => current
+      ? { ...current, title: getDisciplineTitle(current.title, discipline) }
+      : current);
   }
 
   return (
@@ -110,7 +139,7 @@ function WorkoutTimelineDialogContent({
           <div className="min-w-0">
             <p className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--subtle)]">Workout</p>
             <h2 id={titleId} className="truncate text-lg font-semibold text-[var(--foreground)]">
-              {getDisciplineTitle(title, draft.discipline)}
+              {detailsDraft?.title ?? getDisciplineTitle(title, draft.discipline)}
             </h2>
           </div>
           <div className="ml-auto flex items-center gap-3">
@@ -122,19 +151,19 @@ function WorkoutTimelineDialogContent({
               <DisciplineButton
                 label="Schwimmen"
                 active={draft.discipline === "swim"}
-                onClick={() => setDraft((current) => ({ ...current, discipline: "swim" }))}
+                onClick={() => selectDiscipline("swim")}
                 icon={<Waves size={15} />}
               />
               <DisciplineButton
                 label="Rad"
                 active={draft.discipline === "bike"}
-                onClick={() => setDraft((current) => ({ ...current, discipline: "bike" }))}
+                onClick={() => selectDiscipline("bike")}
                 icon={<Bike size={15} />}
               />
               <DisciplineButton
                 label="Laufen"
                 active={draft.discipline === "run"}
-                onClick={() => setDraft((current) => ({ ...current, discipline: "run" }))}
+                onClick={() => selectDiscipline("run")}
                 icon={<Activity size={15} />}
               />
             </div>
@@ -151,6 +180,58 @@ function WorkoutTimelineDialogContent({
         </header>
 
         <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-5 lg:p-6">
+          {detailsDraft ? (
+            <section className="mb-4 grid gap-3 rounded-lg border border-[var(--line)] bg-[var(--panel)] p-4 sm:grid-cols-2 xl:grid-cols-[1.2fr_1.2fr_0.8fr_0.6fr]">
+              <DialogField label="Titel">
+                <input
+                  value={detailsDraft.title}
+                  onChange={(event) => setDetailsDraft((current) => current ? { ...current, title: event.target.value } : current)}
+                  className="h-10 w-full px-3 py-2"
+                />
+              </DialogField>
+              <DialogField label="Fokus">
+                <input
+                  value={detailsDraft.focus}
+                  onChange={(event) => setDetailsDraft((current) => current ? { ...current, focus: event.target.value } : current)}
+                  className="h-10 w-full px-3 py-2"
+                />
+              </DialogField>
+              <DialogField label="Trainingstag">
+                <select
+                  value={detailsDraft.preferredWeekday ?? ""}
+                  onChange={(event) => setDetailsDraft((current) => current
+                    ? {
+                        ...current,
+                        preferredWeekday: event.target.value
+                          ? Number(event.target.value) as WorkoutSessionDetails["preferredWeekday"]
+                          : undefined,
+                      }
+                    : current)}
+                  className="h-10 w-full px-3 py-2"
+                >
+                  <option value="">Flexibel</option>
+                  {WEEKDAYS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                </select>
+              </DialogField>
+              <DialogField label="Gesamtdauer min">
+                <input
+                  type="number"
+                  min={1}
+                  max={600}
+                  value={detailsDraft.estimatedDurationMinutes ?? ""}
+                  onChange={(event) => setDetailsDraft((current) => current
+                    ? {
+                        ...current,
+                        estimatedDurationMinutes: event.target.value
+                          ? Math.max(1, Math.min(600, event.target.valueAsNumber))
+                          : undefined,
+                      }
+                    : current)}
+                  className="h-10 w-full px-3 py-2"
+                />
+              </DialogField>
+            </section>
+          ) : null}
           <WorkoutTimelineBuilder content={draft} onChange={setDraft} benchmarks={benchmarks} />
         </div>
 
@@ -233,4 +314,13 @@ function getFocusableElements(container: HTMLElement | null) {
   return Array.from(container.querySelectorAll<HTMLElement>(
     'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
   ));
+}
+
+function DialogField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="grid gap-1 text-xs text-[var(--muted)]">
+      <span className="mono text-[9px] uppercase tracking-[0.12em] text-[var(--subtle)]">{label}</span>
+      {children}
+    </label>
+  );
 }
