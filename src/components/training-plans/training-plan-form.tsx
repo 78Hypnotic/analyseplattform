@@ -80,7 +80,7 @@ export function TrainingPlanForm({ plan }: TrainingPlanFormProps) {
   }
 
   return (
-    <form ref={formRef} action={formAction} className="mt-8 space-y-6" noValidate>
+    <form ref={formRef} action={formAction} className="mt-6 space-y-4" noValidate>
       <input type="hidden" name="id" value={plan?.id ?? ""} />
       <input type="hidden" name="discipline" value="swim" />
       <input type="hidden" name="is_active" value={plan?.is_active ? "true" : "false"} />
@@ -112,18 +112,18 @@ export function TrainingPlanForm({ plan }: TrainingPlanFormProps) {
         </div>
       </div>
 
-      <section className="surface grid gap-4 p-5 md:grid-cols-2">
+      <section className="surface grid gap-x-4 gap-y-3 p-4 md:grid-cols-2 xl:grid-cols-3">
         <Field label="Titel" name="title" value={details.title} error={state.fieldErrors?.title} onChange={(value) => updateDetail("title", value)} placeholder="z. B. Wasserlage & Balance" />
         <Field label="Slug" name="slug" value={details.slug} error={state.fieldErrors?.slug} onChange={(value) => updateDetail("slug", value)} placeholder="wasserlage-balance" />
         <Field label="Fokus" name="focus" value={details.focus} error={state.fieldErrors?.focus} onChange={(value) => updateDetail("focus", value)} placeholder="Technik-Fundament" />
         <Field label="Phase" name="phase" value={details.phase} error={state.fieldErrors?.phase} onChange={(value) => updateDetail("phase", value)} placeholder="Basephase" />
-        <label className="grid gap-2 text-sm">
+        <label className="grid gap-1 text-sm">
           Niveau
           <select
             name="level"
             value={details.level}
             aria-invalid={Boolean(state.fieldErrors?.level)}
-            className={state.fieldErrors?.level ? "border-[var(--warn)]" : undefined}
+            className={cn("h-9 px-3 py-1.5", state.fieldErrors?.level && "border-[var(--warn)]")}
             onChange={(event) => updateDetail("level", event.target.value)}
           >
             {LEVELS.map((level) => (
@@ -134,45 +134,47 @@ export function TrainingPlanForm({ plan }: TrainingPlanFormProps) {
           </select>
           <FieldError message={state.fieldErrors?.level} />
         </label>
-        <div className="grid gap-2 text-sm">
+        <div className="grid gap-1 text-sm">
           Wochen
-          <div className="flex h-11 items-center rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] px-3 font-medium">
+          <div className="flex h-9 items-center rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] px-3 font-medium">
             {content.weeks.length}
           </div>
         </div>
-        <label className="grid gap-2 text-sm md:col-span-2">
-          Zusammenfassung
-          <textarea
-            name="summary"
-            value={details.summary}
-            aria-invalid={Boolean(state.fieldErrors?.summary)}
-            className={state.fieldErrors?.summary ? "border-[var(--warn)]" : undefined}
-            onChange={(event) => updateDetail("summary", event.target.value)}
-            rows={3}
-            placeholder="Kurze interne Beschreibung des Plans."
-          />
-          <FieldError message={state.fieldErrors?.summary} />
-        </label>
-        <label className="grid gap-2 text-sm md:col-span-2">
-          Gesperrte Vorschau
-          <textarea
-            name="preview"
-            value={details.preview}
-            aria-invalid={Boolean(state.fieldErrors?.preview)}
-            className={state.fieldErrors?.preview ? "border-[var(--warn)]" : undefined}
-            onChange={(event) => updateDetail("preview", event.target.value)}
-            rows={4}
-            placeholder="Dieser Text erscheint im Report, bevor der Plan freigeschaltet ist."
-          />
-          <FieldError message={state.fieldErrors?.preview} />
-        </label>
-        <label className="grid gap-2 text-sm md:col-span-2">
+        <div className="grid gap-3 md:col-span-2 md:grid-cols-2 xl:col-span-3">
+          <label className="grid gap-1 text-sm">
+            Zusammenfassung
+            <textarea
+              name="summary"
+              value={details.summary}
+              aria-invalid={Boolean(state.fieldErrors?.summary)}
+              className={cn("min-h-20 px-3 py-2", state.fieldErrors?.summary && "border-[var(--warn)]")}
+              onChange={(event) => updateDetail("summary", event.target.value)}
+              rows={2}
+              placeholder="Kurze interne Beschreibung des Plans."
+            />
+            <FieldError message={state.fieldErrors?.summary} />
+          </label>
+          <label className="grid gap-1 text-sm">
+            Gesperrte Vorschau
+            <textarea
+              name="preview"
+              value={details.preview}
+              aria-invalid={Boolean(state.fieldErrors?.preview)}
+              className={cn("min-h-20 px-3 py-2", state.fieldErrors?.preview && "border-[var(--warn)]")}
+              onChange={(event) => updateDetail("preview", event.target.value)}
+              rows={2}
+              placeholder="Dieser Text erscheint im Report, bevor der Plan freigeschaltet ist."
+            />
+            <FieldError message={state.fieldErrors?.preview} />
+          </label>
+        </div>
+        <label className="grid gap-1 text-sm md:col-span-2 xl:col-span-3">
           Technik-Zielattribut
           <select
             name="target_technique_axis"
             value={details.targetTechniqueAxis}
             aria-invalid={Boolean(state.fieldErrors?.target_technique_axis)}
-            className={state.fieldErrors?.target_technique_axis ? "border-[var(--warn)]" : undefined}
+            className={cn("h-9 px-3 py-1.5", state.fieldErrors?.target_technique_axis && "border-[var(--warn)]")}
             onChange={(event) => updateDetail("targetTechniqueAxis", event.target.value)}
           >
             <option value="">Kein Technikfokus</option>
@@ -180,7 +182,7 @@ export function TrainingPlanForm({ plan }: TrainingPlanFormProps) {
               <option key={group} value={group}>{group}</option>
             ))}
           </select>
-          <p className="text-xs text-[var(--subtle)]">
+          <p className="text-[11px] leading-4 text-[var(--subtle)]">
             Wird mit der nächsten Veröffentlichung unveränderlich in die Planversion übernommen und markiert dort
             den Fokus im Athleten-Radar. Bereits veröffentlichte oder aktive Pläne ändern sich nicht. Dies ist keine
             Ergebnisprognose.
@@ -235,12 +237,12 @@ function Field({
   error?: string;
 } & Omit<React.ComponentProps<"input">, "onChange">) {
   return (
-    <label className="grid gap-2 text-sm">
+    <label className="grid gap-1 text-sm">
       {label}
       <input
         {...props}
         aria-invalid={Boolean(error)}
-        className={cn(className, error && "border-[var(--warn)]")}
+        className={cn("h-9 px-3 py-1.5", className, error && "border-[var(--warn)]")}
         onChange={onChange ? (event) => onChange(event.target.value) : undefined}
       />
       <FieldError message={error} />
