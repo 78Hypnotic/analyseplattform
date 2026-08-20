@@ -169,6 +169,7 @@ describe("WorkoutTimelineLauncher", () => {
     fireEvent.click(screen.getByRole("button", { name: "Löschen bestätigen" }));
     await waitFor(() => expect(libraryActions.deleteWorkoutLibraryItem).toHaveBeenCalledWith(item.id));
     expect(screen.queryByText(item.title)).toBeNull();
+    expect(screen.getByRole("button", { name: "In Bibliothek speichern" })).toBeTruthy();
   });
 
   it("filters the library and renders compact workout previews", async () => {

@@ -236,6 +236,7 @@ function WorkoutTimelineDialogContent({
     setLibraryMessage(result.message);
     if (result.status === "success") {
       setLibraryItems((current) => current.filter((item) => item.id !== id));
+      if (activeLibraryItemId === id) setActiveLibraryItemId(null);
     }
   }
 

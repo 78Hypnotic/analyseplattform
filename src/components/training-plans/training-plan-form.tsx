@@ -46,6 +46,7 @@ export function TrainingPlanForm({ plan }: TrainingPlanFormProps) {
   const [targetDistances, setTargetDistances] = useState<Array<(typeof TARGET_DISTANCES)[number]>>(
     () => plan?.target_distances ?? [...TARGET_DISTANCES],
   );
+  const [advancedOpen, setAdvancedOpen] = useState(() => Boolean(plan?.target_technique_axis));
   const [touchedFields, setTouchedFields] = useState<Set<TrainingPlanFieldName>>(() => new Set());
   const [content, setContent] = useState<TrainingPlanContentV2>(() => {
     if (!plan?.content) return createEmptyStructuredPlan();
@@ -220,7 +221,8 @@ export function TrainingPlanForm({ plan }: TrainingPlanFormProps) {
         </div>
         <details
           className="rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] md:col-span-2 xl:col-span-3"
-          defaultOpen={Boolean(details.targetTechniqueAxis || state.fieldErrors?.target_technique_axis)}
+          open={advancedOpen}
+          onToggle={(event) => setAdvancedOpen(event.currentTarget.open)}
         >
           <summary className="cursor-pointer px-3 py-2 text-sm font-medium text-[var(--muted)]">Weitere Einstellungen</summary>
           <label className="grid gap-1 border-t border-[var(--line)] p-3 text-sm">
