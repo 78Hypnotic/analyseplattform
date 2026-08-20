@@ -8,13 +8,14 @@ import {
   ArrowUp,
   Copy,
   GripVertical,
+  Maximize2,
   Plus,
   Trash2,
   Waves,
   X,
 } from "lucide-react";
 import { Button } from "@/components/button";
-import { WorkoutTimelineLauncher } from "@/components/training-plans/workout-timeline-dialog";
+import { WorkoutTimelineDialog } from "@/components/training-plans/workout-timeline-dialog";
 import { cn } from "@/lib/utils";
 import { duplicateSession, duplicateWeek, moveItem, moveSession } from "@/lib/training-plans/commands";
 import {
@@ -60,6 +61,11 @@ const WEEKDAYS = [
   [4, "Do", "Donnerstag"], [5, "Fr", "Freitag"], [6, "Sa", "Samstag"], [7, "So", "Sonntag"],
 ] as const;
 type PreferredWeekday = NonNullable<StructuredTrainingPlanSession["preferredWeekday"]>;
+type TimelineDialogState = {
+  sessionId: string;
+  title: string;
+  content: NonNullable<StructuredTrainingPlanSession["timelineWorkout"]>;
+};
 
 export function StructuredPlanBuilder({
   content,
@@ -71,6 +77,7 @@ export function StructuredPlanBuilder({
   const deferredContent = useDeferredValue(content);
   const metrics = getPlanMetrics(deferredContent);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [timelineDialog, setTimelineDialog] = useState<TimelineDialogState | null>(null);
   const selected = findSession(content, selectedSessionId);
 
   function addPreset(preset: "technique" | "aerobic" | "css") {
@@ -114,7 +121,8 @@ export function StructuredPlanBuilder({
   }
 
   function addSession(weekId: string) {
-    const session = createEmptyStructuredSession();
+    const timelineWorkout = createEmptyWorkoutContent("swim");
+    const session = { ...createEmptyStructuredSession(), timelineWorkout };
     updateWeek(weekId, {
       sessions: [
         ...(content.weeks.find((week) => week.id === weekId)?.sessions ?? []),
@@ -122,6 +130,28 @@ export function StructuredPlanBuilder({
       ],
     });
     setSelectedSessionId(session.id);
+    setTimelineDialog({ sessionId: session.id, title: session.title, content: timelineWorkout });
+  }
+
+  function openTimelineDialog(session: StructuredTrainingPlanSession) {
+    setTimelineDialog({
+      sessionId: session.id,
+      title: session.title,
+      content: session.timelineWorkout ?? createEmptyWorkoutContent("swim"),
+    });
+  }
+
+  function saveTimelineWorkout(timelineWorkout: NonNullable<StructuredTrainingPlanSession["timelineWorkout"]>) {
+    if (!timelineDialog) return;
+    onChange({
+      ...content,
+      weeks: content.weeks.map((week) => ({
+        ...week,
+        sessions: week.sessions.map((session) => session.id === timelineDialog.sessionId
+          ? { ...session, timelineWorkout }
+          : session),
+      })),
+    });
   }
 
   function selectDuplicate(weekId: string, sessionId: string) {
@@ -169,6 +199,15 @@ export function StructuredPlanBuilder({
 
   return (
     <section className="mt-6 space-y-4">
+      <WorkoutTimelineDialog
+        open={timelineDialog !== null}
+        content={timelineDialog?.content ?? createEmptyWorkoutContent("swim")}
+        onOpenChange={(open) => {
+          if (!open) setTimelineDialog(null);
+        }}
+        onSave={saveTimelineWorkout}
+        title={timelineDialog?.title}
+      />
       <PlanSummary metrics={metrics} />
       <div className="flex flex-col justify-between gap-3 border-y border-[var(--line)] py-3 sm:flex-row sm:items-center">
         <div>
@@ -228,6 +267,7 @@ export function StructuredPlanBuilder({
               onChange={updateSelectedSession}
               onMovePreviousWeek={() => moveSelectedToWeek(-1)}
               onMoveNextWeek={() => moveSelectedToWeek(1)}
+              onOpenTimeline={() => openTimelineDialog(selected.session)}
               onClose={() => setSelectedSessionId(null)}
             />
           </aside>
@@ -394,11 +434,12 @@ function WorkoutCard({ session, selected, onSelect, onDuplicate, onRemove, canRe
   );
 }
 
-function WorkoutInspector({ session, onChange, onMovePreviousWeek, onMoveNextWeek, canMovePreviousWeek, canMoveNextWeek, onClose }: {
+function WorkoutInspector({ session, onChange, onMovePreviousWeek, onMoveNextWeek, onOpenTimeline, canMovePreviousWeek, canMoveNextWeek, onClose }: {
   session: StructuredTrainingPlanSession;
   onChange: (patch: Partial<StructuredTrainingPlanSession>) => void;
   onMovePreviousWeek: () => void;
   onMoveNextWeek: () => void;
+  onOpenTimeline: () => void;
   canMovePreviousWeek: boolean;
   canMoveNextWeek: boolean;
   onClose: () => void;
@@ -454,12 +495,10 @@ function WorkoutInspector({ session, onChange, onMovePreviousWeek, onMoveNextWee
             : "Noch keine Timeline für dieses Workout angelegt"}
         </p>
         <div className="mt-3">
-          <WorkoutTimelineLauncher
-            content={session.timelineWorkout ?? createEmptyWorkoutContent("swim")}
-            onChange={(timelineWorkout) => onChange({ timelineWorkout })}
-            title={session.title}
-            buttonLabel={session.timelineWorkout ? "Timeline bearbeiten" : "Workout Builder öffnen"}
-          />
+          <Button type="button" onClick={onOpenTimeline}>
+            <Maximize2 size={16} />
+            {session.timelineWorkout ? "Timeline bearbeiten" : "Workout Builder öffnen"}
+          </Button>
         </div>
       </div>
 

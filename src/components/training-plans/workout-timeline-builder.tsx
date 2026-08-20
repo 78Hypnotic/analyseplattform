@@ -108,29 +108,14 @@ export function WorkoutTimelineBuilder({ content, onChange, benchmarks }: Workou
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="min-w-0 space-y-3">
-          <div
-            className="flex min-h-36 gap-3 overflow-x-auto rounded-lg border border-dashed border-[var(--line)] bg-[var(--soft-bg)] p-3"
-            onDragOver={(event) => event.preventDefault()}
-            onDrop={(event) => handleDrop(event, content.blocks.length)}
-          >
-            {content.blocks.map((block, index) => (
-              <BlockCard
-                key={block.id}
-                block={block}
-                selected={block.id === selectedBlock?.id}
-                resolvedStepCount={resolved?.steps.filter((step) => block.steps.some((blockStep) => blockStep.id === step.stepId)).length ?? 0}
-                onSelect={() => setSelectedBlockId(block.id)}
-                onDropBefore={(event) => handleDrop(event, index)}
-                onDuplicate={() => onChange(duplicateWorkoutBlock(content, block.id))}
-                onRemove={() => removeBlock(block.id)}
-              />
-            ))}
-            {content.blocks.length === 0 ? (
-              <div className="flex min-h-24 min-w-64 items-center justify-center rounded-lg border border-[var(--line)] text-sm text-[var(--muted)]">
-                Block aus der Palette hierher ziehen
-              </div>
-            ) : null}
-          </div>
+          <IntensityTimeline
+            content={content}
+            selectedBlockId={selectedBlock?.id ?? null}
+            onSelectBlock={setSelectedBlockId}
+            onDropBlock={handleDrop}
+            onDuplicateBlock={(blockId) => onChange(duplicateWorkoutBlock(content, blockId))}
+            onRemoveBlock={removeBlock}
+          />
           {resolved?.warnings.length ? (
             <div className="rounded-lg border border-[var(--warn)] bg-[var(--warn)]/10 p-3 text-sm text-[var(--foreground)]">
               {resolved.warnings.length} Zielwerte konnten noch nicht aus dem Athletenprofil berechnet werden.
@@ -152,62 +137,168 @@ export function WorkoutTimelineBuilder({ content, onChange, benchmarks }: Workou
   );
 }
 
-function BlockCard({
-  block,
-  selected,
-  resolvedStepCount,
-  onSelect,
-  onDropBefore,
-  onDuplicate,
-  onRemove,
+function IntensityTimeline({
+  content,
+  selectedBlockId,
+  onSelectBlock,
+  onDropBlock,
+  onDuplicateBlock,
+  onRemoveBlock,
 }: {
-  block: WorkoutBlock;
-  selected: boolean;
-  resolvedStepCount: number;
-  onSelect: () => void;
-  onDropBefore: (event: React.DragEvent) => void;
-  onDuplicate: () => void;
-  onRemove: () => void;
+  content: WorkoutContent;
+  selectedBlockId: string | null;
+  onSelectBlock: (blockId: string) => void;
+  onDropBlock: (event: React.DragEvent, targetIndex: number) => void;
+  onDuplicateBlock: (blockId: string) => void;
+  onRemoveBlock: (blockId: string) => void;
 }) {
-  const minutes = Math.round(getBlockSeconds(block) / 60);
+  const totalSeconds = content.blocks.reduce((total, block) => total + getBlockSeconds(block), 0);
 
   return (
-    <article
-      draggable
-      onDragStart={(event) => event.dataTransfer.setData("application/x-workout-block-id", block.id)}
-      onDragOver={(event) => event.preventDefault()}
-      onDrop={onDropBefore}
-      onClick={onSelect}
-      className={cn(
-        "flex min-w-56 flex-col gap-3 rounded-lg border bg-[var(--panel)] p-3 text-left transition",
-        selected ? "border-[var(--accent)] shadow-sm" : "border-[var(--line)] hover:border-[var(--accent)]",
-      )}
-    >
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--subtle)]">{block.kind}</p>
-          <h3 className="mt-1 truncate text-sm font-semibold text-[var(--foreground)]">{block.title}</h3>
+    <div className="rounded-lg border border-[var(--line)] bg-[var(--soft-bg)]">
+      <div className="flex items-center justify-between gap-3 border-b border-[var(--line)] px-3 py-2 text-xs text-[var(--muted)]">
+        <span>Breite = Dauer · Höhe = Intensität</span>
+        <span>{formatDuration(totalSeconds)}</span>
+      </div>
+      <div className="grid grid-cols-[2.75rem_minmax(0,1fr)]">
+        <div className="relative h-72 border-r border-[var(--line)] text-[9px] text-[var(--subtle)]">
+          {[200, 150, 100, 50, 0].map((value) => (
+            <span
+              key={value}
+              className="absolute right-2 -translate-y-1/2"
+              style={{ top: `${100 - value / 2}%` }}
+            >
+              {value}%
+            </span>
+          ))}
         </div>
-        <GripVertical size={16} className="shrink-0 text-[var(--subtle)]" />
-      </div>
-      <div className="grid grid-cols-3 gap-2 text-xs text-[var(--muted)]">
-        <span>{block.repeatCount}x</span>
-        <span>{block.steps.length} Steps</span>
-        <span>{minutes} min</span>
-      </div>
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-xs text-[var(--subtle)]">{resolvedStepCount ? "Targets berechenbar" : "Relative Targets"}</span>
-        <div className="flex gap-1">
-          <button type="button" onClick={(event) => { event.stopPropagation(); onDuplicate(); }} className="rounded-md p-1 text-[var(--muted)] hover:bg-[var(--raised-bg)]">
-            <Copy size={14} />
-          </button>
-          <button type="button" onClick={(event) => { event.stopPropagation(); onRemove(); }} className="rounded-md p-1 text-[var(--muted)] hover:bg-[var(--raised-bg)]">
-            <Trash2 size={14} />
-          </button>
+        <div className="overflow-x-auto">
+          <div
+            className="flex h-72 items-stretch bg-[linear-gradient(to_bottom,var(--line)_1px,transparent_1px)] bg-[length:100%_25%] p-2"
+            style={{ minWidth: `${Math.max(720, content.blocks.length * 180)}px` }}
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={(event) => onDropBlock(event, content.blocks.length)}
+          >
+            {content.blocks.map((block, blockIndex) => {
+              const segments = getTimelineSegments(block);
+              const blockSeconds = segments.reduce((total, segment) => total + segment.seconds, 0);
+              return (
+                <div
+                  key={block.id}
+                  draggable
+                  onDragStart={(event) => event.dataTransfer.setData("application/x-workout-block-id", block.id)}
+                  onDragOver={(event) => event.preventDefault()}
+                  onDrop={(event) => {
+                    event.stopPropagation();
+                    onDropBlock(event, blockIndex);
+                  }}
+                  onClick={() => onSelectBlock(block.id)}
+                  className={cn(
+                    "group relative flex h-full min-w-32 items-end border-x border-transparent px-px pb-6 pt-9 transition",
+                    selectedBlockId === block.id && "border-[var(--accent)]",
+                  )}
+                  style={{ flexGrow: Math.max(1, blockSeconds), flexBasis: `${Math.max(128, segments.length * 34)}px` }}
+                >
+                  <div className="absolute inset-x-1 top-1 flex items-center justify-between gap-1">
+                    <span className="flex min-w-0 items-center gap-1 text-[10px] font-medium text-[var(--foreground)]">
+                      <GripVertical size={12} className="shrink-0 text-[var(--subtle)]" />
+                      <span className="truncate">{block.title}</span>
+                    </span>
+                    <span className="flex shrink-0 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100">
+                      <button
+                        type="button"
+                        aria-label={`${block.title} duplizieren`}
+                        onClick={(event) => { event.stopPropagation(); onDuplicateBlock(block.id); }}
+                        className="rounded p-1 text-[var(--muted)] hover:bg-[var(--raised-bg)]"
+                      >
+                        <Copy size={12} />
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`${block.title} löschen`}
+                        onClick={(event) => { event.stopPropagation(); onRemoveBlock(block.id); }}
+                        className="rounded p-1 text-[var(--muted)] hover:bg-[var(--raised-bg)]"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </span>
+                  </div>
+                  {segments.map((segment) => (
+                    <button
+                      key={segment.key}
+                      type="button"
+                      aria-label={`${block.title}: ${segment.label}, ${formatDuration(segment.seconds)}, ${segment.maxPercent}%`}
+                      title={`${segment.label} · ${formatDuration(segment.seconds)} · ${segment.minPercent}-${segment.maxPercent}%`}
+                      onClick={(event) => { event.stopPropagation(); onSelectBlock(block.id); }}
+                      className={cn(
+                        "relative min-w-5 rounded-[4px] border transition hover:brightness-110",
+                        segment.tone === "heart-rate" && "border-[var(--warn)] bg-[var(--warn)]/50",
+                        segment.tone === "vo2max" && "border-[var(--accent-2)] bg-[var(--accent-2)]/50",
+                        segment.tone === "threshold" && "border-[var(--accent)] bg-[var(--accent)]/55",
+                        segment.tone === "recovery" && "border-[var(--subtle)] bg-[var(--subtle)]/45",
+                      )}
+                      style={{
+                        flexGrow: segment.seconds,
+                        flexBasis: 0,
+                        height: `${Math.max(6, Math.min(100, segment.maxPercent / 2))}%`,
+                      }}
+                    />
+                  ))}
+                  <span className="absolute inset-x-1 bottom-1 truncate text-center text-[9px] text-[var(--subtle)]">
+                    {block.repeatCount > 1 ? `${block.repeatCount}x · ` : ""}{formatDuration(blockSeconds)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
-    </article>
+    </div>
   );
+}
+
+type TimelineSegment = {
+  key: string;
+  label: string;
+  seconds: number;
+  minPercent: number;
+  maxPercent: number;
+  tone: "threshold" | "heart-rate" | "vo2max" | "recovery";
+};
+
+function getTimelineSegments(block: WorkoutBlock): TimelineSegment[] {
+  return Array.from({ length: block.repeatCount }, (_, repeatIndex) =>
+    block.steps.flatMap((step) => {
+      const target = step.targets[0];
+      const tone = target?.type === "max_heart_rate_percentage"
+        ? "heart-rate"
+        : target?.type === "vo2max_power_percentage"
+          ? "vo2max"
+          : "threshold";
+      const workSegment: TimelineSegment = {
+        key: `${repeatIndex}-${step.id}-work`,
+        label: block.repeatCount > 1 ? `${step.title} ${repeatIndex + 1}` : step.title,
+        seconds: Math.max(1, getDurationSeconds(step.duration)),
+        minPercent: target?.minPercent ?? 50,
+        maxPercent: target?.maxPercent ?? target?.minPercent ?? 50,
+        tone,
+      };
+      const recoverySeconds = step.recoverySeconds ?? 0;
+      return recoverySeconds > 0
+        ? [
+            workSegment,
+            {
+              key: `${repeatIndex}-${step.id}-recovery`,
+              label: "Erholung",
+              seconds: recoverySeconds,
+              minPercent: 35,
+              maxPercent: 45,
+              tone: "recovery" as const,
+            },
+          ]
+        : [workSegment];
+    }),
+  ).flat();
 }
 
 function BlockInspector({
@@ -395,6 +486,12 @@ function getBlockSeconds(block: WorkoutBlock) {
 
 function getDurationSeconds(duration: WorkoutDuration) {
   return duration.type === "time" ? duration.seconds : 0;
+}
+
+function formatDuration(seconds: number) {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return remainingSeconds > 0 ? `${minutes}:${String(remainingSeconds).padStart(2, "0")} min` : `${minutes} min`;
 }
 
 function durationMinutes(duration: WorkoutDuration) {
