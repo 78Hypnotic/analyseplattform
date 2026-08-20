@@ -141,11 +141,11 @@ function FatCurveCard({ result }: { result: BikeResult }) {
         <Flame size={18} className="text-[var(--accent)]" />
         <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--subtle)]">Stoffwechsel & Laktat</p>
       </div>
-      <h2 className="text-2xl font-semibold">Substratnutzung & Laktatmodell über die Leistung</h2>
+      <h2 className="text-2xl font-semibold">Substrat-Energieverbrauch über die Leistung</h2>
       <p className="muted mt-2 max-w-2xl leading-7">
-        Absolute modellierte Oxidationsraten und relative Energieanteile werden getrennt dargestellt. Der
+        Die modellierte Substratnutzung wird als Energieverbrauch in kcal/h dargestellt. Der
         FatMax-Proxy liegt bei {Math.round(result.fatMaxWatt)} W ({Math.round(result.fatMaxPctFtp * 100)} % FTP)
-        und markiert das Maximum der absoluten Fettkurve. Das Laktat ist ein schematischer Modellverlauf.
+        und markiert das Maximum der Fettenergie-Kurve.
       </p>
       <div className="mt-5">
         <BikeMetabolicChart curve={result.fatCurve} ftp={result.ftpWatt} fatMaxWatt={result.fatMaxWatt} />

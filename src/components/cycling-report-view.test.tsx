@@ -12,18 +12,17 @@ describe("CyclingReportView", () => {
 
     expect(screen.getByText("Dominanz D")).toBeTruthy();
     expect(screen.getByText(result.glycolyticDominance.toFixed(3))).toBeTruthy();
-    expect(screen.getByText("Absolute Oxidationsraten (Modell)")).toBeTruthy();
-    expect(screen.getByRole("img", { name: "Modellierte absolute Fett- und Kohlenhydratoxidation über die Leistung" })).toBeTruthy();
-    expect(screen.getByRole("img", { name: "Relative Energieanteile und schematisches Laktat über die Leistung" })).toBeTruthy();
+    expect(screen.getByText("Energieverbrauch (Modell)")).toBeTruthy();
+    expect(screen.getByRole("img", { name: "Modellierter Energieverbrauch aus Fett und Kohlenhydraten über die Leistung" })).toBeTruthy();
+    expect(screen.queryByRole("img", { name: "Relative Energieanteile und schematisches Laktat über die Leistung" })).toBeNull();
     expect(screen.getByText("Werte am FatMax-Proxy")).toBeTruthy();
-    expect(screen.getByText("Laktat (schematisches Modell)")).toBeTruthy();
     expect(screen.queryByText("Alte Modellversion")).toBeNull();
   });
 
   it("shows detailed values while hovering over the metabolic curves", () => {
     render(<CyclingReportView input={DEFAULT_BIKE_INPUT} result={validResult()} />);
     const oxidationChart = screen.getByRole("img", {
-      name: "Modellierte absolute Fett- und Kohlenhydratoxidation über die Leistung",
+      name: "Modellierter Energieverbrauch aus Fett und Kohlenhydraten über die Leistung",
     });
     vi.spyOn(oxidationChart, "getBoundingClientRect").mockReturnValue({
       bottom: 220,
@@ -41,7 +40,7 @@ describe("CyclingReportView", () => {
 
     const tooltip = screen.getByRole("status");
     expect(tooltip.textContent).toContain("Fett");
-    expect(tooltip.textContent).toContain("g/h");
+    expect(tooltip.textContent).toContain("kcal/h");
     expect(tooltip.textContent).toContain("KH");
 
     fireEvent.pointerLeave(oxidationChart);
