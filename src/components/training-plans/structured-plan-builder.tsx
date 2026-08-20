@@ -18,13 +18,11 @@ import {
 import { duplicateSession, duplicateWeek, moveItem, moveSession } from "@/lib/training-plans/commands";
 import {
   createEmptyStructuredSession,
-  createEmptyStructuredStep,
   createEmptyWorkoutContent,
   createPlanNodeId,
 } from "@/lib/training-plans/content";
 import { getPlanMetrics, getSessionMeters, getWeekMeters } from "@/lib/training-plans/metrics";
 import type {
-  StructuredSwimBlock,
   StructuredTrainingPlanSession,
   StructuredTrainingPlanWeek,
   TrainingPlanDiscipline,
@@ -53,13 +51,6 @@ export function StructuredPlanBuilder({
   const deferredContent = useDeferredValue(content);
   const metrics = getPlanMetrics(deferredContent);
   const [timelineDialog, setTimelineDialog] = useState<TimelineDialogState | null>(null);
-
-  function addPreset(preset: "technique" | "aerobic" | "css") {
-    const targetWeek = content.weeks[0];
-    if (!targetWeek) return;
-    const session = createWorkoutPreset(preset);
-    updateWeek(targetWeek.id, { sessions: [...targetWeek.sessions, session] });
-  }
 
   function addWeek() {
     const nextNumber = content.weeks.length + 1;
@@ -180,17 +171,6 @@ export function StructuredPlanBuilder({
         title={timelineDialog?.title}
       />
       <PlanSummary metrics={metrics} />
-      <div className="flex flex-col justify-between gap-3 border-y border-[var(--line)] py-3 sm:flex-row sm:items-center">
-        <div>
-          <p className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--subtle)]">Workout-Vorlagen</p>
-          <p className="mt-1 text-sm text-[var(--muted)]">In die ausgewählte Woche einsetzen</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="ghost" onClick={() => addPreset("technique")}>Technik</Button>
-          <Button type="button" variant="ghost" onClick={() => addPreset("aerobic")}>Aerob</Button>
-          <Button type="button" variant="ghost" onClick={() => addPreset("css")}>CSS</Button>
-        </div>
-      </div>
       <div>
         <div className="min-w-0 space-y-4">
           {content.weeks.map((week, weekIndex) => (
@@ -408,85 +388,6 @@ function DayColumn({ label, onDrop, children }: { label: string; onDrop: (sessio
       <div className="space-y-2">{children}</div>
     </section>
   );
-}
-
-function createWorkoutPreset(preset: "technique" | "aerobic" | "css"): StructuredTrainingPlanSession {
-  const base = createEmptyStructuredSession();
-  if (preset === "technique") {
-    return {
-      ...base,
-      title: "Technik & Wasserlage",
-      focus: "Körperlinie und früher Catch",
-      blocks: [
-        presetBlock("Einschwimmen", "warmup", 4, 100, "Z1"),
-        {
-          ...presetBlock("Technik", "drill", 8, 50, "Z1"),
-          steps: [{
-            ...createEmptyStructuredStep(),
-            repetitions: 8,
-            distanceMeters: 50,
-            restSeconds: 20,
-            intensity: { type: "zone", zone: "Z1" },
-            drillName: "Sculling",
-            cue: "Druck früh aufbauen",
-          }],
-        },
-        presetBlock("Ausschwimmen", "cooldown", 4, 50, "Z1"),
-      ],
-    };
-  }
-  if (preset === "css") {
-    return {
-      ...base,
-      title: "CSS-Entwicklung",
-      focus: "Schwellenpace stabilisieren",
-      blocks: [
-        presetBlock("Einschwimmen", "warmup", 4, 100, "Z1"),
-        {
-          ...presetBlock("CSS-Serie", "main", 8, 100, "Z3"),
-          steps: [{
-            ...createEmptyStructuredStep(),
-            repetitions: 8,
-            distanceMeters: 100,
-            restSeconds: 20,
-            intensity: { type: "css", offsetSecondsPer100m: 3 },
-          }],
-        },
-        presetBlock("Ausschwimmen", "cooldown", 4, 50, "Z1"),
-      ],
-    };
-  }
-  return {
-    ...base,
-    title: "Aerobe Grundlage",
-    focus: "Ruhige Ausdauer und Effizienz",
-    blocks: [
-      presetBlock("Einschwimmen", "warmup", 4, 100, "Z1"),
-      presetBlock("Aerobe Hauptserie", "main", 6, 200, "Z2"),
-      presetBlock("Ausschwimmen", "cooldown", 4, 50, "Z1"),
-    ],
-  };
-}
-
-function presetBlock(
-  title: string,
-  kind: StructuredSwimBlock["kind"],
-  repetitions: number,
-  distanceMeters: number,
-  zone: "Z1" | "Z2" | "Z3" | "Z4" | "Z5",
-): StructuredSwimBlock {
-  return {
-    id: createPlanNodeId("block"),
-    title,
-    kind,
-    repeatCount: 1,
-    steps: [{
-      ...createEmptyStructuredStep(),
-      repetitions,
-      distanceMeters,
-      intensity: { type: "zone", zone },
-    }],
-  };
 }
 
 function IconButton({ title, onClick, disabled, children }: { title: string; onClick: () => void; disabled?: boolean; children: React.ReactNode }) {
