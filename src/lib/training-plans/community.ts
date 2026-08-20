@@ -14,6 +14,7 @@ export type CommunityAuthor = {
 export type CommunityThreadSummary = {
   id: string;
   libraryId: string;
+  librarySlug: string;
   title: string;
   content: string;
   status: "published" | "removed";
@@ -57,6 +58,7 @@ export type TrainingPlanCommunityHome =
 
 type LibraryRow = {
   id: string;
+  slug: string;
   coach_id: string;
   name: string;
   description: string;
@@ -122,7 +124,7 @@ export async function getTrainingPlanCommunityHome(selectedLibraryId?: string): 
   if (isAdmin) {
     const { data, error } = await supabase
       .from("coach_plan_libraries")
-      .select("id,coach_id,name,description,is_active")
+      .select("id,slug,coach_id,name,description,is_active")
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
 
@@ -139,7 +141,7 @@ export async function getTrainingPlanCommunityHome(selectedLibraryId?: string): 
   if (isCoach) {
     const { data, error } = await supabase
       .from("coach_plan_libraries")
-      .select("id,coach_id,name,description,is_active")
+      .select("id,slug,coach_id,name,description,is_active")
       .eq("coach_id", user.id)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -168,6 +170,59 @@ export async function getTrainingPlanCommunityHome(selectedLibraryId?: string): 
   };
 }
 
+export async function getCommunityBySlug(slug: string): Promise<TrainingPlanCommunityHome> {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { kind: "signed-out" };
+
+  const { data: libraryData, error: libraryError } = await supabase
+    .from("coach_plan_libraries")
+    .select("id,slug,coach_id,name,description,is_active")
+    .eq("slug", slug)
+    .eq("is_active", true)
+    .maybeSingle();
+  if (libraryError) throw new Error(libraryError.message);
+  if (!libraryData) return { kind: "locked" };
+
+  const library = (await enrichLibraries([libraryData as LibraryRow]))[0] ?? null;
+  if (!library) return { kind: "locked" };
+
+  const { data: roleRows, error: roleError } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", user.id);
+  if (roleError) throw new Error(roleError.message);
+
+  const roles = (roleRows ?? []).map((row) => row.role);
+  const isAdmin = roles.includes("admin");
+  const isCoach = roles.includes("coach") && library.coachId === user.id;
+  const hasMembership = await hasActiveLibraryMembership(user.id, library.id);
+
+  if (!isAdmin && !isCoach && !hasMembership) return { kind: "locked" };
+
+  return {
+    kind: "community",
+    role: isAdmin ? "admin" : isCoach ? "coach" : "member",
+    library,
+    threads: await getLibraryCommunityThreads(library.id),
+    canModerate: isAdmin || isCoach,
+  };
+}
+
+export async function getCommunitySlugByLibraryId(libraryId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("coach_plan_libraries")
+    .select("slug")
+    .eq("id", libraryId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return typeof data?.slug === "string" ? data.slug : null;
+}
+
 export async function getCommunityThread(threadId: string): Promise<CommunityThreadDetail | null> {
   const supabase = await createSupabaseServerClient();
   const {
@@ -179,6 +234,7 @@ export async function getCommunityThread(threadId: string): Promise<CommunityThr
     .from("community_threads")
     .select("id,library_id,author_id,title,content,status,removed_reason,created_at,updated_at")
     .eq("id", threadId)
+    .eq("status", "published")
     .maybeSingle();
   if (threadError) throw new Error(threadError.message);
   if (!thread) return null;
@@ -191,6 +247,7 @@ export async function getCommunityThread(threadId: string): Promise<CommunityThr
     .from("community_replies")
     .select("id,thread_id,author_id,content,status,removed_reason,created_at")
     .eq("thread_id", threadId)
+    .eq("status", "published")
     .order("created_at", { ascending: true });
   if (repliesError) throw new Error(repliesError.message);
 
@@ -204,6 +261,7 @@ export async function getCommunityThread(threadId: string): Promise<CommunityThr
   return {
     id: threadRow.id,
     libraryId: threadRow.library_id,
+    librarySlug: library.slug,
     title: threadRow.title,
     content: threadRow.content,
     status: threadRow.status,
@@ -233,6 +291,7 @@ async function getLibraryCommunityThreads(libraryId: string): Promise<CommunityT
     .from("community_threads")
     .select("id,library_id,author_id,title,content,status,removed_reason,created_at,updated_at")
     .eq("library_id", libraryId)
+    .eq("status", "published")
     .order("created_at", { ascending: false })
     .limit(50);
   if (error) throw new Error(error.message);
@@ -252,6 +311,7 @@ async function getLibraryCommunityThreads(libraryId: string): Promise<CommunityT
     return {
       id: thread.id,
       libraryId: thread.library_id,
+      librarySlug: library.slug,
       title: thread.title,
       content: thread.content,
       status: thread.status,
@@ -380,11 +440,28 @@ async function getActiveMemberLibrary(userId: string) {
   return getLibraryById(membership.library_id);
 }
 
+async function hasActiveLibraryMembership(userId: string, libraryId: string) {
+  const supabase = await createSupabaseServerClient();
+  const now = new Date().toISOString();
+  const { data, error } = await supabase
+    .from("group_coaching_memberships")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("library_id", libraryId)
+    .eq("status", "active")
+    .lte("valid_from", now)
+    .or(`valid_until.is.null,valid_until.gt.${now}`)
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return Boolean(data);
+}
+
 async function getLibraryById(libraryId: string) {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("coach_plan_libraries")
-    .select("id,coach_id,name,description,is_active")
+    .select("id,slug,coach_id,name,description,is_active")
     .eq("id", libraryId)
     .eq("is_active", true)
     .maybeSingle();
@@ -411,6 +488,7 @@ async function enrichLibraries(rows: LibraryRow[]) {
 
   return rows.map((row): PlanLibrary => ({
     id: row.id,
+    slug: row.slug,
     coachId: row.coach_id,
     coachName: profileById.get(row.coach_id) ?? "Coach",
     name: row.name,

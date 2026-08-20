@@ -14,6 +14,10 @@ Die Community gehört zu einer `coach_plan_libraries`-Bibliothek. Sie gehört
 nicht zu einzelnen Planversionen und nicht zu separat gekauften statischen
 Trainingsplänen.
 
+Der Einstieg liegt unter `/community`. Einzelne Communities verwenden einen
+sprechenden Slug unter `/community/[slug]`; Threads liegen unter
+`/community/[slug]/threads/[threadId]`.
+
 ## MVP-Scope
 
 - eine Themenliste pro Coach-Bibliothek,
@@ -65,6 +69,10 @@ Die Migration `20260820143000_community_attachments.sql` ergänzt:
 
 Erlaubt sind JPG, PNG und WebP bis 5 MB pro Datei. Pro Thema oder Antwort sind
 maximal vier Bilder vorgesehen.
+
+Die Migration `20260820152000_coach_library_slugs.sql` ergänzt einen stabilen
+Slug auf `coach_plan_libraries`. Dieser Slug bildet die Grundlage für
+sprechende Community-URLs.
 
 Entfernte Inhalte werden nicht hart gelöscht. Sie bleiben als `removed`
 markiert, speichern optional einen Moderationsgrund und werden in der UI als

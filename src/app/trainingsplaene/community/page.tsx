@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { getCommunitySlugByLibraryId } from "@/lib/training-plans/community";
 
 export default async function LegacyCommunityPage({
   searchParams,
@@ -6,5 +7,6 @@ export default async function LegacyCommunityPage({
   searchParams: Promise<{ libraryId?: string }>;
 }) {
   const { libraryId } = await searchParams;
-  redirect(libraryId ? `/community?libraryId=${libraryId}` : "/community");
+  const slug = libraryId ? await getCommunitySlugByLibraryId(libraryId) : null;
+  redirect(slug ? `/community/${slug}` : "/community");
 }

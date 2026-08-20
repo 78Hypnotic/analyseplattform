@@ -1,26 +1,27 @@
 import { ArrowLeft, MessageSquare, ShieldCheck } from "lucide-react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { AppHeader } from "@/components/app-header";
 import { getCommunityThread, type CommunityAttachment, type CommunityReply, type CommunityThreadDetail } from "@/lib/training-plans/community";
-import { createCommunityReply, removeCommunityReply, removeCommunityThread } from "../actions";
+import { createCommunityReply, removeCommunityReply, removeCommunityThread } from "../../../actions";
 
 export const dynamic = "force-dynamic";
 
 export default async function CommunityThreadPage({
   params,
 }: {
-  params: Promise<{ threadId: string }>;
+  params: Promise<{ slug: string; threadId: string }>;
 }) {
-  const { threadId } = await params;
+  const { slug, threadId } = await params;
   const thread = await getCommunityThread(threadId);
   if (!thread) notFound();
+  if (thread.librarySlug !== slug) redirect(`/community/${thread.librarySlug}/threads/${thread.id}`);
 
   return (
     <>
       <AppHeader hideTrainingPlansLink />
       <main className="mx-auto w-full max-w-4xl px-5 py-10 pb-24">
-        <Link href="/community" className="inline-flex items-center gap-2 text-sm font-medium text-[var(--accent)] hover:underline">
+        <Link href={`/community/${thread.librarySlug}`} className="inline-flex items-center gap-2 text-sm font-medium text-[var(--accent)] hover:underline">
           <ArrowLeft size={15} /> Zur Community
         </Link>
         <ThreadPost thread={thread} />
@@ -34,10 +35,10 @@ export default async function CommunityThreadPage({
           {thread.replies.length === 0 ? (
             <div className="surface p-5 text-sm text-[var(--muted)]">Noch keine Antworten.</div>
           ) : thread.replies.map((reply) => (
-            <ReplyPost key={reply.id} reply={reply} threadId={thread.id} canModerate={thread.canModerate} />
+            <ReplyPost key={reply.id} reply={reply} threadId={thread.id} communitySlug={thread.librarySlug} canModerate={thread.canModerate} />
           ))}
         </section>
-        {thread.status === "published" ? <ReplyForm threadId={thread.id} /> : null}
+        {thread.status === "published" ? <ReplyForm threadId={thread.id} communitySlug={thread.librarySlug} /> : null}
       </main>
     </>
   );
@@ -50,46 +51,45 @@ function ThreadPost({ thread }: { thread: CommunityThreadDetail }) {
         {thread.author.name} · {formatRole(thread.author.role)} · {formatDate(thread.createdAt)}
       </p>
       <h1 className="display-serif mt-3 text-5xl leading-tight text-[var(--foreground)] sm:text-6xl">{thread.title}</h1>
-      {thread.status === "removed" ? (
-        <RemovedNotice reason={thread.removedReason} />
-      ) : (
-        <>
-          <p className="mt-5 whitespace-pre-wrap text-base leading-7 text-[var(--muted)]">{thread.content}</p>
-          <AttachmentGrid attachments={thread.attachments} />
-        </>
-      )}
-      {thread.canModerate && thread.status === "published" ? <ModerateThreadForm threadId={thread.id} /> : null}
+      <p className="mt-5 whitespace-pre-wrap text-base leading-7 text-[var(--muted)]">{thread.content}</p>
+      <AttachmentGrid attachments={thread.attachments} />
+      {thread.canModerate && thread.status === "published" ? <ModerateThreadForm threadId={thread.id} communitySlug={thread.librarySlug} /> : null}
     </article>
   );
 }
 
-function ReplyPost({ reply, threadId, canModerate }: { reply: CommunityReply; threadId: string; canModerate: boolean }) {
+function ReplyPost({
+  reply,
+  threadId,
+  communitySlug,
+  canModerate,
+}: {
+  reply: CommunityReply;
+  threadId: string;
+  communitySlug: string;
+  canModerate: boolean;
+}) {
   return (
     <article className="surface p-5">
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
         <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--subtle)]">
           {reply.author.name} · {formatRole(reply.author.role)} · {formatDate(reply.createdAt)}
         </p>
-        {canModerate && reply.status === "published" ? <ModerateReplyForm threadId={threadId} replyId={reply.id} /> : null}
+        {canModerate && reply.status === "published" ? <ModerateReplyForm threadId={threadId} replyId={reply.id} communitySlug={communitySlug} /> : null}
       </div>
-      {reply.status === "removed" ? (
-        <RemovedNotice reason={reply.removedReason} />
-      ) : (
-        <>
-          <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-[var(--muted)]">{reply.content}</p>
-          <AttachmentGrid attachments={reply.attachments} compact />
-        </>
-      )}
+      <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-[var(--muted)]">{reply.content}</p>
+      <AttachmentGrid attachments={reply.attachments} compact />
     </article>
   );
 }
 
-function ReplyForm({ threadId }: { threadId: string }) {
+function ReplyForm({ threadId, communitySlug }: { threadId: string; communitySlug: string }) {
   return (
     <section className="surface mt-8 p-5 sm:p-7">
       <h2 className="text-xl font-semibold">Antwort schreiben</h2>
       <form action={createCommunityReply} className="mt-4 grid gap-3">
         <input type="hidden" name="threadId" value={threadId} />
+        <input type="hidden" name="communitySlug" value={communitySlug} />
         <textarea name="content" minLength={2} maxLength={2000} rows={5} placeholder="Deine Antwort" required />
         <label className="grid gap-2 text-sm text-[var(--muted)]">
           Bilder anhängen
@@ -133,10 +133,11 @@ function AttachmentGrid({ attachments, compact = false }: { attachments: Communi
   );
 }
 
-function ModerateThreadForm({ threadId }: { threadId: string }) {
+function ModerateThreadForm({ threadId, communitySlug }: { threadId: string; communitySlug: string }) {
   return (
     <form action={removeCommunityThread} className="mt-6 flex flex-col gap-3 rounded-lg border border-[var(--line)] bg-[var(--panel-2)] p-4">
       <input type="hidden" name="threadId" value={threadId} />
+      <input type="hidden" name="communitySlug" value={communitySlug} />
       <label className="text-sm font-medium" htmlFor="thread-removal-reason">Moderationsgrund</label>
       <input id="thread-removal-reason" name="reason" maxLength={300} placeholder="Optional" />
       <button className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[var(--line)] px-4 text-sm font-medium text-[var(--foreground)] transition hover:border-[var(--accent)]" type="submit">
@@ -146,24 +147,17 @@ function ModerateThreadForm({ threadId }: { threadId: string }) {
   );
 }
 
-function ModerateReplyForm({ threadId, replyId }: { threadId: string; replyId: string }) {
+function ModerateReplyForm({ threadId, replyId, communitySlug }: { threadId: string; replyId: string; communitySlug: string }) {
   return (
     <form action={removeCommunityReply} className="flex flex-wrap items-center gap-2">
       <input type="hidden" name="threadId" value={threadId} />
       <input type="hidden" name="replyId" value={replyId} />
+      <input type="hidden" name="communitySlug" value={communitySlug} />
       <input name="reason" maxLength={300} placeholder="Grund" className="h-9 py-2 text-sm" />
       <button className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-[var(--line)] px-3 text-sm font-medium text-[var(--foreground)] transition hover:border-[var(--accent)]" type="submit">
         Entfernen
       </button>
     </form>
-  );
-}
-
-function RemovedNotice({ reason }: { reason: string | null }) {
-  return (
-    <div className="mt-4 rounded-lg border border-[var(--line)] bg-[var(--panel-2)] p-4 text-sm text-[var(--muted)]">
-      Dieser Beitrag wurde entfernt.{reason ? ` Grund: ${reason}` : ""}
-    </div>
   );
 }
 

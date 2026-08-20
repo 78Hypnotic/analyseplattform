@@ -52,8 +52,9 @@ export async function createCommunityThread(formData: FormData) {
     threadId: data.id,
   });
 
-  revalidateCommunityPaths(data.id);
-  redirect(`/community/${data.id}`);
+  const communitySlug = readCommunitySlug(formData.get("communitySlug"));
+  revalidateCommunityPaths(data.id, communitySlug);
+  redirect(communitySlug ? `/community/${communitySlug}/threads/${data.id}` : "/community");
 }
 
 export async function createCommunityReply(formData: FormData) {
@@ -88,7 +89,7 @@ export async function createCommunityReply(formData: FormData) {
     replyId: data.id,
   });
 
-  revalidateCommunityPaths(parsed.data.threadId);
+  revalidateCommunityPaths(parsed.data.threadId, readCommunitySlug(formData.get("communitySlug")));
 }
 
 export async function removeCommunityThread(formData: FormData) {
@@ -107,16 +108,11 @@ export async function removeCommunityThread(formData: FormData) {
 
   const { error } = await supabase
     .from("community_threads")
-    .update({
-      status: "removed",
-      removed_at: new Date().toISOString(),
-      removed_by: user.id,
-      removed_reason: parsed.data.reason,
-    })
+    .delete()
     .eq("id", parsed.data.id);
   if (error) throw new Error(error.message);
 
-  revalidateCommunityPaths(parsed.data.id);
+  revalidateCommunityPaths(parsed.data.id, readCommunitySlug(formData.get("communitySlug")));
 }
 
 export async function removeCommunityReply(formData: FormData) {
@@ -138,22 +134,26 @@ export async function removeCommunityReply(formData: FormData) {
 
   const { error } = await supabase
     .from("community_replies")
-    .update({
-      status: "removed",
-      removed_at: new Date().toISOString(),
-      removed_by: user.id,
-      removed_reason: parsed.data.reason,
-    })
+    .delete()
     .eq("id", parsed.data.id);
   if (error) throw new Error(error.message);
 
-  revalidateCommunityPaths(threadId);
+  revalidateCommunityPaths(threadId, readCommunitySlug(formData.get("communitySlug")));
 }
 
-function revalidateCommunityPaths(threadId: string) {
+function revalidateCommunityPaths(threadId: string, communitySlug: string | null) {
   revalidatePath("/community");
-  revalidatePath(`/community/${threadId}`);
+  if (communitySlug) {
+    revalidatePath(`/community/${communitySlug}`);
+    revalidatePath(`/community/${communitySlug}/threads/${threadId}`);
+  }
   revalidatePath("/trainingsplaene");
+}
+
+function readCommunitySlug(value: FormDataEntryValue | null) {
+  if (typeof value !== "string") return null;
+  const slug = value.trim();
+  return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) ? slug : null;
 }
 
 async function uploadCommunityAttachments({

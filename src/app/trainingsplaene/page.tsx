@@ -229,7 +229,7 @@ function AdminLibraries({
             Bibliothek von {selectedLibrary.coachName}
           </p>
           <h2 className="display-serif mt-3 text-4xl text-[var(--foreground)]">{selectedLibrary.name}</h2>
-          <ButtonLink href={`/community?libraryId=${selectedLibrary.id}`} variant="secondary" className="mt-5">
+          <ButtonLink href={`/community/${selectedLibrary.slug}`} variant="secondary" className="mt-5">
             <MessageSquare size={16} /> Community dieser Bibliothek öffnen
           </ButtonLink>
           <PlanGrid versions={versions} />

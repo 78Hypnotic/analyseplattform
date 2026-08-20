@@ -9,6 +9,7 @@ import type {
 
 export type PlanLibrary = {
   id: string;
+  slug: string;
   coachId: string;
   coachName: string;
   name: string;
@@ -35,6 +36,7 @@ export type TrainingPlanSelectionState =
 
 type LibraryRow = {
   id: string;
+  slug: string;
   coach_id: string;
   name: string;
   description: string;
@@ -79,7 +81,7 @@ export async function getTrainingPlanLibraryHome(
   if (roles.includes("admin")) {
     const { data, error } = await supabase
       .from("coach_plan_libraries")
-      .select("id,coach_id,name,description,is_active")
+      .select("id,slug,coach_id,name,description,is_active")
       .order("created_at", { ascending: false });
 
     if (error) throw new Error(error.message);
@@ -96,7 +98,7 @@ export async function getTrainingPlanLibraryHome(
   if (roles.includes("coach")) {
     const { data, error } = await supabase
       .from("coach_plan_libraries")
-      .select("id,coach_id,name,description,is_active")
+      .select("id,slug,coach_id,name,description,is_active")
       .eq("coach_id", user.id)
       .maybeSingle();
 
@@ -127,7 +129,7 @@ export async function getTrainingPlanLibraryHome(
 
   const { data: libraryData, error: libraryError } = await supabase
     .from("coach_plan_libraries")
-    .select("id,coach_id,name,description,is_active")
+    .select("id,slug,coach_id,name,description,is_active")
     .eq("id", membership.library_id)
     .eq("is_active", true)
     .maybeSingle();
@@ -215,6 +217,7 @@ async function enrichLibraries(rows: LibraryRow[]) {
 
   return rows.map((row) => ({
     id: row.id,
+    slug: row.slug,
     coachId: row.coach_id,
     coachName: profileById.get(row.coach_id) ?? "Coach",
     name: row.name,
