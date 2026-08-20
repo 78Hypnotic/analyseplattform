@@ -359,17 +359,17 @@ function DisciplineMetric({
   metricKind: "pace" | "power";
 }) {
   return (
-    <section className="surface flex min-h-44 flex-col p-6">
+    <section className="surface flex min-h-72 flex-col p-6">
       <div className="flex items-start justify-between gap-4">
         <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--subtle)]">{eyebrow}</p>
         <span className="text-[var(--accent)]">{icon}</span>
       </div>
-      <div className="my-auto flex items-end gap-2 py-5">
+      <div className="flex items-end gap-2 pt-7">
         <p className="display-serif text-5xl leading-none text-[var(--foreground)]">{value}</p>
         <p className="pb-1 text-sm text-[var(--muted)]">{unit}</p>
       </div>
       <MetricImprovementSummary improvement={improvement} metricKind={metricKind} />
-      <div className="flex items-center justify-between gap-3 border-t border-[var(--line)] pt-4">
+      <div className="mt-auto flex items-center justify-between gap-3 border-t border-[var(--line)] pt-4">
         <p className="text-xs text-[var(--subtle)]">{date ? `Stand ${formatDate(date)}` : "Noch keine Analyse"}</p>
         <DashboardLink href={href}>{date ? "Öffnen" : emptyText}</DashboardLink>
       </div>
@@ -385,11 +385,11 @@ function MetricImprovementSummary({
   metricKind: "pace" | "power";
 }) {
   if (!improvement) {
-    return <p className="mt-3 text-xs text-[var(--subtle)]">Fortschritt ab 2 Tests sichtbar.</p>;
+    return <p className="mt-5 text-xs text-[var(--subtle)]">Fortschritt ab 2 Tests sichtbar.</p>;
   }
 
   return (
-    <div className="mt-3 grid gap-2 text-xs">
+    <div className="mt-5 grid gap-4 rounded-lg bg-[var(--raised-bg)] px-4 py-3 text-xs sm:grid-cols-2">
       <ImprovementLine label="Zum letzten Test" delta={improvement.latestVsPrevious} metricKind={metricKind} />
       <ImprovementLine label="Seit erstem Test" delta={improvement.latestVsFirst} metricKind={metricKind} />
     </div>
@@ -406,9 +406,9 @@ function ImprovementLine({
   metricKind: "pace" | "power";
 }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] px-3 py-2">
-      <span className="text-[var(--subtle)]">{label}</span>
-      <span className={delta.direction === "declined" ? "font-medium text-[var(--warn)]" : delta.direction === "improved" ? "font-medium text-[var(--accent)]" : "font-medium text-[var(--muted)]"}>
+    <div>
+      <span className="mono block text-[9px] uppercase tracking-[0.12em] text-[var(--subtle)]">{label}</span>
+      <span className={delta.direction === "declined" ? "mt-1 block font-medium text-[var(--warn)]" : delta.direction === "improved" ? "mt-1 block font-medium text-[var(--accent)]" : "mt-1 block font-medium text-[var(--muted)]"}>
         {formatImprovementDelta(delta, metricKind)}
       </span>
     </div>
