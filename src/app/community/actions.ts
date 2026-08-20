@@ -2,88 +2,39 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { communityMessageSchema, communityModerationSchema, communitySlugSchema } from "@/lib/community/schema";
 import { assertRateLimit } from "@/lib/rate-limit/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import {
-  communityModerationSchema,
-  communityReplySchema,
-  communityThreadSchema,
-} from "@/lib/training-plans/community-schema";
 
-const MAX_COMMUNITY_ATTACHMENT_BYTES = 5 * 1024 * 1024;
-const MAX_COMMUNITY_ATTACHMENTS = 4;
-const ATTACHMENT_MARKER_PREFIX = "<!--community-attachments:";
-const ATTACHMENT_MARKER_SUFFIX = "-->";
-const ALLOWED_COMMUNITY_ATTACHMENT_TYPES = new Map([
+const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
+const MAX_ATTACHMENTS = 4;
+const ALLOWED_ATTACHMENT_TYPES = new Map([
   ["image/jpeg", "jpg"],
   ["image/png", "png"],
   ["image/webp", "webp"],
 ]);
 
-export async function createCommunityThread(formData: FormData) {
-  await assertRateLimit("community-thread-create", 8, 60_000);
+export async function createCommunityMessage(formData: FormData) {
+  await assertRateLimit("community-message-create", 20, 60_000);
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const parsed = communityThreadSchema.safeParse({
-    libraryId: formData.get("libraryId"),
-    title: formData.get("title"),
+  const parsed = communityMessageSchema.safeParse({
+    communityId: formData.get("communityId"),
     content: formData.get("content"),
   });
-  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Beitrag konnte nicht erstellt werden.");
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Nachricht konnte nicht gesendet werden.");
+
+  const images = readImages(formData.getAll("images"));
 
   const { data, error } = await supabase
-    .from("community_threads")
+    .from("community_messages")
     .insert({
-      library_id: parsed.data.libraryId,
-      author_id: user.id,
-      title: parsed.data.title,
-      content: parsed.data.content,
-    })
-    .select("id")
-    .single();
-  if (error) throw new Error(error.message);
-
-  try {
-    await uploadCommunityAttachments({
-      supabase,
-      userId: user.id,
-      files: formData.getAll("images"),
-      threadId: data.id,
-      originalContent: parsed.data.content,
-    });
-  } catch (error) {
-    await supabase.from("community_threads").delete().eq("id", data.id);
-    throw error;
-  }
-
-  const communitySlug = readCommunitySlug(formData.get("communitySlug"));
-  revalidateCommunityPaths(data.id, communitySlug);
-  redirect(communitySlug ? `/community/${communitySlug}/threads/${data.id}` : "/community");
-}
-
-export async function createCommunityReply(formData: FormData) {
-  await assertRateLimit("community-reply-create", 20, 60_000);
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const parsed = communityReplySchema.safeParse({
-    threadId: formData.get("threadId"),
-    content: formData.get("content"),
-  });
-  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Antwort konnte nicht erstellt werden.");
-
-  const { data, error } = await supabase
-    .from("community_replies")
-    .insert({
-      thread_id: parsed.data.threadId,
+      community_id: parsed.data.communityId,
       author_id: user.id,
       content: parsed.data.content,
     })
@@ -92,23 +43,17 @@ export async function createCommunityReply(formData: FormData) {
   if (error) throw new Error(error.message);
 
   try {
-    await uploadCommunityAttachments({
-      supabase,
-      userId: user.id,
-      files: formData.getAll("images"),
-      replyId: data.id,
-      originalContent: parsed.data.content,
-    });
-  } catch (error) {
-    await supabase.from("community_replies").delete().eq("id", data.id);
-    throw error;
+    await uploadAttachments({ userId: user.id, messageId: data.id, images });
+  } catch (uploadError) {
+    await createSupabaseAdminClient().from("community_messages").delete().eq("id", data.id);
+    throw uploadError;
   }
 
-  revalidateCommunityPaths(parsed.data.threadId, readCommunitySlug(formData.get("communitySlug")));
+  revalidateCommunity(formData.get("communitySlug"));
 }
 
-export async function removeCommunityThread(formData: FormData) {
-  await assertRateLimit("community-thread-remove", 20, 60_000);
+export async function removeCommunityMessage(formData: FormData) {
+  await assertRateLimit("community-message-remove", 30, 60_000);
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -116,172 +61,81 @@ export async function removeCommunityThread(formData: FormData) {
   if (!user) redirect("/login");
 
   const parsed = communityModerationSchema.safeParse({
-    id: formData.get("threadId"),
+    messageId: formData.get("messageId"),
     reason: formData.get("reason"),
   });
-  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Beitrag konnte nicht moderiert werden.");
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Nachricht konnte nicht moderiert werden.");
 
   const { error } = await supabase
-    .from("community_threads")
-    .delete()
-    .eq("id", parsed.data.id);
+    .from("community_messages")
+    .update({
+      status: "removed",
+      removed_at: new Date().toISOString(),
+      removed_by: user.id,
+      removed_reason: parsed.data.reason,
+    })
+    .eq("id", parsed.data.messageId);
   if (error) throw new Error(error.message);
 
-  const communitySlug = readCommunitySlug(formData.get("communitySlug"));
-  revalidateCommunityPaths(parsed.data.id, communitySlug);
-  redirect(communitySlug ? `/community/${communitySlug}` : "/community");
+  revalidateCommunity(formData.get("communitySlug"));
 }
 
-export async function removeCommunityReply(formData: FormData) {
-  await assertRateLimit("community-reply-remove", 30, 60_000);
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const parsed = communityModerationSchema.safeParse({
-    id: formData.get("replyId"),
-    reason: formData.get("reason"),
-  });
-  const threadId = formData.get("threadId");
-  if (!parsed.success || typeof threadId !== "string") {
-    throw new Error(parsed.success ? "Antwort konnte nicht zugeordnet werden." : parsed.error.issues[0]?.message);
-  }
-
-  const { error } = await supabase
-    .from("community_replies")
-    .delete()
-    .eq("id", parsed.data.id);
-  if (error) throw new Error(error.message);
-
-  revalidateCommunityPaths(threadId, readCommunitySlug(formData.get("communitySlug")));
-}
-
-function revalidateCommunityPaths(threadId: string, communitySlug: string | null) {
+function revalidateCommunity(slug: FormDataEntryValue | null) {
   revalidatePath("/community");
-  if (communitySlug) {
-    revalidatePath(`/community/${communitySlug}`);
-    revalidatePath(`/community/${communitySlug}/threads/${threadId}`);
-  }
-  revalidatePath("/trainingsplaene");
+  const parsed = communitySlugSchema.safeParse(slug);
+  if (parsed.success) revalidatePath(`/community/${parsed.data}`);
 }
 
-function readCommunitySlug(value: FormDataEntryValue | null) {
-  if (typeof value !== "string") return null;
-  const slug = value.trim();
-  return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) ? slug : null;
-}
-
-async function uploadCommunityAttachments({
-  supabase,
-  userId,
-  files,
-  threadId,
-  replyId,
-  originalContent,
-}: {
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
-  userId: string;
-  files: FormDataEntryValue[];
-  threadId?: string;
-  replyId?: string;
-  originalContent: string;
-}) {
+function readImages(files: FormDataEntryValue[]) {
   const images = files.filter((file): file is File => file instanceof File && file.size > 0);
-  if (images.length === 0) return;
-  if (images.length > MAX_COMMUNITY_ATTACHMENTS) throw new Error("Bitte maximal 4 Bilder anhängen.");
+  if (images.length > MAX_ATTACHMENTS) throw new Error(`Bitte maximal ${MAX_ATTACHMENTS} Bilder anhängen.`);
 
-  const fallbackAttachments: StoredCommunityAttachment[] = [];
-
-  for (const file of images) {
-    const fallbackAttachment = await uploadCommunityAttachment({ supabase, userId, file, threadId, replyId });
-    if (fallbackAttachment) fallbackAttachments.push(fallbackAttachment);
+  for (const image of images) {
+    if (!ALLOWED_ATTACHMENT_TYPES.has(image.type)) throw new Error("Bitte JPG, PNG oder WebP hochladen.");
+    if (image.size > MAX_ATTACHMENT_BYTES) throw new Error("Ein Bild darf maximal 5 MB groß sein.");
   }
 
-  if (fallbackAttachments.length > 0) {
-    const targetTable = threadId ? "community_threads" : "community_replies";
-    const targetId = threadId ?? replyId;
-    const admin = createSupabaseAdminClient();
-    const { error } = await admin
-      .from(targetTable)
-      .update({ content: appendAttachmentMarker(originalContent, fallbackAttachments) })
-      .eq("id", targetId);
-    if (error) throw new Error(error.message);
-  }
+  return images;
 }
 
-async function uploadCommunityAttachment({
-  supabase,
+async function uploadAttachments({
   userId,
-  file,
-  threadId,
-  replyId,
+  messageId,
+  images,
 }: {
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
   userId: string;
-  file: File;
-  threadId?: string;
-  replyId?: string;
-}): Promise<StoredCommunityAttachment | null> {
-  const extension = ALLOWED_COMMUNITY_ATTACHMENT_TYPES.get(file.type);
-  if (!extension) throw new Error("Bitte JPG, PNG oder WebP hochladen.");
-  if (file.size > MAX_COMMUNITY_ATTACHMENT_BYTES) throw new Error("Ein Bild darf maximal 5 MB groß sein.");
+  messageId: string;
+  images: File[];
+}) {
+  if (images.length === 0) return;
 
   const admin = createSupabaseAdminClient();
-  const storagePath = `${userId}/${crypto.randomUUID()}.${extension}`;
-  const { error: uploadError } = await admin.storage.from("community-attachments").upload(storagePath, file, {
-    cacheControl: "3600",
-    contentType: file.type,
-    upsert: false,
-  });
+  const uploaded: string[] = [];
 
-  if (uploadError) throw new Error(uploadError.message);
+  try {
+    for (const image of images) {
+      const extension = ALLOWED_ATTACHMENT_TYPES.get(image.type);
+      const storagePath = `${userId}/${crypto.randomUUID()}.${extension}`;
+      const { error: uploadError } = await admin.storage.from("community-attachments").upload(storagePath, image, {
+        cacheControl: "3600",
+        contentType: image.type,
+        upsert: false,
+      });
+      if (uploadError) throw new Error(uploadError.message);
+      uploaded.push(storagePath);
 
-  const { error: attachmentError } = await admin.from("community_attachments").insert({
-    thread_id: threadId ?? null,
-    reply_id: replyId ?? null,
-    uploaded_by: userId,
-    storage_path: storagePath,
-    file_name: file.name || `Bild.${extension}`,
-    mime_type: file.type,
-    size_bytes: file.size,
-  });
-
-  if (attachmentError) {
-    if (isMissingAttachmentEndpointError(attachmentError)) {
-      return {
-        id: crypto.randomUUID(),
-        storagePath,
-        fileName: file.name || `Bild.${extension}`,
-        mimeType: file.type,
-        sizeBytes: file.size,
-      };
+      const { error: attachmentError } = await admin.from("community_attachments").insert({
+        message_id: messageId,
+        uploaded_by: userId,
+        storage_path: storagePath,
+        file_name: image.name || `Bild.${extension}`,
+        mime_type: image.type,
+        size_bytes: image.size,
+      });
+      if (attachmentError) throw new Error(attachmentError.message);
     }
-    await admin.storage.from("community-attachments").remove([storagePath]);
-    throw new Error(attachmentError.message);
+  } catch (error) {
+    if (uploaded.length > 0) await admin.storage.from("community-attachments").remove(uploaded);
+    throw error;
   }
-
-  return null;
-}
-
-function isMissingAttachmentEndpointError(error: { code?: string; message?: string }) {
-  return Boolean(
-    error.code === "PGRST205"
-    || error.message?.toLowerCase().includes("community_attachments")
-    || error.message?.toLowerCase().includes("schema cache"),
-  );
-}
-
-type StoredCommunityAttachment = {
-  id: string;
-  storagePath: string;
-  fileName: string;
-  mimeType: string;
-  sizeBytes: number;
-};
-
-function appendAttachmentMarker(content: string, attachments: StoredCommunityAttachment[]) {
-  const marker = Buffer.from(JSON.stringify(attachments), "utf8").toString("base64url");
-  return `${content.trimEnd()}\n\n${ATTACHMENT_MARKER_PREFIX}${marker}${ATTACHMENT_MARKER_SUFFIX}`;
 }

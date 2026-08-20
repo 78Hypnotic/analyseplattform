@@ -67,7 +67,9 @@ export function MobileHeaderMenu({
               ) : null}
             </div>
             <MobileLink href="/trainingsplaene" label="Trainingspläne" onClick={() => setOpen(false)} />
-            <MobileLink href="/community" label="Community" onClick={() => setOpen(false)} />
+            {isAuthenticated ? (
+              <MobileLink href="/community" label="Community" onClick={() => setOpen(false)} />
+            ) : null}
             {isCoach ? (
               <MobileLink href="/coach" label="Coach" onClick={() => setOpen(false)} />
             ) : null}

@@ -54,9 +54,11 @@ export async function AppHeader() {
           <ActiveNavLink className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/trainingsplaene">
             Trainingspläne
           </ActiveNavLink>
-          <ActiveNavLink className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/community">
-            Community
-          </ActiveNavLink>
+          {resolvedUserEmail ? (
+            <ActiveNavLink className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/community">
+              Community
+            </ActiveNavLink>
+          ) : null}
           {isCoach ? (
             <ActiveNavLink className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/coach">
               Coach
