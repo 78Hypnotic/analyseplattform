@@ -186,6 +186,8 @@ where message_id is null
 delete from public.community_attachments
 where message_id is null;
 
+drop policy if exists "community_attachments_insert_entitled" on public.community_attachments;
+
 alter table public.community_attachments
 drop column if exists thread_id,
 drop column if exists reply_id;
@@ -335,8 +337,6 @@ as $$
       and (select public.can_moderate_community(message.community_id))
   );
 $$;
-
-drop policy if exists "community_attachments_insert_entitled" on public.community_attachments;
 
 create policy "community_attachments_insert_entitled"
 on public.community_attachments
