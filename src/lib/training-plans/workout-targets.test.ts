@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { workoutContentSchema } from "./schema";
+import { convertWorkoutAxisMode, createEmptyWorkoutContent, getWorkoutAxisMode } from "./content";
 import { resolveWorkoutTargets } from "./workout-targets";
 import type { AthleteBenchmarkSnapshot, WorkoutContent } from "./types";
 
@@ -51,6 +52,24 @@ describe("workoutContentSchema", () => {
     });
 
     expect(result.success).toBe(false);
+  });
+
+  it("treats existing workouts without an axis mode as time based", () => {
+    expect(getWorkoutAxisMode(workout)).toBe("time");
+    expect(workoutContentSchema.safeParse(workout).success).toBe(true);
+  });
+
+  it("requires every step to match the workout axis mode", () => {
+    expect(workoutContentSchema.safeParse({ ...workout, axisMode: "distance" }).success).toBe(false);
+  });
+
+  it("converts steps to editable defaults when the axis mode changes", () => {
+    const distanceWorkout = convertWorkoutAxisMode(createEmptyWorkoutContent("bike"), "distance");
+
+    expect(distanceWorkout.axisMode).toBe("distance");
+    expect(distanceWorkout.blocks[0].steps[0].duration).toEqual({ type: "distance", meters: 2000 });
+    expect(distanceWorkout.blocks[1].steps[0].duration).toEqual({ type: "distance", meters: 1000 });
+    expect(workoutContentSchema.safeParse(distanceWorkout).success).toBe(true);
   });
 });
 

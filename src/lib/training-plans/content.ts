@@ -11,6 +11,7 @@ import type {
   TrainingPlanDiscipline,
   TrainingPlanDrill,
   WorkoutBlock,
+  WorkoutAxisMode,
   WorkoutContent,
   WorkoutStep,
 } from "./types";
@@ -122,15 +123,19 @@ export function createEmptyWorkoutContent(discipline: TrainingPlanDiscipline = "
   return {
     schemaVersion: 1,
     discipline,
+    axisMode: "time",
     blocks: [
-      createWorkoutBlock("warmup"),
-      createWorkoutBlock("interval"),
-      createWorkoutBlock("cooldown"),
+      createWorkoutBlock("warmup", "time"),
+      createWorkoutBlock("interval", "time"),
+      createWorkoutBlock("cooldown", "time"),
     ],
   };
 }
 
-export function createWorkoutBlock(kind: WorkoutBlock["kind"] = "steady"): WorkoutBlock {
+export function createWorkoutBlock(
+  kind: WorkoutBlock["kind"] = "steady",
+  axisMode: WorkoutAxisMode = "time",
+): WorkoutBlock {
   const titleByKind: Record<WorkoutBlock["kind"], string> = {
     warmup: "Warm-up",
     steady: "Grundlage",
@@ -144,11 +149,14 @@ export function createWorkoutBlock(kind: WorkoutBlock["kind"] = "steady"): Worko
     title: titleByKind[kind],
     kind,
     repeatCount: kind === "interval" ? 4 : 1,
-    steps: [createWorkoutStep(kind)],
+    steps: [createWorkoutStep(kind, axisMode)],
   };
 }
 
-export function createWorkoutStep(kind: WorkoutBlock["kind"] = "steady"): WorkoutStep {
+export function createWorkoutStep(
+  kind: WorkoutBlock["kind"] = "steady",
+  axisMode: WorkoutAxisMode = "time",
+): WorkoutStep {
   const targetByKind: WorkoutStep["targets"][number] = kind === "interval"
     ? { type: "vo2max_power_percentage", minPercent: 90, maxPercent: 100 }
     : { type: "threshold_power_percentage", minPercent: 65, maxPercent: 75 };
@@ -156,9 +164,32 @@ export function createWorkoutStep(kind: WorkoutBlock["kind"] = "steady"): Workou
   return {
     id: createPlanNodeId("step"),
     title: kind === "interval" ? "Belastung" : "Abschnitt",
-    duration: { type: "time", seconds: kind === "interval" ? 300 : 600 },
+    duration: axisMode === "distance"
+      ? { type: "distance", meters: kind === "interval" ? 1000 : 2000 }
+      : { type: "time", seconds: kind === "interval" ? 300 : 600 },
     targets: [targetByKind],
     recoverySeconds: kind === "interval" ? 180 : undefined,
+  };
+}
+
+export function getWorkoutAxisMode(content: WorkoutContent): WorkoutAxisMode {
+  return content.axisMode ?? "time";
+}
+
+export function convertWorkoutAxisMode(content: WorkoutContent, axisMode: WorkoutAxisMode): WorkoutContent {
+  if (getWorkoutAxisMode(content) === axisMode) return content;
+  return {
+    ...content,
+    axisMode,
+    blocks: content.blocks.map((block) => ({
+      ...block,
+      steps: block.steps.map((step) => ({
+        ...step,
+        duration: axisMode === "distance"
+          ? { type: "distance" as const, meters: block.kind === "interval" ? 1000 : 2000 }
+          : { type: "time" as const, seconds: block.kind === "interval" ? 300 : 600 },
+      })),
+    })),
   };
 }
 

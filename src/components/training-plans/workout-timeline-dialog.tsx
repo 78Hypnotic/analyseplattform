@@ -2,14 +2,22 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Activity, Bike, Maximize2, Waves, X } from "lucide-react";
+import { Activity, Bike, BookOpen, Clock3, Maximize2, Ruler, Save, Trash2, Waves, X } from "lucide-react";
 import { Button } from "@/components/button";
 import { WorkoutTimelineBuilder } from "@/components/training-plans/workout-timeline-builder";
+import {
+  deleteWorkoutLibraryItem,
+  listWorkoutLibraryItems,
+  saveWorkoutLibraryItem,
+} from "@/app/trainingsplaene/verwalten/workout-library-actions";
+import { convertWorkoutAxisMode, getWorkoutAxisMode } from "@/lib/training-plans/content";
 import type {
   AthleteBenchmarkSnapshot,
   StructuredTrainingPlanSession,
   TrainingPlanDiscipline,
+  WorkoutAxisMode,
   WorkoutContent,
+  WorkoutLibraryItem,
 } from "@/lib/training-plans/types";
 
 export type WorkoutSessionDetails = Pick<
@@ -68,6 +76,14 @@ function WorkoutTimelineDialogContent({
   const [detailsDraft, setDetailsDraft] = useState<WorkoutSessionDetails | null>(
     () => sessionDetails ? structuredClone(sessionDetails) : null,
   );
+  const [pendingAxisMode, setPendingAxisMode] = useState<WorkoutAxisMode | null>(null);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const [libraryItems, setLibraryItems] = useState<WorkoutLibraryItem[]>([]);
+  const [libraryStatus, setLibraryStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [libraryMessage, setLibraryMessage] = useState<string | null>(null);
+  const [savingLibraryItem, setSavingLibraryItem] = useState(false);
+  const [deletingLibraryItemId, setDeletingLibraryItemId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -109,6 +125,25 @@ function WorkoutTimelineDialogContent({
     };
   }, [onOpenChange]);
 
+  useEffect(() => {
+    let cancelled = false;
+    listWorkoutLibraryItems()
+      .then((result) => {
+        if (cancelled) return;
+        setLibraryItems(result.items);
+        setLibraryStatus(result.status === "success" ? "ready" : "error");
+        if (result.status === "error") setLibraryMessage(result.message);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setLibraryStatus("error");
+        setLibraryMessage("Workout-Bibliothek konnte nicht geladen werden.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   function save() {
     onSave(draft, detailsDraft ?? undefined);
     onOpenChange(false);
@@ -119,6 +154,52 @@ function WorkoutTimelineDialogContent({
     setDetailsDraft((current) => current
       ? { ...current, title: getDisciplineTitle(current.title, discipline) }
       : current);
+  }
+
+  function requestAxisMode(axisMode: WorkoutAxisMode) {
+    if (getWorkoutAxisMode(draft) === axisMode) return;
+    setPendingAxisMode(axisMode);
+  }
+
+  async function saveToLibrary() {
+    const libraryTitle = detailsDraft?.title ?? getDisciplineTitle(title, draft.discipline);
+    if (libraryTitle.trim().length < 3) {
+      setLibraryMessage("Bitte einen Workout-Titel mit mindestens 3 Zeichen eingeben.");
+      return;
+    }
+    setSavingLibraryItem(true);
+    setLibraryMessage(null);
+    const result = await saveWorkoutLibraryItem({ title: libraryTitle, content: draft });
+    setSavingLibraryItem(false);
+    setLibraryMessage(result.message);
+    if (result.status === "success" && result.item) {
+      setLibraryItems((current) => [result.item!, ...current.filter((item) => item.id !== result.item?.id)]);
+      setLibraryOpen(true);
+    }
+  }
+
+  function loadFromLibrary(item: WorkoutLibraryItem) {
+    setDraft(structuredClone(item.content));
+    setDetailsDraft((current) => current
+      ? { ...current, title: isDefaultWorkoutTitle(current.title) ? item.title : current.title }
+      : current);
+    setPendingAxisMode(null);
+    setLibraryMessage(`„${item.title}“ geladen. Mit „Workout übernehmen“ in den Plan schreiben.`);
+  }
+
+  async function deleteFromLibrary(id: string) {
+    if (confirmDeleteId !== id) {
+      setConfirmDeleteId(id);
+      return;
+    }
+    setDeletingLibraryItemId(id);
+    const result = await deleteWorkoutLibraryItem(id);
+    setDeletingLibraryItemId(null);
+    setConfirmDeleteId(null);
+    setLibraryMessage(result.message);
+    if (result.status === "success") {
+      setLibraryItems((current) => current.filter((item) => item.id !== id));
+    }
   }
 
   return (
@@ -143,6 +224,24 @@ function WorkoutTimelineDialogContent({
             </h2>
           </div>
           <div className="ml-auto flex items-center gap-3">
+            <div
+              role="group"
+              aria-label="Workout-Achse"
+              className="flex rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-1"
+            >
+              <ModeButton
+                label="Dauer"
+                active={getWorkoutAxisMode(draft) === "time"}
+                onClick={() => requestAxisMode("time")}
+                icon={<Clock3 size={15} />}
+              />
+              <ModeButton
+                label="Distanz"
+                active={getWorkoutAxisMode(draft) === "distance"}
+                onClick={() => requestAxisMode("distance")}
+                icon={<Ruler size={15} />}
+              />
+            </div>
             <div
               role="group"
               aria-label="Sportart"
@@ -178,6 +277,26 @@ function WorkoutTimelineDialogContent({
             </button>
           </div>
         </header>
+
+        {pendingAxisMode ? (
+          <div className="flex shrink-0 flex-col gap-3 border-b border-[var(--warn)] bg-[var(--warn)]/10 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <p>
+              Beim Wechsel zu {pendingAxisMode === "distance" ? "Distanz" : "Dauer"} werden alle Step-Werte auf editierbare Standardwerte gesetzt.
+            </p>
+            <div className="flex shrink-0 gap-2">
+              <Button type="button" variant="ghost" onClick={() => setPendingAxisMode(null)}>Abbrechen</Button>
+              <Button
+                type="button"
+                onClick={() => {
+                  setDraft((current) => convertWorkoutAxisMode(current, pendingAxisMode));
+                  setPendingAxisMode(null);
+                }}
+              >
+                Umstellen
+              </Button>
+            </div>
+          </div>
+        ) : null}
 
         <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-5 lg:p-6">
           {detailsDraft ? (
@@ -232,6 +351,54 @@ function WorkoutTimelineDialogContent({
               </DialogField>
             </section>
           ) : null}
+          <section className="mb-4 rounded-lg border border-[var(--line)] bg-[var(--panel)]">
+            <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+              <button
+                type="button"
+                aria-expanded={libraryOpen}
+                onClick={() => setLibraryOpen((current) => !current)}
+                className="inline-flex h-9 items-center gap-2 text-sm font-medium text-[var(--foreground)]"
+              >
+                <BookOpen size={16} /> Bibliothek
+                <span className="text-xs font-normal text-[var(--subtle)]">{libraryItems.length}</span>
+              </button>
+              <Button type="button" variant="ghost" disabled={savingLibraryItem} onClick={saveToLibrary}>
+                <Save size={15} /> {savingLibraryItem ? "Speichert..." : "In Bibliothek speichern"}
+              </Button>
+            </div>
+            {libraryMessage ? (
+              <p role="status" className="border-t border-[var(--line)] px-3 py-2 text-xs text-[var(--muted)]">{libraryMessage}</p>
+            ) : null}
+            {libraryOpen ? (
+              <div className="border-t border-[var(--line)]">
+                {libraryStatus === "loading" ? <p className="px-3 py-4 text-sm text-[var(--muted)]">Bibliothek wird geladen...</p> : null}
+                {libraryStatus === "error" ? <p className="px-3 py-4 text-sm text-[var(--warn)]">Bibliothek ist derzeit nicht verfügbar.</p> : null}
+                {libraryStatus === "ready" && libraryItems.length === 0 ? (
+                  <p className="px-3 py-4 text-sm text-[var(--muted)]">Noch keine Workouts gespeichert.</p>
+                ) : null}
+                {libraryItems.map((item) => (
+                  <div key={item.id} className="grid gap-2 border-b border-[var(--line)] px-3 py-3 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-[var(--foreground)]">{item.title}</p>
+                      <p className="mt-0.5 text-xs text-[var(--subtle)]">
+                        {disciplineLabel(item.discipline)} · {getWorkoutAxisMode(item.content) === "distance" ? "Distanz" : "Dauer"} · {formatLibraryUpdatedAt(item.updated_at)}
+                      </p>
+                    </div>
+                    <Button type="button" variant="ghost" onClick={() => loadFromLibrary(item)}>Laden</Button>
+                    <button
+                      type="button"
+                      disabled={deletingLibraryItemId === item.id}
+                      onClick={() => deleteFromLibrary(item.id)}
+                      className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg px-2 text-xs text-[var(--warn)] hover:bg-[var(--raised-bg)] disabled:opacity-50"
+                    >
+                      <Trash2 size={14} />
+                      {confirmDeleteId === item.id ? "Löschen bestätigen" : "Löschen"}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </section>
           <WorkoutTimelineBuilder content={draft} onChange={setDraft} benchmarks={benchmarks} />
         </div>
 
@@ -270,12 +437,55 @@ function DisciplineButton({
   );
 }
 
+function ModeButton({
+  label,
+  active,
+  icon,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  icon: React.ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onClick}
+      className={active
+        ? "inline-flex h-8 items-center gap-1.5 rounded-md bg-[var(--foreground)] px-2.5 text-xs font-medium text-[var(--background)]"
+        : "inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium text-[var(--muted)] hover:text-[var(--foreground)]"}
+    >
+      {icon}
+      <span className="hidden sm:inline">{label}</span>
+    </button>
+  );
+}
+
 function getDisciplineTitle(title: string | undefined, discipline: TrainingPlanDiscipline) {
   const defaultTitles = ["Neue Schwimmeinheit", "Neue Radeinheit", "Neue Laufeinheit"];
   if (title && !defaultTitles.includes(title)) return title;
   if (discipline === "bike") return "Neue Radeinheit";
   if (discipline === "run") return "Neue Laufeinheit";
   return "Neue Schwimmeinheit";
+}
+
+function isDefaultWorkoutTitle(title: string) {
+  return ["Neue Schwimmeinheit", "Neue Radeinheit", "Neue Laufeinheit", "Workout bearbeiten"].includes(title);
+}
+
+function disciplineLabel(discipline: TrainingPlanDiscipline) {
+  if (discipline === "bike") return "Rad";
+  if (discipline === "run") return "Laufen";
+  return "Schwimmen";
+}
+
+function formatLibraryUpdatedAt(value: string) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? "Datum unbekannt"
+    : new Intl.DateTimeFormat("de-DE", { dateStyle: "medium" }).format(date);
 }
 
 type WorkoutTimelineLauncherProps = Omit<WorkoutTimelineDialogProps, "open" | "onOpenChange" | "onSave"> & {

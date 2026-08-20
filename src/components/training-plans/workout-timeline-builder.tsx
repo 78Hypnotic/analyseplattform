@@ -14,7 +14,7 @@ import {
   updateWorkoutBlock,
   updateWorkoutStep,
 } from "@/lib/training-plans/commands";
-import { createWorkoutBlock, createWorkoutStep } from "@/lib/training-plans/content";
+import { createWorkoutBlock, createWorkoutStep, getWorkoutAxisMode } from "@/lib/training-plans/content";
 import { resolveWorkoutTargets } from "@/lib/training-plans/workout-targets";
 import type {
   AthleteBenchmarkSnapshot,
@@ -54,7 +54,7 @@ export function WorkoutTimelineBuilder({ content, onChange, benchmarks }: Workou
   );
 
   function insertBlock(kind: WorkoutBlock["kind"], index = content.blocks.length) {
-    const block = createWorkoutBlock(kind);
+    const block = createWorkoutBlock(kind, getWorkoutAxisMode(content));
     onChange(addWorkoutBlock(content, block, index));
     setSelectedBlockId(block.id);
   }
@@ -152,13 +152,14 @@ function IntensityTimeline({
   onDuplicateBlock: (blockId: string) => void;
   onRemoveBlock: (blockId: string) => void;
 }) {
-  const totalSeconds = content.blocks.reduce((total, block) => total + getBlockSeconds(block), 0);
+  const axisMode = getWorkoutAxisMode(content);
+  const totalExtent = content.blocks.reduce((total, block) => total + getBlockExtent(block, axisMode), 0);
 
   return (
     <div className="rounded-lg border border-[var(--line)] bg-[var(--soft-bg)]">
       <div className="flex items-center justify-between gap-3 border-b border-[var(--line)] px-3 py-2 text-xs text-[var(--muted)]">
-        <span>Breite = Dauer · Höhe = Intensität</span>
-        <span>{formatDuration(totalSeconds)}</span>
+        <span>Breite = {axisMode === "distance" ? "Distanz" : "Dauer"} · Höhe = Intensität</span>
+        <span>{formatAxisExtent(totalExtent, axisMode)}</span>
       </div>
       <div className="grid grid-cols-[2.75rem_minmax(0,1fr)]">
         <div className="relative h-72 border-r border-[var(--line)] text-[9px] text-[var(--subtle)]">
@@ -180,8 +181,8 @@ function IntensityTimeline({
             onDrop={(event) => onDropBlock(event, content.blocks.length)}
           >
             {content.blocks.map((block, blockIndex) => {
-              const segments = getTimelineSegments(block);
-              const blockSeconds = segments.reduce((total, segment) => total + segment.seconds, 0);
+              const segments = getTimelineSegments(block, axisMode);
+              const blockExtent = segments.reduce((total, segment) => total + segment.extent, 0);
               return (
                 <div
                   key={block.id}
@@ -197,7 +198,7 @@ function IntensityTimeline({
                     "group relative flex h-full min-w-32 items-end border-x border-transparent px-px pb-6 pt-9 transition",
                     selectedBlockId === block.id && "border-[var(--accent)]",
                   )}
-                  style={{ flexGrow: Math.max(1, blockSeconds), flexBasis: `${Math.max(128, segments.length * 34)}px` }}
+                  style={{ flexGrow: Math.max(1, blockExtent), flexBasis: `${Math.max(128, segments.length * 34)}px` }}
                 >
                   <div className="absolute inset-x-1 top-1 flex items-center justify-between gap-1">
                     <span className="flex min-w-0 items-center gap-1 text-[10px] font-medium text-[var(--foreground)]">
@@ -227,8 +228,8 @@ function IntensityTimeline({
                     <button
                       key={segment.key}
                       type="button"
-                      aria-label={`${block.title}: ${segment.label}, ${formatDuration(segment.seconds)}, ${segment.maxPercent}%`}
-                      title={`${segment.label} · ${formatDuration(segment.seconds)} · ${segment.minPercent}-${segment.maxPercent}%`}
+                      aria-label={`${block.title}: ${segment.label}, ${segment.display}, ${segment.maxPercent}%`}
+                      title={`${segment.label} · ${segment.display} · ${segment.minPercent}-${segment.maxPercent}%`}
                       onClick={(event) => { event.stopPropagation(); onSelectBlock(block.id); }}
                       className={cn(
                         "workout-timeline-segment relative min-w-5 rounded-[4px] border",
@@ -238,7 +239,7 @@ function IntensityTimeline({
                         segment.tone === "recovery" && "border-[var(--subtle)] bg-[var(--subtle)]/45",
                       )}
                       style={{
-                        flexGrow: segment.seconds,
+                        flexGrow: segment.extent,
                         flexBasis: 0,
                         height: `${Math.max(6, Math.min(100, segment.maxPercent / 2))}%`,
                         animationDelay: `${Math.min(360, blockIndex * 55 + segmentIndex * 28)}ms`,
@@ -246,7 +247,7 @@ function IntensityTimeline({
                     />
                   ))}
                   <span className="absolute inset-x-1 bottom-1 truncate text-center text-[9px] text-[var(--subtle)]">
-                    {block.repeatCount > 1 ? `${block.repeatCount}x · ` : ""}{formatDuration(blockSeconds)}
+                    {block.repeatCount > 1 ? `${block.repeatCount}x · ` : ""}{formatAxisExtent(blockExtent, axisMode)}
                   </span>
                 </div>
               );
@@ -261,13 +262,14 @@ function IntensityTimeline({
 type TimelineSegment = {
   key: string;
   label: string;
-  seconds: number;
+  extent: number;
+  display: string;
   minPercent: number;
   maxPercent: number;
   tone: "threshold" | "heart-rate" | "vo2max" | "recovery";
 };
 
-function getTimelineSegments(block: WorkoutBlock): TimelineSegment[] {
+function getTimelineSegments(block: WorkoutBlock, axisMode: "time" | "distance"): TimelineSegment[] {
   return Array.from({ length: block.repeatCount }, (_, repeatIndex) =>
     block.steps.flatMap((step) => {
       const target = step.targets[0];
@@ -279,7 +281,8 @@ function getTimelineSegments(block: WorkoutBlock): TimelineSegment[] {
       const workSegment: TimelineSegment = {
         key: `${repeatIndex}-${step.id}-work`,
         label: block.repeatCount > 1 ? `${step.title} ${repeatIndex + 1}` : step.title,
-        seconds: Math.max(1, getDurationSeconds(step.duration)),
+        extent: Math.max(1, getDurationExtent(step.duration, axisMode)),
+        display: formatAxisExtent(getDurationExtent(step.duration, axisMode), axisMode),
         minPercent: target?.minPercent ?? 50,
         maxPercent: target?.maxPercent ?? target?.minPercent ?? 50,
         tone,
@@ -291,7 +294,8 @@ function getTimelineSegments(block: WorkoutBlock): TimelineSegment[] {
             {
               key: `${repeatIndex}-${step.id}-recovery`,
               label: "Erholung",
-              seconds: recoverySeconds,
+              extent: axisMode === "time" ? recoverySeconds : 0,
+              display: formatDuration(recoverySeconds),
               minPercent: 35,
               maxPercent: 45,
               tone: "recovery" as const,
@@ -351,7 +355,7 @@ function BlockInspector({
       <div className="mt-5 space-y-3">
         <div className="flex items-center justify-between gap-3">
           <p className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--subtle)]">Steps</p>
-          <Button type="button" variant="ghost" onClick={() => onChange(addWorkoutStep(content, block.id, createWorkoutStep(block.kind)))}>
+          <Button type="button" variant="ghost" onClick={() => onChange(addWorkoutStep(content, block.id, createWorkoutStep(block.kind, getWorkoutAxisMode(content))))}>
             <Plus size={14} /> Step
           </Button>
         </div>
@@ -384,6 +388,12 @@ function StepEditor({
   onChange: (content: WorkoutContent) => void;
 }) {
   const target = step.targets[0] ?? { type: "threshold_power_percentage", minPercent: 70, maxPercent: 80 };
+  const axisMode = getWorkoutAxisMode(content);
+  const [distanceUnit, setDistanceUnit] = useState<"m" | "km">(
+    () => step.duration.type === "distance" && step.duration.meters >= 1000 && step.duration.meters % 1000 === 0
+      ? "km"
+      : "m",
+  );
 
   function updateStep(update: (current: WorkoutStep) => WorkoutStep) {
     onChange(updateWorkoutStep(content, block.id, step.id, update));
@@ -391,6 +401,14 @@ function StepEditor({
 
   function updateDuration(minutes: number) {
     updateStep((current) => ({ ...current, duration: { type: "time", seconds: clampNumber(minutes, 1, 1440) * 60 } }));
+  }
+
+  function updateDistance(value: number) {
+    const meters = distanceUnit === "km" ? value * 1000 : value;
+    updateStep((current) => ({
+      ...current,
+      duration: { type: "distance", meters: Math.round(clampNumber(meters, 1, 100000)) },
+    }));
   }
 
   function updateTarget(patch: Partial<WorkoutTarget>) {
@@ -410,15 +428,39 @@ function StepEditor({
         </button>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Dauer min">
-          <input
-            type="number"
-            min={1}
-            value={durationMinutes(step.duration)}
-            onChange={(event) => updateDuration(event.target.valueAsNumber)}
-            className="w-full rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] px-3 py-2 text-sm outline-none focus:border-[var(--accent)]"
-          />
-        </Field>
+        {axisMode === "distance" ? (
+          <Field label="Distanz">
+            <div className="grid grid-cols-[minmax(0,1fr)_4.5rem] gap-2">
+              <input
+                type="number"
+                min={distanceUnit === "km" ? 0.001 : 1}
+                step={distanceUnit === "km" ? 0.1 : 50}
+                value={distanceValue(step.duration, distanceUnit)}
+                onChange={(event) => updateDistance(event.target.valueAsNumber)}
+                className="w-full rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] px-3 py-2 text-sm outline-none focus:border-[var(--accent)]"
+              />
+              <select
+                aria-label="Distanzeinheit"
+                value={distanceUnit}
+                onChange={(event) => setDistanceUnit(event.target.value as "m" | "km")}
+                className="w-full rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] px-2 py-2 text-sm outline-none focus:border-[var(--accent)]"
+              >
+                <option value="m">m</option>
+                <option value="km">km</option>
+              </select>
+            </div>
+          </Field>
+        ) : (
+          <Field label="Dauer min">
+            <input
+              type="number"
+              min={1}
+              value={durationMinutes(step.duration)}
+              onChange={(event) => updateDuration(event.target.valueAsNumber)}
+              className="w-full rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] px-3 py-2 text-sm outline-none focus:border-[var(--accent)]"
+            />
+          </Field>
+        )}
         <Field label="Pause sec">
           <input
             type="number"
@@ -481,8 +523,16 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function getBlockSeconds(block: WorkoutBlock) {
-  return block.repeatCount * block.steps.reduce((total, step) => total + getDurationSeconds(step.duration) + (step.recoverySeconds ?? 0), 0);
+function getBlockExtent(block: WorkoutBlock, axisMode: "time" | "distance") {
+  return block.repeatCount * block.steps.reduce((total, step) => {
+    const recovery = axisMode === "time" ? step.recoverySeconds ?? 0 : 0;
+    return total + getDurationExtent(step.duration, axisMode) + recovery;
+  }, 0);
+}
+
+function getDurationExtent(duration: WorkoutDuration, axisMode: "time" | "distance") {
+  if (axisMode === "distance") return duration.type === "distance" ? duration.meters : 0;
+  return duration.type === "time" ? duration.seconds : 0;
 }
 
 function getDurationSeconds(duration: WorkoutDuration) {
@@ -499,7 +549,19 @@ function durationMinutes(duration: WorkoutDuration) {
   return Math.max(1, Math.round(getDurationSeconds(duration) / 60));
 }
 
+function distanceValue(duration: WorkoutDuration, unit: "m" | "km") {
+  const meters = duration.type === "distance" ? duration.meters : 0;
+  return unit === "km" ? meters / 1000 : meters;
+}
+
 function clampNumber(value: number, minimum: number, maximum: number) {
   if (!Number.isFinite(value)) return minimum;
   return Math.max(minimum, Math.min(value, maximum));
+}
+
+function formatAxisExtent(value: number, axisMode: "time" | "distance") {
+  if (axisMode === "time") return formatDuration(value);
+  return value >= 1000
+    ? `${(value / 1000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km`
+    : `${value} m`;
 }

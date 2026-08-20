@@ -1,8 +1,15 @@
 import { useState } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createEmptyStructuredPlan } from "@/lib/training-plans/content";
 import type { TrainingPlanContentV2 } from "@/lib/training-plans/types";
+
+vi.mock("@/app/trainingsplaene/verwalten/workout-library-actions", () => ({
+  listWorkoutLibraryItems: vi.fn().mockResolvedValue({ status: "success", items: [] }),
+  saveWorkoutLibraryItem: vi.fn(),
+  deleteWorkoutLibraryItem: vi.fn(),
+}));
+
 import { StructuredPlanBuilder } from "./structured-plan-builder";
 
 describe("StructuredPlanBuilder", () => {
