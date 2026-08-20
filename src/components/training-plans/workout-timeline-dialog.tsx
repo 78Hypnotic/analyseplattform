@@ -2,10 +2,10 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Maximize2, X } from "lucide-react";
+import { Activity, Bike, Maximize2, Waves, X } from "lucide-react";
 import { Button } from "@/components/button";
 import { WorkoutTimelineBuilder } from "@/components/training-plans/workout-timeline-builder";
-import type { AthleteBenchmarkSnapshot, WorkoutContent } from "@/lib/training-plans/types";
+import type { AthleteBenchmarkSnapshot, TrainingPlanDiscipline, WorkoutContent } from "@/lib/training-plans/types";
 
 type WorkoutTimelineDialogProps = {
   open: boolean;
@@ -106,22 +106,48 @@ function WorkoutTimelineDialogContent({
         aria-labelledby={titleId}
         className="workout-dialog-panel flex h-dvh w-full flex-col overflow-hidden bg-[var(--background)] shadow-2xl sm:h-[min(92dvh,64rem)] sm:max-w-[96rem] sm:rounded-lg sm:border sm:border-[var(--line)]"
       >
-        <header className="flex shrink-0 items-center justify-between gap-4 border-b border-[var(--line)] bg-[var(--panel)] px-4 py-3 sm:px-6">
+        <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[var(--line)] bg-[var(--panel)] px-4 py-3 sm:px-6">
           <div className="min-w-0">
-            <p className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--subtle)]">
-              {draft.discipline === "bike" ? "Rad" : draft.discipline === "run" ? "Laufen" : "Schwimmen"}
-            </p>
-            <h2 id={titleId} className="truncate text-lg font-semibold text-[var(--foreground)]">{title}</h2>
+            <p className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--subtle)]">Workout</p>
+            <h2 id={titleId} className="truncate text-lg font-semibold text-[var(--foreground)]">
+              {getDisciplineTitle(title, draft.discipline)}
+            </h2>
           </div>
-          <button
-            ref={closeButtonRef}
-            type="button"
-            aria-label="Workout Builder schließen"
-            onClick={() => onOpenChange(false)}
-            className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg border border-[var(--line)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--foreground)]"
-          >
-            <X size={18} />
-          </button>
+          <div className="ml-auto flex items-center gap-3">
+            <div
+              role="group"
+              aria-label="Sportart"
+              className="flex rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-1"
+            >
+              <DisciplineButton
+                label="Schwimmen"
+                active={draft.discipline === "swim"}
+                onClick={() => setDraft((current) => ({ ...current, discipline: "swim" }))}
+                icon={<Waves size={15} />}
+              />
+              <DisciplineButton
+                label="Rad"
+                active={draft.discipline === "bike"}
+                onClick={() => setDraft((current) => ({ ...current, discipline: "bike" }))}
+                icon={<Bike size={15} />}
+              />
+              <DisciplineButton
+                label="Laufen"
+                active={draft.discipline === "run"}
+                onClick={() => setDraft((current) => ({ ...current, discipline: "run" }))}
+                icon={<Activity size={15} />}
+              />
+            </div>
+            <button
+              ref={closeButtonRef}
+              type="button"
+              aria-label="Workout Builder schließen"
+              onClick={() => onOpenChange(false)}
+              className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg border border-[var(--line)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--foreground)]"
+            >
+              <X size={18} />
+            </button>
+          </div>
         </header>
 
         <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-5 lg:p-6">
@@ -135,6 +161,40 @@ function WorkoutTimelineDialogContent({
       </div>
     </div>
   );
+}
+
+function DisciplineButton({
+  label,
+  active,
+  icon,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  icon: React.ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onClick}
+      className={active
+        ? "inline-flex h-8 items-center gap-1.5 rounded-md bg-[var(--accent)] px-2.5 text-xs font-medium text-[var(--accent-foreground)]"
+        : "inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium text-[var(--muted)] hover:text-[var(--foreground)]"}
+    >
+      {icon}
+      <span className="hidden sm:inline">{label}</span>
+    </button>
+  );
+}
+
+function getDisciplineTitle(title: string | undefined, discipline: TrainingPlanDiscipline) {
+  const defaultTitles = ["Neue Schwimmeinheit", "Neue Radeinheit", "Neue Laufeinheit"];
+  if (title && !defaultTitles.includes(title)) return title;
+  if (discipline === "bike") return "Neue Radeinheit";
+  if (discipline === "run") return "Neue Laufeinheit";
+  return "Neue Schwimmeinheit";
 }
 
 type WorkoutTimelineLauncherProps = Omit<WorkoutTimelineDialogProps, "open" | "onOpenChange" | "onSave"> & {

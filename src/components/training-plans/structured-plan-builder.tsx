@@ -31,6 +31,7 @@ import type {
   StructuredTrainingPlanSession,
   StructuredTrainingPlanWeek,
   SwimEquipment,
+  TrainingPlanDiscipline,
   TrainingPlanContentV2,
 } from "@/lib/training-plans/types";
 
@@ -148,7 +149,11 @@ export function StructuredPlanBuilder({
       weeks: content.weeks.map((week) => ({
         ...week,
         sessions: week.sessions.map((session) => session.id === timelineDialog.sessionId
-          ? { ...session, timelineWorkout }
+          ? {
+              ...session,
+              title: getDisciplineSessionTitle(session.title, timelineWorkout.discipline),
+              timelineWorkout,
+            }
           : session),
       })),
     });
@@ -294,6 +299,14 @@ function PlanSummary({ metrics }: { metrics: ReturnType<typeof getPlanMetrics> }
       ))}
     </div>
   );
+}
+
+function getDisciplineSessionTitle(title: string, discipline: TrainingPlanDiscipline) {
+  const defaultTitles = ["Neue Schwimmeinheit", "Neue Radeinheit", "Neue Laufeinheit"];
+  if (!defaultTitles.includes(title)) return title;
+  if (discipline === "bike") return "Neue Radeinheit";
+  if (discipline === "run") return "Neue Laufeinheit";
+  return "Neue Schwimmeinheit";
 }
 
 function WeekRow({

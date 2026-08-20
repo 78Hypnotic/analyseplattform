@@ -48,4 +48,22 @@ describe("WorkoutTimelineLauncher", () => {
     expect(onChange).not.toHaveBeenCalled();
     expect(screen.queryByRole("dialog")).toBeNull();
   });
+
+  it("saves the selected workout discipline", () => {
+    const onChange = vi.fn();
+    render(
+      <WorkoutTimelineLauncher
+        content={createEmptyWorkoutContent("swim")}
+        onChange={onChange}
+        title="Neue Schwimmeinheit"
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Workout Builder öffnen" }));
+    fireEvent.click(screen.getByRole("button", { name: "Rad" }));
+    expect(screen.getByRole("heading", { name: "Neue Radeinheit" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Workout übernehmen" }));
+
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ discipline: "bike" }));
+  });
 });
