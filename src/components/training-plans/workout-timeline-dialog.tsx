@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Activity, Bike, BookOpen, Maximize2, Save, Trash2, Waves, X } from "lucide-react";
+import { Activity, Bike, BookOpen, Maximize2, Redo2, Save, Trash2, Undo2, Waves, X } from "lucide-react";
 import { Button } from "@/components/button";
 import { WorkoutTimelineBuilder } from "@/components/training-plans/workout-timeline-builder";
 import {
@@ -70,7 +70,7 @@ function WorkoutTimelineDialogContent({
   sessionDetails,
   title,
 }: Omit<WorkoutTimelineDialogProps, "open">) {
-  const [draft, setDraft] = useState(() => structuredClone(content));
+  const { present: draft, setPresent: setDraft, undo, redo, canUndo, canRedo } = useWorkoutHistory(content);
   const [detailsDraft, setDetailsDraft] = useState<WorkoutSessionDetails | null>(
     () => sessionDetails ? structuredClone(sessionDetails) : null,
   );
@@ -121,6 +121,19 @@ function WorkoutTimelineDialogContent({
       previousActiveElement?.focus();
     };
   }, [onOpenChange]);
+
+  useEffect(() => {
+    function handleHistoryShortcut(event: KeyboardEvent) {
+      if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== "z") return;
+      if (isEditableTarget(event.target)) return;
+      event.preventDefault();
+      if (event.shiftKey) redo();
+      else undo();
+    }
+
+    document.addEventListener("keydown", handleHistoryShortcut);
+    return () => document.removeEventListener("keydown", handleHistoryShortcut);
+  }, [redo, undo]);
 
   useEffect(() => {
     let cancelled = false;
@@ -215,6 +228,28 @@ function WorkoutTimelineDialogContent({
             </h2>
           </div>
           <div className="ml-auto flex items-center gap-3">
+            <div role="group" aria-label="Änderungsverlauf" className="flex rounded-lg border border-[var(--line)] bg-[var(--raised-bg)] p-1">
+              <button
+                type="button"
+                aria-label="Rückgängig"
+                title="Rückgängig (Strg+Z)"
+                disabled={!canUndo}
+                onClick={undo}
+                className="inline-flex size-8 items-center justify-center rounded-md text-[var(--muted)] hover:text-[var(--foreground)] disabled:opacity-30"
+              >
+                <Undo2 size={15} />
+              </button>
+              <button
+                type="button"
+                aria-label="Wiederholen"
+                title="Wiederholen (Strg+Umschalt+Z)"
+                disabled={!canRedo}
+                onClick={redo}
+                className="inline-flex size-8 items-center justify-center rounded-md text-[var(--muted)] hover:text-[var(--foreground)] disabled:opacity-30"
+              >
+                <Redo2 size={15} />
+              </button>
+            </div>
             <div
               role="group"
               aria-label="Sportart"
@@ -457,6 +492,66 @@ function getFocusableElements(container: HTMLElement | null) {
   return Array.from(container.querySelectorAll<HTMLElement>(
     'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
   ));
+}
+
+function isEditableTarget(target: EventTarget | null) {
+  return target instanceof HTMLInputElement
+    || target instanceof HTMLTextAreaElement
+    || target instanceof HTMLSelectElement
+    || (target instanceof HTMLElement && target.isContentEditable);
+}
+
+function useWorkoutHistory(initialContent: WorkoutContent) {
+  const [history, setHistory] = useState(() => ({
+    past: [] as WorkoutContent[],
+    present: structuredClone(initialContent),
+    future: [] as WorkoutContent[],
+  }));
+
+  const setPresent = useCallback((update: React.SetStateAction<WorkoutContent>) => {
+    setHistory((current) => {
+      const next = typeof update === "function" ? update(current.present) : update;
+      if (Object.is(next, current.present)) return current;
+      return {
+        past: [...current.past, current.present].slice(-50),
+        present: next,
+        future: [],
+      };
+    });
+  }, []);
+
+  const undo = useCallback(() => {
+    setHistory((current) => {
+      const previous = current.past.at(-1);
+      if (!previous) return current;
+      return {
+        past: current.past.slice(0, -1),
+        present: previous,
+        future: [current.present, ...current.future].slice(0, 50),
+      };
+    });
+  }, []);
+
+  const redo = useCallback(() => {
+    setHistory((current) => {
+      const next = current.future[0];
+      if (!next) return current;
+      return {
+        past: [...current.past, current.present].slice(-50),
+        present: next,
+        future: current.future.slice(1),
+      };
+    });
+  }, []);
+
+  return {
+    present: history.present,
+    setPresent,
+    undo,
+    redo,
+    canUndo: history.past.length > 0,
+    canRedo: history.future.length > 0,
+  };
 }
 
 function DialogField({ label, children }: { label: string; children: React.ReactNode }) {

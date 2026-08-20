@@ -54,6 +54,41 @@ describe("WorkoutTimelineLauncher", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
+  it("undoes and redoes builder changes from the toolbar", () => {
+    const onChange = vi.fn();
+    const content = createEmptyWorkoutContent("bike");
+    render(<WorkoutTimelineLauncher content={content} onChange={onChange} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Workout Builder öffnen" }));
+    const undo = screen.getByRole("button", { name: "Rückgängig" }) as HTMLButtonElement;
+    const redo = screen.getByRole("button", { name: "Wiederholen" }) as HTMLButtonElement;
+    expect(undo.disabled).toBe(true);
+    expect(redo.disabled).toBe(true);
+
+    fireEvent.click(screen.getByRole("button", { name: "Grundlage" }));
+    expect(undo.disabled).toBe(false);
+    fireEvent.click(undo);
+    expect(redo.disabled).toBe(false);
+    fireEvent.click(redo);
+    fireEvent.click(screen.getByRole("button", { name: "Workout übernehmen" }));
+
+    expect(onChange.mock.calls[0][0].blocks).toHaveLength(content.blocks.length + 1);
+  });
+
+  it("supports Ctrl+Z and Ctrl+Shift+Z outside text fields", () => {
+    const onChange = vi.fn();
+    const content = createEmptyWorkoutContent("bike");
+    render(<WorkoutTimelineLauncher content={content} onChange={onChange} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Workout Builder öffnen" }));
+    fireEvent.click(screen.getByRole("button", { name: "Grundlage" }));
+    fireEvent.keyDown(document, { key: "z", ctrlKey: true });
+    fireEvent.keyDown(document, { key: "z", ctrlKey: true, shiftKey: true });
+    fireEvent.click(screen.getByRole("button", { name: "Workout übernehmen" }));
+
+    expect(onChange.mock.calls[0][0].blocks).toHaveLength(content.blocks.length + 1);
+  });
+
   it("closes on Escape without saving", () => {
     const onChange = vi.fn();
     render(<WorkoutTimelineLauncher content={createEmptyWorkoutContent("swim")} onChange={onChange} />);
