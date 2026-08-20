@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Instrument_Serif, Inter_Tight, JetBrains_Mono } from "next/font/google";
 import Script from "next/script";
 import { AppFooter } from "@/components/app-footer";
 import { AppHeader } from "@/components/app-header";
 import { AppHeaderShell } from "@/components/app-header-shell";
+import { NavigationFeedback } from "@/components/navigation-feedback";
 import "./globals.css";
 
 const themeInitScript = `
@@ -61,6 +63,9 @@ export default function RootLayout({
         <AppHeaderShell>
           <AppHeader />
         </AppHeaderShell>
+        <Suspense fallback={null}>
+          <NavigationFeedback />
+        </Suspense>
         {children}
         <AppFooter />
       </body>
