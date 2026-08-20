@@ -408,7 +408,7 @@ function MetricImprovementSummary({
   }
 
   return (
-    <div className="mt-5 grid gap-4 rounded-lg bg-[var(--raised-bg)] px-4 py-3 text-xs sm:grid-cols-2">
+    <div className="mt-5 grid gap-x-8 gap-y-3 text-xs sm:grid-cols-2">
       <ImprovementLine label="Zum letzten Test" delta={improvement.latestVsPrevious} metricKind={metricKind} />
       <ImprovementLine label="Seit erstem Test" delta={improvement.latestVsFirst} metricKind={metricKind} />
     </div>

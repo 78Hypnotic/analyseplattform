@@ -13,12 +13,14 @@ export function MobileHeaderMenu({
   isCoach,
   profileLabel,
   avatarUrl,
+  hideTrainingPlansLink = false,
 }: {
   isAuthenticated: boolean;
   isAdmin: boolean;
   isCoach: boolean;
   profileLabel: string | null;
   avatarUrl?: string | null;
+  hideTrainingPlansLink?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
@@ -65,7 +67,9 @@ export function MobileHeaderMenu({
                 </div>
               ) : null}
             </div>
-            <MobileLink href="/trainingsplaene" label="Trainingspläne" onClick={() => setOpen(false)} />
+            {!hideTrainingPlansLink ? (
+              <MobileLink href="/trainingsplaene" label="Trainingspläne" onClick={() => setOpen(false)} />
+            ) : null}
             <MobileLink href="/trainingsplaene/community" label="Community" onClick={() => setOpen(false)} />
             {isCoach ? (
               <MobileLink href="/coach" label="Coach" onClick={() => setOpen(false)} />

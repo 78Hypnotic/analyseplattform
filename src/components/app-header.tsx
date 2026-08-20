@@ -7,7 +7,13 @@ import { Button } from "./button";
 import { MobileHeaderMenu } from "./mobile-header-menu";
 import { ThemeToggle } from "./theme-toggle";
 
-export async function AppHeader({ userEmail }: { userEmail?: string | null }) {
+export async function AppHeader({
+  userEmail,
+  hideTrainingPlansLink = false,
+}: {
+  userEmail?: string | null;
+  hideTrainingPlansLink?: boolean;
+}) {
   const currentUser =
     userEmail === undefined
       ? await getCurrentUserProfile()
@@ -52,9 +58,11 @@ export async function AppHeader({ userEmail }: { userEmail?: string | null }) {
               </Link>
             </>
           )}
-          <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/trainingsplaene">
-            Trainingspläne
-          </Link>
+          {!hideTrainingPlansLink ? (
+            <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/trainingsplaene">
+              Trainingspläne
+            </Link>
+          ) : null}
           <Link className="rounded-lg px-3 py-2 text-[var(--muted)] hover:text-[var(--foreground)]" href="/trainingsplaene/community">
             Community
           </Link>
@@ -106,6 +114,7 @@ export async function AppHeader({ userEmail }: { userEmail?: string | null }) {
           isCoach={isCoach}
           profileLabel={profileLabel}
           avatarUrl={currentUser.avatarUrl}
+          hideTrainingPlansLink={hideTrainingPlansLink}
         />
       </div>
     </header>
