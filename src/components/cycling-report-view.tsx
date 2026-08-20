@@ -79,7 +79,7 @@ function KeyMetricsCard({ result }: { result: BikeResult }) {
     { label: "VO₂max relativ", value: result.vo2rel.toFixed(1), unit: "ml/kg/min", caption: `${(result.vo2abs / 1000).toFixed(2)} L/min absolut` },
     { label: "MAP / PPO", value: String(Math.round(result.ppo)), unit: "W", caption: `PVO₂ ${Math.round(result.pvo2)} W` },
     { label: "VLamax-Proxy", value: result.vlamaxProxy.toFixed(2), unit: "mmol/l/s", caption: "aus glykolytischer Dominanz" },
-    { label: "FatMax-Proxy", value: String(Math.round(result.fatMaxWatt)), unit: "W", caption: `${Math.round(result.fatMaxPctFtp * 100)} % der FTP` },
+    { label: "FatMax-Proxy", value: String(Math.round(result.fatMaxWatt)), unit: "W", caption: `${formatFtpPercentage(result.fatMaxPctFtp)} % der FTP` },
   ];
 
   return (
@@ -144,7 +144,7 @@ function FatCurveCard({ result }: { result: BikeResult }) {
       <h2 className="text-2xl font-semibold">Substrat-Energieverbrauch über die Leistung</h2>
       <p className="muted mt-2 max-w-2xl leading-7">
         Die modellierte Substratnutzung wird als Energieverbrauch in kcal/h dargestellt. Der
-        FatMax-Proxy liegt bei {Math.round(result.fatMaxWatt)} W ({Math.round(result.fatMaxPctFtp * 100)} % FTP)
+        FatMax-Proxy liegt bei {Math.round(result.fatMaxWatt)} W ({formatFtpPercentage(result.fatMaxPctFtp)} % FTP)
         und markiert das Maximum der Fettenergie-Kurve.
       </p>
       <div className="mt-5">
@@ -249,7 +249,7 @@ function ExpertDetails({ input, result }: { input: BikeInput; result: BikeResult
             <DetailItem label="Laktatäquivalent" value={`${result.laeq.toFixed(2)} mmol/l`} />
             <DetailItem label="Profilfaktor" value={result.profileFactor.toFixed(3)} />
             <DetailItem label="k-Faktor" value={result.kFactor.toFixed(4)} />
-            <DetailItem label="FatMax-Proxy" value={`${Math.round(result.fatMaxWatt)} W (${Math.round(result.fatMaxPctFtp * 100)} %)`} />
+            <DetailItem label="FatMax-Proxy" value={`${Math.round(result.fatMaxWatt)} W (${formatFtpPercentage(result.fatMaxPctFtp)} %)`} />
             <DetailItem label="FTP" value={`${result.ftpWatt.toFixed(1)} W`} />
           </div>
         </div>

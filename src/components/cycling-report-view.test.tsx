@@ -14,6 +14,9 @@ describe("CyclingReportView", () => {
     expect(screen.getByText(result.glycolyticDominance.toFixed(3))).toBeTruthy();
     expect(screen.getByText("Energieverbrauch (Modell)")).toBeTruthy();
     expect(screen.getByRole("img", { name: "Modellierter Energieverbrauch aus Fett und Kohlenhydraten über die Leistung" })).toBeTruthy();
+    expect(screen.getByText("Energie kcal/h")).toBeTruthy();
+    expect(screen.queryByText("Fett kcal/h")).toBeNull();
+    expect(screen.queryByText("KH kcal/h")).toBeNull();
     expect(screen.queryByRole("img", { name: "Relative Energieanteile und schematisches Laktat über die Leistung" })).toBeNull();
     expect(screen.getByText("Werte am FatMax-Proxy")).toBeTruthy();
     expect(screen.queryByText("Alte Modellversion")).toBeNull();
@@ -51,6 +54,7 @@ describe("CyclingReportView", () => {
     const current = validResult();
     const legacy: BikeResult = {
       ...current,
+      fatMaxPctFtp: current.fatMaxPctFtp * 100,
       zones: current.zones.map((zone) => ({
         ...zone,
         minPct: zone.minPct * 100,
@@ -64,6 +68,7 @@ describe("CyclingReportView", () => {
     rerender(<CyclingReportView input={DEFAULT_BIKE_INPUT} result={legacy} />);
     expect(screen.getByText("56–75 %")).toBeTruthy();
     expect(screen.queryByText("5600–7500 %")).toBeNull();
+    expect(screen.getAllByText(`${Math.round(current.fatMaxPctFtp * 100)} % der FTP`).length).toBeGreaterThan(0);
   });
 
   it("warns when a persisted report cannot be migrated", () => {

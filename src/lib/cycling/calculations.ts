@@ -24,6 +24,7 @@ import {
 } from "./constants";
 import type {
   BikeInput,
+  BikeResult,
   CurrentBikeResult,
   BikeMetabolicProfile,
   BikePlausibility,
@@ -167,6 +168,21 @@ export function computeFatMax(ftp: number, k: number, curve?: FatCurvePoint[]): 
     if (point.fat > best.fat) best = point;
   }
   return { watt: best.watt, pctFtp: best.watt / ftp };
+}
+
+export function repairSparseFatCurve(result: BikeResult): BikeResult {
+  if (result.fatCurve.length >= 20) return result;
+  if (!Number.isFinite(result.ftpWatt) || result.ftpWatt <= 0 || !Number.isFinite(result.kFactor)) return result;
+
+  const fatCurve = buildFatCurve(result.ftpWatt, result.kFactor);
+  if (fatCurve.length < 20) return result;
+  const fatMax = computeFatMax(result.ftpWatt, result.kFactor, fatCurve);
+  return {
+    ...result,
+    fatCurve,
+    fatMaxWatt: fatMax.watt,
+    fatMaxPctFtp: fatMax.pctFtp,
+  };
 }
 
 /** Converts one model point into relative shares and absolute oxidation rates. */

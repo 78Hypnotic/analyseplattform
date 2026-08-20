@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { repairSparseFatCurve } from "./cycling/calculations";
 import type { BikeInput, BikeResult, StoredBikeAnalysis } from "./cycling/types";
 
 type BikeAnalysisRow = {
@@ -34,7 +35,7 @@ export async function getUserBikeAnalyses(limit = 20): Promise<StoredBikeAnalysi
     .limit(limit);
 
   if (error) throw new Error(error.message);
-  return (data ?? []) as BikeAnalysisRow[];
+  return ((data ?? []) as BikeAnalysisRow[]).map(repairBikeAnalysisRow);
 }
 
 export async function getBikeAnalysisById(id: string): Promise<StoredBikeAnalysis | null> {
@@ -53,5 +54,9 @@ export async function getBikeAnalysisById(id: string): Promise<StoredBikeAnalysi
     .single();
 
   if (error) return null;
-  return data as BikeAnalysisRow;
+  return repairBikeAnalysisRow(data as BikeAnalysisRow);
+}
+
+function repairBikeAnalysisRow(row: BikeAnalysisRow): BikeAnalysisRow {
+  return { ...row, result: repairSparseFatCurve(row.result) };
 }

@@ -17,6 +17,7 @@ import {
   isVlamaxInCalibratedRange,
   kFactorFor,
   profileFactorFor,
+  repairSparseFatCurve,
   runBikeAnalysis,
 } from "./calculations";
 import { getBikeValidationResult } from "./validation";
@@ -110,6 +111,20 @@ describe("bike diagnostics calculations", () => {
     expect(oxidationPeak.watt).toBe(fatMax.watt);
     expect(computeSubstrateOxidation(curve[0]).fatFraction).toBeGreaterThan(0.8);
     expect(oxidationPeak.rate).toBeGreaterThan(computeSubstrateOxidation(curve[0]).fatGramsPerHour);
+  });
+
+  it("rebuilds sparse persisted substrate curves with the current model", () => {
+    const result = runBikeAnalysis(DEFAULT_BIKE_INPUT);
+    if (!result) throw new Error("Fixture must be valid");
+    const sparse = {
+      ...result,
+      fatCurve: [result.fatCurve[0], result.fatCurve[Math.floor(result.fatCurve.length / 2)], result.fatCurve.at(-1)!],
+    };
+
+    const repaired = repairSparseFatCurve(sparse);
+
+    expect(repaired.fatCurve.length).toBeGreaterThan(50);
+    expect(repaired.fatMaxWatt).toBe(computeFatMax(repaired.ftpWatt, repaired.kFactor, repaired.fatCurve).watt);
   });
 
   it("builds seven Coggan training zones", () => {

@@ -36,15 +36,13 @@ export function BikeMetabolicChart({
 
   const maxFatKcal = Math.max(...points.map((point) => point.fatKcalPerHour));
   const maxCarbKcal = Math.max(...points.map((point) => point.carbKcalPerHour));
-  const fatRateMax = Math.max(50, Math.ceil(maxFatKcal / 50) * 50);
-  const carbRateMax = Math.max(100, Math.ceil(maxCarbKcal / 100) * 100);
+  const energyRateMax = Math.max(100, Math.ceil(Math.max(maxFatKcal, maxCarbKcal) / 100) * 100);
 
   const x = (watt: number) => PAD_L + (watt / ftp) * (VIEW_W - PAD_L - PAD_R);
-  const yFatRate = (rate: number) => PAD_T + (1 - rate / fatRateMax) * (VIEW_H - PAD_T - PAD_B);
-  const yCarbRate = (rate: number) => PAD_T + (1 - rate / carbRateMax) * (VIEW_H - PAD_T - PAD_B);
+  const yEnergyRate = (rate: number) => PAD_T + (1 - rate / energyRateMax) * (VIEW_H - PAD_T - PAD_B);
 
-  const carbRateLine = points.map((p) => `${x(p.watt).toFixed(1)},${yCarbRate(p.carbKcalPerHour).toFixed(1)}`).join(" ");
-  const fatRateLine = points.map((p) => `${x(p.watt).toFixed(1)},${yFatRate(p.fatKcalPerHour).toFixed(1)}`).join(" ");
+  const carbRateLine = points.map((p) => `${x(p.watt).toFixed(1)},${yEnergyRate(p.carbKcalPerHour).toFixed(1)}`).join(" ");
+  const fatRateLine = points.map((p) => `${x(p.watt).toFixed(1)},${yEnergyRate(p.fatKcalPerHour).toFixed(1)}`).join(" ");
 
   function handleMove(
     event: React.PointerEvent<SVGSVGElement>,
@@ -80,30 +78,26 @@ export function BikeMetabolicChart({
             onPointerDown={(event) => handleMove(event, oxidationSvgRef.current)}
             onPointerLeave={() => setHover(null)}
           >
-            {[0, fatRateMax / 2, fatRateMax].map((rate) => (
+            {[0, energyRateMax / 2, energyRateMax].map((rate) => (
               <g key={rate}>
-                <line x1={PAD_L} y1={yFatRate(rate)} x2={VIEW_W - PAD_R} y2={yFatRate(rate)} stroke="var(--line)" strokeWidth={1} />
-                <text x={PAD_L - 6} y={yFatRate(rate) + 3} textAnchor="end" fill="var(--subtle)" fontSize="10">{Math.round(rate)}</text>
+                <line x1={PAD_L} y1={yEnergyRate(rate)} x2={VIEW_W - PAD_R} y2={yEnergyRate(rate)} stroke="var(--line)" strokeWidth={1} />
+                <text x={PAD_L - 6} y={yEnergyRate(rate) + 3} textAnchor="end" fill="var(--subtle)" fontSize="10">{Math.round(rate)}</text>
               </g>
-            ))}
-            {[0, carbRateMax / 2, carbRateMax].map((rate) => (
-              <text key={rate} x={VIEW_W - PAD_R + 6} y={yCarbRate(rate) + 3} fill="var(--subtle)" fontSize="10">{Math.round(rate)}</text>
             ))}
             <line x1={markerX} y1={PAD_T} x2={markerX} y2={VIEW_H - PAD_B} stroke="var(--foreground)" strokeWidth={1} strokeDasharray="4 4" opacity={0.55} />
             <text x={markerX} y={PAD_T - 6} textAnchor="middle" fill="var(--foreground)" fontSize="10">FatMax-Proxy</text>
             <polyline points={fatRateLine} fill="none" stroke="color-mix(in oklab, var(--foreground) 48%, transparent)" strokeWidth={2.5} />
             <polyline points={carbRateLine} fill="none" stroke="var(--accent)" strokeWidth={2.5} />
-            <circle cx={markerX} cy={yFatRate(fatMaxPoint.fatKcalPerHour)} r={4} fill="var(--panel)" stroke="var(--foreground)" strokeWidth={2} />
+            <circle cx={markerX} cy={yEnergyRate(fatMaxPoint.fatKcalPerHour)} r={4} fill="var(--panel)" stroke="var(--foreground)" strokeWidth={2} />
             {active ? (
               <g>
                 <line x1={x(active.watt)} y1={PAD_T} x2={x(active.watt)} y2={VIEW_H - PAD_B} stroke="var(--accent)" strokeWidth={1} />
-                <circle cx={x(active.watt)} cy={yCarbRate(active.carbKcalPerHour)} r={3.5} fill="var(--accent)" />
-                <circle cx={x(active.watt)} cy={yFatRate(active.fatKcalPerHour)} r={3.5} fill="var(--foreground)" />
+                <circle cx={x(active.watt)} cy={yEnergyRate(active.carbKcalPerHour)} r={3.5} fill="var(--accent)" />
+                <circle cx={x(active.watt)} cy={yEnergyRate(active.fatKcalPerHour)} r={3.5} fill="var(--foreground)" />
               </g>
             ) : null}
             <AxisLabels ftp={ftp} />
-            <text x={PAD_L} y={PAD_T - 8} fill="var(--subtle)" fontSize="10">Fett kcal/h</text>
-            <text x={VIEW_W - 4} y={PAD_T - 8} textAnchor="end" fill="var(--subtle)" fontSize="10">KH kcal/h</text>
+            <text x={PAD_L} y={PAD_T - 8} fill="var(--subtle)" fontSize="10">Energie kcal/h</text>
           </svg>
           {active ? (
             <ChartTooltip point={active} left={tooltipLeft} />
