@@ -37,9 +37,11 @@ describe("trainingPlanSchema", () => {
     expect(trainingPlanSchema.safeParse(validPlan).success).toBe(true);
   });
 
-  it("keeps the first builder milestone swim-only", () => {
-    const result = trainingPlanSchema.safeParse({ ...validPlan, discipline: "run" });
-    expect(result.success).toBe(false);
+  it("accepts all plan disciplines for the cross-discipline builder", () => {
+    expect(trainingPlanSchema.safeParse({ ...validPlan, discipline: "swim" }).success).toBe(true);
+    expect(trainingPlanSchema.safeParse({ ...validPlan, discipline: "run" }).success).toBe(true);
+    expect(trainingPlanSchema.safeParse({ ...validPlan, discipline: "bike" }).success).toBe(true);
+    expect(trainingPlanSchema.safeParse({ ...validPlan, discipline: "strength" }).success).toBe(false);
   });
 
   it("rejects plans without structured sessions", () => {

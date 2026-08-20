@@ -8,7 +8,11 @@ import type {
   TrainingPlanBlock,
   TrainingPlanContent,
   TrainingPlanContentV2,
+  TrainingPlanDiscipline,
   TrainingPlanDrill,
+  WorkoutBlock,
+  WorkoutContent,
+  WorkoutStep,
 } from "./types";
 
 const SET_PATTERN = /^\s*(\d+)\s*[x×]\s*(\d+)\s*m?\s*$/i;
@@ -111,6 +115,50 @@ export function createEmptyStructuredStep(): StructuredSwimStep {
     stroke: "freestyle",
     intensity: { type: "zone", zone: "Z2" },
     equipment: [],
+  };
+}
+
+export function createEmptyWorkoutContent(discipline: TrainingPlanDiscipline = "bike"): WorkoutContent {
+  return {
+    schemaVersion: 1,
+    discipline,
+    blocks: [
+      createWorkoutBlock("warmup"),
+      createWorkoutBlock("interval"),
+      createWorkoutBlock("cooldown"),
+    ],
+  };
+}
+
+export function createWorkoutBlock(kind: WorkoutBlock["kind"] = "steady"): WorkoutBlock {
+  const titleByKind: Record<WorkoutBlock["kind"], string> = {
+    warmup: "Warm-up",
+    steady: "Grundlage",
+    interval: "Intervallblock",
+    recovery: "Erholung",
+    cooldown: "Cooldown",
+  };
+
+  return {
+    id: createPlanNodeId("block"),
+    title: titleByKind[kind],
+    kind,
+    repeatCount: kind === "interval" ? 4 : 1,
+    steps: [createWorkoutStep(kind)],
+  };
+}
+
+export function createWorkoutStep(kind: WorkoutBlock["kind"] = "steady"): WorkoutStep {
+  const targetByKind: WorkoutStep["targets"][number] = kind === "interval"
+    ? { type: "vo2max_power_percentage", minPercent: 90, maxPercent: 100 }
+    : { type: "threshold_power_percentage", minPercent: 65, maxPercent: 75 };
+
+  return {
+    id: createPlanNodeId("step"),
+    title: kind === "interval" ? "Belastung" : "Abschnitt",
+    duration: { type: "time", seconds: kind === "interval" ? 300 : 600 },
+    targets: [targetByKind],
+    recoverySeconds: kind === "interval" ? 180 : undefined,
   };
 }
 

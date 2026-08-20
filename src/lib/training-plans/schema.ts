@@ -52,6 +52,49 @@ export const trainingPlanContentSchema = z.object({
 
 const structuredIdSchema = z.string().trim().min(1).max(80);
 
+export const trainingPlanDisciplineSchema = z.enum(["swim", "run", "bike"]);
+
+const percentRangeSchema = z.object({
+  minPercent: z.number().min(1).max(200),
+  maxPercent: z.number().min(1).max(200).optional(),
+}).refine((value) => value.maxPercent === undefined || value.minPercent <= value.maxPercent, {
+  message: "Der minimale Zielwert darf nicht über dem maximalen Zielwert liegen.",
+});
+
+export const workoutTargetSchema = z.discriminatedUnion("type", [
+  percentRangeSchema.extend({ type: z.literal("threshold_power_percentage") }),
+  percentRangeSchema.extend({ type: z.literal("max_heart_rate_percentage") }),
+  percentRangeSchema.extend({ type: z.literal("vo2max_power_percentage") }),
+]);
+
+export const workoutDurationSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("time"), seconds: z.number().int().min(1).max(86400) }),
+  z.object({ type: z.literal("distance"), meters: z.number().int().min(1).max(100000) }),
+]);
+
+export const workoutStepSchema = z.object({
+  id: structuredIdSchema,
+  title: z.string().trim().min(2).max(80),
+  duration: workoutDurationSchema,
+  targets: z.array(workoutTargetSchema).min(1).max(3),
+  recoverySeconds: z.number().int().min(0).max(3600).optional(),
+  notes: z.string().trim().max(240).optional(),
+});
+
+export const workoutBlockSchema = z.object({
+  id: structuredIdSchema,
+  title: z.string().trim().min(2).max(80),
+  kind: z.enum(["warmup", "steady", "interval", "recovery", "cooldown"]),
+  repeatCount: z.number().int().min(1).max(100),
+  steps: z.array(workoutStepSchema).min(1).max(48),
+});
+
+export const workoutContentSchema = z.object({
+  schemaVersion: z.literal(1),
+  discipline: trainingPlanDisciplineSchema,
+  blocks: z.array(workoutBlockSchema).min(1).max(32),
+});
+
 export const swimIntensitySchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("zone"), zone: z.enum(["Z1", "Z2", "Z3", "Z4", "Z5"]) }),
   z.object({
@@ -115,7 +158,7 @@ export const anyTrainingPlanContentSchema = z.union([trainingPlanContentV2Schema
 
 export const trainingPlanSchema = z.object({
   id: z.string().uuid().optional(),
-  discipline: z.literal("swim"),
+  discipline: trainingPlanDisciplineSchema,
   slug: z
     .string()
     .trim()

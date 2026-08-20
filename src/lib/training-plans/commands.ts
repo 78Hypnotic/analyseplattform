@@ -5,6 +5,9 @@ import type {
   StructuredTrainingPlanSession,
   StructuredTrainingPlanWeek,
   TrainingPlanContentV2,
+  WorkoutBlock,
+  WorkoutContent,
+  WorkoutStep,
 } from "./types";
 
 export function duplicateWeek(content: TrainingPlanContentV2, weekId: string): TrainingPlanContentV2 {
@@ -62,6 +65,58 @@ export function moveItem<T>(items: T[], fromIndex: number, toIndex: number) {
   return result;
 }
 
+export function addWorkoutBlock(content: WorkoutContent, block: WorkoutBlock, index = content.blocks.length): WorkoutContent {
+  return { ...content, blocks: insertAt(content.blocks, clampIndex(index, content.blocks.length), block) };
+}
+
+export function updateWorkoutBlock(
+  content: WorkoutContent,
+  blockId: string,
+  update: (block: WorkoutBlock) => WorkoutBlock,
+): WorkoutContent {
+  return { ...content, blocks: content.blocks.map((block) => (block.id === blockId ? update(block) : block)) };
+}
+
+export function removeWorkoutBlock(content: WorkoutContent, blockId: string): WorkoutContent {
+  if (content.blocks.length <= 1) return content;
+  return { ...content, blocks: content.blocks.filter((block) => block.id !== blockId) };
+}
+
+export function duplicateWorkoutBlock(content: WorkoutContent, blockId: string): WorkoutContent {
+  const index = content.blocks.findIndex((block) => block.id === blockId);
+  if (index < 0) return content;
+  return { ...content, blocks: insertAt(content.blocks, index + 1, cloneWorkoutBlock(content.blocks[index])) };
+}
+
+export function moveWorkoutBlock(content: WorkoutContent, blockId: string, targetIndex: number): WorkoutContent {
+  const sourceIndex = content.blocks.findIndex((block) => block.id === blockId);
+  if (sourceIndex < 0) return content;
+  return { ...content, blocks: moveItem(content.blocks, sourceIndex, targetIndex) };
+}
+
+export function addWorkoutStep(content: WorkoutContent, blockId: string, step: WorkoutStep): WorkoutContent {
+  return updateWorkoutBlock(content, blockId, (block) => ({ ...block, steps: [...block.steps, step] }));
+}
+
+export function updateWorkoutStep(
+  content: WorkoutContent,
+  blockId: string,
+  stepId: string,
+  update: (step: WorkoutStep) => WorkoutStep,
+): WorkoutContent {
+  return updateWorkoutBlock(content, blockId, (block) => ({
+    ...block,
+    steps: block.steps.map((step) => (step.id === stepId ? update(step) : step)),
+  }));
+}
+
+export function removeWorkoutStep(content: WorkoutContent, blockId: string, stepId: string): WorkoutContent {
+  return updateWorkoutBlock(content, blockId, (block) => {
+    if (block.steps.length <= 1) return block;
+    return { ...block, steps: block.steps.filter((step) => step.id !== stepId) };
+  });
+}
+
 export function cloneSession(session: StructuredTrainingPlanSession): StructuredTrainingPlanSession {
   return {
     ...session,
@@ -86,6 +141,24 @@ function cloneBlock(block: StructuredSwimBlock): StructuredSwimBlock {
 
 function cloneStep(step: StructuredSwimStep): StructuredSwimStep {
   return { ...step, id: createPlanNodeId("step"), equipment: [...step.equipment], intensity: { ...step.intensity } };
+}
+
+function cloneWorkoutBlock(block: WorkoutBlock): WorkoutBlock {
+  return {
+    ...block,
+    id: createPlanNodeId("block"),
+    title: `${block.title} (Kopie)`,
+    steps: block.steps.map(cloneWorkoutStep),
+  };
+}
+
+function cloneWorkoutStep(step: WorkoutStep): WorkoutStep {
+  return {
+    ...step,
+    id: createPlanNodeId("step"),
+    duration: { ...step.duration },
+    targets: step.targets.map((target) => ({ ...target })),
+  };
 }
 
 function updateWeek(

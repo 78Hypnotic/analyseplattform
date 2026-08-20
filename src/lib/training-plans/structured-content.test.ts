@@ -1,8 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { duplicateSession, duplicateWeek, moveSession } from "./commands";
+import {
+  addWorkoutBlock,
+  addWorkoutStep,
+  duplicateSession,
+  duplicateWeek,
+  duplicateWorkoutBlock,
+  moveSession,
+  moveWorkoutBlock,
+  removeWorkoutStep,
+  updateWorkoutStep,
+} from "./commands";
 import { assertPublishableTrainingPlanContent, upgradeLegacyTrainingPlanContent } from "./content";
 import { getPlanMetrics } from "./metrics";
-import type { TrainingPlanContent, TrainingPlanContentV2 } from "./types";
+import type { TrainingPlanContent, TrainingPlanContentV2, WorkoutBlock, WorkoutContent, WorkoutStep } from "./types";
 
 const legacy: TrainingPlanContent = {
   weeks: [{
@@ -64,6 +74,31 @@ describe("structured training plan content", () => {
     expect(moved.weeks[1].sessions[0].id).toBe(duplicateId);
     expect(moved.weeks[1].sessions[0].preferredWeekday).toBe(2);
   });
+
+  it("adds, duplicates and moves workout timeline blocks", () => {
+    const content = workoutFixture();
+    const added = addWorkoutBlock(content, workoutBlock("block-2", "Cooldown"), 1);
+    const duplicated = duplicateWorkoutBlock(added, "block-1");
+    const moved = moveWorkoutBlock(duplicated, "block-2", 0);
+
+    expect(added.blocks.map((block) => block.id)).toEqual(["block-1", "block-2"]);
+    expect(duplicated.blocks).toHaveLength(3);
+    expect(duplicated.blocks[1].id).not.toBe("block-1");
+    expect(moved.blocks[0].id).toBe("block-2");
+  });
+
+  it("updates and removes workout timeline steps", () => {
+    const content = workoutFixture();
+    const withSecondStep = addWorkoutStep(content, "block-1", workoutStep("step-2"));
+    const updated = updateWorkoutStep(withSecondStep, "block-1", "step-2", (step) => ({
+      ...step,
+      title: "Lange Belastung",
+    }));
+    const removed = removeWorkoutStep(updated, "block-1", "step-1");
+
+    expect(updated.blocks[0].steps[1].title).toBe("Lange Belastung");
+    expect(removed.blocks[0].steps.map((step) => step.id)).toEqual(["step-2"]);
+  });
 });
 
 function fixture(): TrainingPlanContentV2 {
@@ -95,5 +130,33 @@ function fixture(): TrainingPlanContentV2 {
         }],
       }],
     }],
+  };
+}
+
+function workoutFixture(): WorkoutContent {
+  return {
+    schemaVersion: 1,
+    discipline: "bike",
+    blocks: [workoutBlock("block-1", "Intervalle")],
+  };
+}
+
+function workoutBlock(id: string, title: string): WorkoutBlock {
+  return {
+    id,
+    title,
+    kind: "interval",
+    repeatCount: 4,
+    steps: [workoutStep("step-1")],
+  };
+}
+
+function workoutStep(id: string): WorkoutStep {
+  return {
+    id,
+    title: "Belastung",
+    duration: { type: "time", seconds: 300 },
+    targets: [{ type: "threshold_power_percentage", minPercent: 105, maxPercent: 110 }],
+    recoverySeconds: 180,
   };
 }
