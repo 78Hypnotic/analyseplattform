@@ -200,7 +200,7 @@ export function DashboardHome({
                 </div>
               </div>
             )}
-            <div className="grid gap-4 border-t border-[var(--line)] pt-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+            <div className="border-t border-[var(--line)] pt-4">
               <div>
                 <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--subtle)]">Aktuelle CSS</p>
                 <p className="mt-1 text-2xl font-semibold">
@@ -208,9 +208,12 @@ export function DashboardHome({
                 </p>
                 <MetricImprovementSummary improvement={improvements.swimCss} metricKind="pace" />
               </div>
-              <DashboardLink href={profile.latestSwimAnalyzedAt ? "/analyse" : "/analyse/new"}>
-                {profile.latestSwimAnalyzedAt ? "Schwimmen öffnen" : "Analyse starten"}
-              </DashboardLink>
+              <MetricFooter
+                date={profile.latestSwimAnalyzedAt}
+                href={profile.latestSwimAnalyzedAt ? "/analyse" : "/analyse/new"}
+                emptyText="Analyse starten"
+                filledText="Schwimmen öffnen"
+              />
             </div>
           </section>
 
@@ -369,11 +372,27 @@ function DisciplineMetric({
         <p className="pb-1 text-sm text-[var(--muted)]">{unit}</p>
       </div>
       <MetricImprovementSummary improvement={improvement} metricKind={metricKind} />
-      <div className="mt-auto flex items-center justify-between gap-3 border-t border-[var(--line)] pt-4">
-        <p className="text-xs text-[var(--subtle)]">{date ? `Stand ${formatDate(date)}` : "Noch keine Analyse"}</p>
-        <DashboardLink href={href}>{date ? "Öffnen" : emptyText}</DashboardLink>
-      </div>
+      <MetricFooter date={date} href={href} emptyText={emptyText} filledText="Öffnen" />
     </section>
+  );
+}
+
+function MetricFooter({
+  date,
+  href,
+  emptyText,
+  filledText,
+}: {
+  date: string | null;
+  href: string;
+  emptyText: string;
+  filledText: string;
+}) {
+  return (
+    <div className="mt-6 flex items-center justify-between gap-3 border-t border-[var(--line)] pt-4">
+      <p className="text-xs text-[var(--subtle)]">{date ? `Stand ${formatDate(date)}` : "Noch keine Analyse"}</p>
+      <DashboardLink href={href}>{date ? filledText : emptyText}</DashboardLink>
+    </div>
   );
 }
 
