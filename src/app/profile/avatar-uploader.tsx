@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { Loader2, Pencil } from "lucide-react";
+import { useFeedback } from "@/components/feedback-provider";
 import { uploadAvatar } from "./actions";
 
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
@@ -18,6 +19,7 @@ export function AvatarUploader({
   fullName: string;
   avatarUrl?: string | null;
 }) {
+  const { notify, isOnline } = useFeedback();
   const [currentAvatarUrl, setCurrentAvatarUrl] = useState(avatarUrl ?? null);
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -26,6 +28,11 @@ export function AvatarUploader({
   function handleFile(file: File | null) {
     setMessage(null);
     if (!file) return;
+
+    if (!isOnline) {
+      notify({ tone: "error", title: "Offline", message: "Das Profilbild kann erst nach der Wiederverbindung gespeichert werden." });
+      return;
+    }
 
     const extension = ALLOWED_TYPES.get(file.type);
     if (!extension) {
@@ -44,6 +51,7 @@ export function AvatarUploader({
 
       const state = await uploadAvatar(formData);
       setMessage(state.message);
+      notify({ tone: state.ok ? "success" : "error", title: state.ok ? "Profilbild gespeichert" : "Upload fehlgeschlagen", message: state.message });
       if (state.ok) setCurrentAvatarUrl(state.avatarUrl);
     });
   }
@@ -68,7 +76,7 @@ export function AvatarUploader({
           type="file"
           accept="image/jpeg,image/png,image/webp"
           className="sr-only"
-          disabled={isPending}
+          disabled={isPending || !isOnline}
           onChange={(event) => {
             handleFile(event.target.files?.[0] ?? null);
             event.currentTarget.value = "";

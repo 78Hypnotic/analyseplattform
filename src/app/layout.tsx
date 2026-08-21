@@ -5,6 +5,7 @@ import Script from "next/script";
 import { AppFooter } from "@/components/app-footer";
 import { AppHeader } from "@/components/app-header";
 import { AppHeaderShell } from "@/components/app-header-shell";
+import { FeedbackProvider } from "@/components/feedback-provider";
 import { NavigationFeedback } from "@/components/navigation-feedback";
 import "./globals.css";
 
@@ -60,14 +61,16 @@ export default function RootLayout({
           strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: themeInitScript }}
         />
-        <AppHeaderShell>
-          <AppHeader />
-        </AppHeaderShell>
-        <Suspense fallback={null}>
-          <NavigationFeedback />
-        </Suspense>
-        {children}
-        <AppFooter />
+        <FeedbackProvider>
+          <AppHeaderShell>
+            <AppHeader />
+          </AppHeaderShell>
+          <Suspense fallback={null}>
+            <NavigationFeedback />
+          </Suspense>
+          {children}
+          <AppFooter />
+        </FeedbackProvider>
       </body>
     </html>
   );

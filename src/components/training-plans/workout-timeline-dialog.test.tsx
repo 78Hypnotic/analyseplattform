@@ -11,12 +11,17 @@ const libraryActions = vi.hoisted(() => ({
   markWorkoutLibraryItemUsed: vi.fn(),
   deleteWorkoutLibraryItem: vi.fn(),
 }));
+const feedback = vi.hoisted(() => ({ notify: vi.fn(), dismiss: vi.fn(), isOnline: true }));
 
 vi.mock("@/app/trainingsplaene/verwalten/workout-library-actions", () => libraryActions);
+vi.mock("@/components/feedback-provider", () => ({ useFeedback: () => feedback }));
 
 import { WorkoutTimelineLauncher } from "./workout-timeline-dialog";
 
 beforeEach(() => {
+  vi.clearAllMocks();
+  feedback.notify.mockReset();
+  feedback.isOnline = true;
   libraryActions.listWorkoutLibraryItems.mockResolvedValue({ status: "success", items: [] });
   libraryActions.saveWorkoutLibraryItem.mockResolvedValue({ status: "error", message: "Nicht konfiguriert." });
   libraryActions.updateWorkoutLibraryItem.mockResolvedValue({ status: "error", message: "Nicht konfiguriert." });
@@ -149,6 +154,17 @@ describe("WorkoutTimelineLauncher", () => {
       content: item.content,
     }));
     expect(await screen.findByText("Gespeichert.")).toBeTruthy();
+    expect(feedback.notify).toHaveBeenCalledWith(expect.objectContaining({ tone: "success", title: "Bibliothek gespeichert" }));
+  });
+
+  it("blocks library writes while offline", async () => {
+    feedback.isOnline = false;
+    render(<WorkoutTimelineLauncher content={createEmptyWorkoutContent("bike")} onChange={() => {}} title="Offline Workout" />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Workout Builder öffnen" }));
+    await waitFor(() => expect(libraryActions.listWorkoutLibraryItems).toHaveBeenCalled());
+    expect((screen.getByRole("button", { name: "In Bibliothek speichern" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(libraryActions.saveWorkoutLibraryItem).not.toHaveBeenCalled();
   });
 
   it("loads and deletes a saved library workout", async () => {
@@ -168,8 +184,24 @@ describe("WorkoutTimelineLauncher", () => {
     fireEvent.click(screen.getByRole("button", { name: "Löschen" }));
     fireEvent.click(screen.getByRole("button", { name: "Löschen bestätigen" }));
     await waitFor(() => expect(libraryActions.deleteWorkoutLibraryItem).toHaveBeenCalledWith(item.id));
-    expect(screen.queryByText(item.title)).toBeNull();
+    await waitFor(() => expect(screen.queryByText(item.title)).toBeNull());
     expect(screen.getByRole("button", { name: "In Bibliothek speichern" })).toBeTruthy();
+  });
+
+  it("rolls back an optimistic delete when the server rejects it", async () => {
+    const item = libraryItem();
+    libraryActions.listWorkoutLibraryItems.mockResolvedValue({ status: "success", items: [item] });
+    libraryActions.deleteWorkoutLibraryItem.mockResolvedValue({ status: "error", message: "Löschen fehlgeschlagen." });
+    render(<WorkoutTimelineLauncher content={createEmptyWorkoutContent("bike")} onChange={() => {}} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Workout Builder öffnen" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: /^Bibliothek/ }).textContent).toContain("1"));
+    fireEvent.click(screen.getByRole("button", { name: /^Bibliothek/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Löschen" }));
+    fireEvent.click(screen.getByRole("button", { name: "Löschen bestätigen" }));
+
+    await waitFor(() => expect(screen.getByText(item.title)).toBeTruthy());
+    expect(feedback.notify).toHaveBeenCalledWith(expect.objectContaining({ tone: "error", title: "Löschen fehlgeschlagen" }));
   });
 
   it("filters the library and renders compact workout previews", async () => {

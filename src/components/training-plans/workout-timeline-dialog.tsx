@@ -4,6 +4,7 @@ import { useCallback, useDeferredValue, useEffect, useId, useMemo, useRef, useSt
 import { createPortal } from "react-dom";
 import { Activity, Bike, BookOpen, Maximize2, Redo2, Save, Search, Star, Trash2, Undo2, Waves, X } from "lucide-react";
 import { Button } from "@/components/button";
+import { useFeedback } from "@/components/feedback-provider";
 import { WorkoutTimelineBuilder } from "@/components/training-plans/workout-timeline-builder";
 import {
   deleteWorkoutLibraryItem,
@@ -73,6 +74,7 @@ function WorkoutTimelineDialogContent({
   sessionDetails,
   title,
 }: Omit<WorkoutTimelineDialogProps, "open">) {
+  const { notify, isOnline } = useFeedback();
   const { present: draft, setPresent: setDraft, undo, redo, canUndo, canRedo } = useWorkoutHistory(content);
   const [detailsDraft, setDetailsDraft] = useState<WorkoutSessionDetails | null>(
     () => sessionDetails ? structuredClone(sessionDetails) : null,
@@ -189,6 +191,10 @@ function WorkoutTimelineDialogContent({
       setLibraryMessage("Bitte einen Workout-Titel mit mindestens 3 Zeichen eingeben.");
       return;
     }
+    if (!isOnline) {
+      notify({ tone: "error", title: "Offline", message: "Workout kann erst nach der Wiederverbindung gespeichert werden." });
+      return;
+    }
     setSavingLibraryItem(true);
     setLibraryMessage(null);
     const result = activeLibraryItemId && !forceNew
@@ -196,6 +202,7 @@ function WorkoutTimelineDialogContent({
       : await saveWorkoutLibraryItem({ title: libraryTitle, content: draft });
     setSavingLibraryItem(false);
     setLibraryMessage(result.message);
+    notify({ tone: result.status === "success" ? "success" : "error", title: result.status === "success" ? "Bibliothek gespeichert" : "Speichern fehlgeschlagen", message: result.message });
     if (result.status === "success" && result.item) {
       setLibraryItems((current) => [result.item!, ...current.filter((item) => item.id !== result.item?.id)]);
       setActiveLibraryItemId(result.item.id);
@@ -210,17 +217,29 @@ function WorkoutTimelineDialogContent({
       ? { ...current, title: isDefaultWorkoutTitle(current.title) ? item.title : current.title }
       : current);
     setLibraryMessage(`„${item.title}“ geladen. Mit „Workout übernehmen“ in den Plan schreiben.`);
+    if (!isOnline) return;
     const result = await markWorkoutLibraryItemUsed(item.id);
     if (result.status === "success" && result.item) {
-      setLibraryItems((current) => [result.item!, ...current.filter((entry) => entry.id !== item.id)]);
+      setLibraryItems((current) => current.some((entry) => entry.id === item.id)
+        ? [result.item!, ...current.filter((entry) => entry.id !== item.id)]
+        : current);
     }
   }
 
   async function toggleFavorite(item: WorkoutLibraryItem) {
+    if (!isOnline) {
+      notify({ tone: "error", title: "Offline", message: "Favoriten können erst nach der Wiederverbindung geändert werden." });
+      return;
+    }
+    const optimistic = { ...item, is_favorite: !item.is_favorite };
+    setLibraryItems((current) => [optimistic, ...current.filter((entry) => entry.id !== item.id)]);
     const result = await setWorkoutLibraryFavorite({ id: item.id, isFavorite: !item.is_favorite });
     setLibraryMessage(result.message);
+    notify({ tone: result.status === "success" ? "success" : "error", title: result.status === "success" ? "Favorit aktualisiert" : "Änderung fehlgeschlagen", message: result.message });
     if (result.status === "success" && result.item) {
       setLibraryItems((current) => [result.item!, ...current.filter((entry) => entry.id !== item.id)]);
+    } else {
+      setLibraryItems((current) => [item, ...current.filter((entry) => entry.id !== item.id)]);
     }
   }
 
@@ -229,14 +248,26 @@ function WorkoutTimelineDialogContent({
       setConfirmDeleteId(id);
       return;
     }
+    if (!isOnline) {
+      notify({ tone: "error", title: "Offline", message: "Workouts können erst nach der Wiederverbindung gelöscht werden." });
+      return;
+    }
     setDeletingLibraryItemId(id);
+    const removedItem = libraryItems.find((item) => item.id === id) ?? null;
+    const wasActive = activeLibraryItemId === id;
+    setLibraryItems((current) => current.filter((item) => item.id !== id));
+    if (wasActive) setActiveLibraryItemId(null);
     const result = await deleteWorkoutLibraryItem(id);
     setDeletingLibraryItemId(null);
     setConfirmDeleteId(null);
     setLibraryMessage(result.message);
+    notify({ tone: result.status === "success" ? "success" : "error", title: result.status === "success" ? "Workout gelöscht" : "Löschen fehlgeschlagen", message: result.message });
     if (result.status === "success") {
-      setLibraryItems((current) => current.filter((item) => item.id !== id));
-      if (activeLibraryItemId === id) setActiveLibraryItemId(null);
+      return;
+    }
+    if (removedItem) {
+      setLibraryItems((current) => [removedItem, ...current.filter((item) => item.id !== id)]);
+      if (wasActive) setActiveLibraryItemId(id);
     }
   }
 
@@ -386,11 +417,11 @@ function WorkoutTimelineDialogContent({
               </button>
               <div className="flex flex-wrap gap-1">
                 {activeLibraryItemId ? (
-                  <Button type="button" variant="ghost" disabled={savingLibraryItem} onClick={() => saveToLibrary(true)}>
+                  <Button type="button" variant="ghost" disabled={savingLibraryItem || !isOnline} onClick={() => saveToLibrary(true)}>
                     Als neu speichern
                   </Button>
                 ) : null}
-                <Button type="button" variant="ghost" disabled={savingLibraryItem} onClick={() => saveToLibrary(false)}>
+                <Button type="button" variant="ghost" disabled={savingLibraryItem || !isOnline} onClick={() => saveToLibrary(false)}>
                   <Save size={15} /> {savingLibraryItem ? "Speichert..." : activeLibraryItemId ? "Bibliothek aktualisieren" : "In Bibliothek speichern"}
                 </Button>
               </div>
@@ -443,6 +474,7 @@ function WorkoutTimelineDialogContent({
                   <div key={item.id} className="grid gap-3 border-b border-[var(--line)] px-3 py-3 last:border-b-0 sm:grid-cols-[auto_minmax(0,1fr)_8rem_auto_auto] sm:items-center">
                     <button
                       type="button"
+                      disabled={!isOnline}
                       aria-label={item.is_favorite ? `${item.title} aus Favoriten entfernen` : `${item.title} als Favorit markieren`}
                       onClick={() => toggleFavorite(item)}
                       className={item.is_favorite ? "text-[var(--accent)]" : "text-[var(--subtle)] hover:text-[var(--foreground)]"}
@@ -459,7 +491,7 @@ function WorkoutTimelineDialogContent({
                     <Button type="button" variant="ghost" onClick={() => loadFromLibrary(item)}>Laden</Button>
                     <button
                       type="button"
-                      disabled={deletingLibraryItemId === item.id}
+                      disabled={deletingLibraryItemId === item.id || !isOnline}
                       onClick={() => deleteFromLibrary(item.id)}
                       className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg px-2 text-xs text-[var(--warn)] hover:bg-[var(--raised-bg)] disabled:opacity-50"
                     >

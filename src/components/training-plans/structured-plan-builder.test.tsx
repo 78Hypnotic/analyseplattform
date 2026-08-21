@@ -13,6 +13,10 @@ vi.mock("@/app/trainingsplaene/verwalten/workout-library-actions", () => ({
   deleteWorkoutLibraryItem: vi.fn(),
 }));
 
+vi.mock("@/components/feedback-provider", () => ({
+  useFeedback: () => ({ notify: vi.fn(), dismiss: vi.fn(), isOnline: true }),
+}));
+
 import { StructuredPlanBuilder } from "./structured-plan-builder";
 
 describe("StructuredPlanBuilder", () => {
