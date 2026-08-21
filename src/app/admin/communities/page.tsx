@@ -37,7 +37,7 @@ export default async function AdminCommunitiesPage() {
   const profileById = new Map(profiles.map((profile) => [profile.id, profile]));
 
   return (
-    <main className="mx-auto w-full max-w-6xl space-y-8 px-5 py-10">
+    <main className="mx-auto w-full max-w-6xl space-y-8 px-5 py-6">
       <section>
         <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--accent)]">Admin / Communities</p>
         <h1 className="mt-2 text-3xl font-semibold">Gruppencoaching-Zugänge</h1>

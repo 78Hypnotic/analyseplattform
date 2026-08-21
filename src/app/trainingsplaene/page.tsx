@@ -20,7 +20,7 @@ export default async function TrainingPlansPage({
 
   return (
     <>
-      <main className="mx-auto w-full max-w-6xl px-5 py-10 pb-24">
+      <main className="mx-auto w-full max-w-6xl px-5 py-6 pb-16">
         {home.kind === "signed-out" ? <SignedOutLibrary /> : null}
         {home.kind === "locked" ? <LockedLibrary /> : null}
         {home.kind === "coach" ? (

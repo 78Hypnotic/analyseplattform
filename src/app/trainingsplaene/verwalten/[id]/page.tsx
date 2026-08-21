@@ -18,7 +18,7 @@ export default async function EditTrainingPlanPage({
 
   return (
     <>
-      <main className="mx-auto w-full max-w-6xl px-5 py-10">
+      <main className="mx-auto w-full max-w-6xl px-5 py-6">
         <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--accent)]">
           {currentUser.isAdmin ? "Admin" : "Coach"} / Plan bearbeiten
         </p>

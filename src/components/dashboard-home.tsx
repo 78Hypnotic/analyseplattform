@@ -94,8 +94,8 @@ export function DashboardHome({
     : "md:col-span-6 xl:col-span-12";
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-5 py-8 pb-24 sm:py-10">
-      <header className="mb-8 flex flex-col justify-between gap-5 md:flex-row md:items-end">
+    <main className="mx-auto w-full max-w-6xl px-5 py-6 pb-16">
+      <header className="mb-6 flex flex-col justify-between gap-5 md:flex-row md:items-end">
         <div>
           <p className="mono text-xs uppercase tracking-[0.2em] text-[var(--accent)]">
             Deine Übersicht

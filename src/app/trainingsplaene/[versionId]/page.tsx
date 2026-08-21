@@ -32,7 +32,7 @@ export default async function TrainingPlanDetailPage({
 
   return (
     <>
-      <main className="mx-auto w-full max-w-6xl px-5 py-10 pb-24">
+      <main className="mx-auto w-full max-w-6xl px-5 py-6 pb-16">
         <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--accent)]">
           Schwimmplan · Version {version.version_number}
         </p>

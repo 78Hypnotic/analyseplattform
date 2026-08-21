@@ -26,7 +26,7 @@ export default async function RunAnalysisDetailPage({
 
   return (
     <>
-      <main className="print-report mx-auto w-full max-w-6xl px-5 py-10">
+      <main className="print-report mx-auto w-full max-w-6xl px-5 py-6">
         <Breadcrumbs
           className="no-print mb-5"
           items={[{ label: "Diagnostik" }, { label: "Laufen", href: "/lauf" }, { label: analysis.title }]}

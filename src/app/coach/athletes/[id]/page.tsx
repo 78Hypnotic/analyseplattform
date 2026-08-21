@@ -30,7 +30,7 @@ export default async function CoachAthleteDetailPage({
 
   return (
     <>
-      <main className="mx-auto w-full max-w-6xl space-y-8 px-5 py-10">
+      <main className="mx-auto w-full max-w-6xl space-y-8 px-5 py-6">
         <Breadcrumbs items={[
           { label: "Coach", href: "/coach" },
           { label: "Athleten", href: "/coach" },

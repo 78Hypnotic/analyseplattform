@@ -10,7 +10,7 @@ export function LegalPage({
   children: ReactNode;
 }) {
   return (
-    <main className="mx-auto w-full max-w-3xl px-5 py-12">
+    <main className="mx-auto w-full max-w-3xl px-5 py-8">
       <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--accent)]">
         {eyebrow}
       </p>

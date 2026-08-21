@@ -39,7 +39,7 @@ export default async function NewAnalysisPage({
 
   return (
     <>
-      <main className="mx-auto w-full max-w-6xl px-5 py-10">
+      <main className="mx-auto w-full max-w-6xl px-5 py-6">
         <AnalysisFlow
           initialInput={context.initialInput}
           isAuthenticated={context.isAuthenticated}

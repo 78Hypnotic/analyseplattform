@@ -10,7 +10,7 @@ export default async function CommunityOverviewPage() {
   const result = await listAccessibleCommunities();
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-5 py-10 pb-24">
+    <main className="mx-auto w-full max-w-6xl px-5 py-6 pb-16">
       {result.kind === "signed-out" ? (
         <LockedCommunity
           headline="Communities sind für angemeldete Mitglieder."
@@ -21,12 +21,12 @@ export default async function CommunityOverviewPage() {
         <>
           <header>
             <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--accent)]">Community</p>
-            <h1 className="display-serif mt-3 text-5xl text-[var(--foreground)] sm:text-6xl">Deine Kanäle.</h1>
-            <p className="mt-4 max-w-2xl text-[var(--muted)]">
+            <h1 className="display-serif mt-2 text-4xl text-[var(--foreground)] sm:text-5xl">Deine Kanäle.</h1>
+            <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">
               News, Vorstellungsrunde, Chat und Linksammlung – je Community in eigenen Kanälen.
             </p>
           </header>
-          <ul className="mt-8 grid gap-3">
+          <ul className="mt-6 grid gap-3">
             {result.communities.map((community) => (
               <li key={community.id}>
                 <CommunityLink community={community} />

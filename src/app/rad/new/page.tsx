@@ -37,7 +37,7 @@ export default async function NewBikeAnalysisPage({
 
   return (
     <>
-      <main className="mx-auto w-full max-w-6xl px-5 py-10">
+      <main className="mx-auto w-full max-w-6xl px-5 py-6">
         <CyclingFlow
           initialInput={context.initialInput}
           isAuthenticated={context.isAuthenticated}

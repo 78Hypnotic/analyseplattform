@@ -41,7 +41,7 @@ export default async function MethodikPage() {
 
   return (
     <>
-      <main className="mx-auto w-full max-w-5xl px-5 py-10">
+      <main className="mx-auto w-full max-w-5xl px-5 py-6">
         <p className="mono inline-flex items-center gap-2 rounded-full border border-[var(--line)] px-3 py-2 text-xs uppercase tracking-[0.18em] text-[var(--accent)]">
           <ShieldCheck size={14} />
           Admin · Methodik

@@ -85,7 +85,7 @@ export default async function ProfilePage() {
 
   return (
     <>
-      <main className="mx-auto w-full max-w-6xl space-y-8 px-5 py-10 pb-24">
+      <main className="mx-auto w-full max-w-6xl space-y-8 px-5 py-6 pb-16">
         <section className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
           <div>
             <p className="mono text-xs uppercase tracking-[0.2em] text-[var(--subtle)]">

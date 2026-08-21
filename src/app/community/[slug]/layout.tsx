@@ -21,7 +21,7 @@ export default async function CommunityLayout({
 
   if (result.kind === "signed-out") {
     return (
-      <main className="mx-auto w-full max-w-4xl px-5 py-10 pb-24">
+      <main className="mx-auto w-full max-w-6xl px-5 py-6 pb-16">
         <LockedCommunity
           headline="Dieser Bereich ist für angemeldete Mitglieder."
           text="Melde dich an, um die Kanäle zu lesen und mitzuschreiben."
@@ -36,16 +36,16 @@ export default async function CommunityLayout({
   const { community, channels, canModerate } = result.navigation;
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-5 py-10 pb-24">
+    <main className="mx-auto w-full max-w-6xl px-5 py-6 pb-16">
       <Link href="/community" className="inline-flex items-center gap-2 text-sm text-[var(--muted)] transition hover:text-[var(--foreground)]">
         <ArrowLeft size={15} /> Alle Communities
       </Link>
 
-      <header className="mt-5 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+      <header className="mt-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
         <div>
           <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--accent)]">{community.eyebrow}</p>
-          <h1 className="display-serif mt-2 text-4xl text-[var(--foreground)] sm:text-5xl">{community.title}</h1>
-          {community.description ? <p className="mt-3 max-w-2xl text-sm text-[var(--muted)]">{community.description}</p> : null}
+          <h1 className="display-serif mt-2 text-3xl text-[var(--foreground)] sm:text-4xl">{community.title}</h1>
+          {community.description ? <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">{community.description}</p> : null}
         </div>
         {canModerate ? (
           <span className="inline-flex items-center gap-2 self-start rounded-lg border border-[var(--line)] bg-[var(--panel-2)] px-3 py-2 text-sm text-[var(--muted)] sm:self-auto">
@@ -54,7 +54,7 @@ export default async function CommunityLayout({
         ) : null}
       </header>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
+      <div className="mt-6 grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
         <ChannelNav communitySlug={community.slug} channels={channels} canModerate={canModerate} />
         <div className="min-w-0">{children}</div>
       </div>

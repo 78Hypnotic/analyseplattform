@@ -13,7 +13,7 @@ export default async function ManageTrainingPlansPage() {
 
   return (
     <>
-      <main className="mx-auto w-full max-w-6xl px-5 py-10">
+      <main className="mx-auto w-full max-w-6xl px-5 py-6">
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
             <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--accent)]">
