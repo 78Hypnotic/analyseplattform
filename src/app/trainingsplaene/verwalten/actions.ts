@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import type { TechniqueProfileGroup } from "@/lib/analysis/types";
@@ -87,6 +87,7 @@ export async function saveTrainingPlan(
       if (error) return { message: error.message, status: "error" };
 
       revalidatePath("/admin");
+      updateTag("training-plan-library");
       revalidatePath("/trainingsplaene");
       revalidatePath("/trainingsplaene/verwalten");
       revalidatePath(`/trainingsplaene/verwalten/${parsed.data.id}`);
@@ -107,6 +108,7 @@ export async function saveTrainingPlan(
     if (error) return { message: error.message, status: "error" };
 
     revalidatePath("/admin");
+    updateTag("training-plan-library");
     revalidatePath("/trainingsplaene");
     revalidatePath("/trainingsplaene/verwalten");
     revalidatePath("/analyse");
@@ -142,6 +144,7 @@ export async function publishTrainingPlan(formData: FormData) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/trainingsplaene");
+  updateTag("training-plan-library");
   revalidatePath("/trainingsplaene/verwalten");
   revalidatePath(`/trainingsplaene/verwalten/${id}`);
   revalidatePath("/admin");
@@ -168,6 +171,7 @@ export async function deleteTrainingPlan(formData: FormData) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/admin");
+  updateTag("training-plan-library");
   revalidatePath("/trainingsplaene");
   revalidatePath("/trainingsplaene/verwalten");
   revalidatePath("/analyse");

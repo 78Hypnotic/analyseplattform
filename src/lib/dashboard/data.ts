@@ -87,6 +87,7 @@ export async function getAuthenticatedHomeData(): Promise<DashboardHomeProps | n
     rolesResult,
     improvementAnalysesResult,
     communityUpdates,
+    coachAthleteCountResult,
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -135,6 +136,10 @@ export async function getAuthenticatedHomeData(): Promise<DashboardHomeProps | n
       .order("created_at", { ascending: false })
       .limit(100),
     listRecentCommunityUpdates(4),
+    supabase
+      .from("coach_athletes")
+      .select("athlete_id", { count: "exact", head: true })
+      .eq("coach_id", user.id),
   ]);
 
   if (profileResult.error) throw new Error(profileResult.error.message);
@@ -144,6 +149,7 @@ export async function getAuthenticatedHomeData(): Promise<DashboardHomeProps | n
   if (membershipResult.error) throw new Error(membershipResult.error.message);
   if (rolesResult.error) throw new Error(rolesResult.error.message);
   if (improvementAnalysesResult.error) throw new Error(improvementAnalysesResult.error.message);
+  if (coachAthleteCountResult.error) throw new Error(coachAthleteCountResult.error.message);
 
   const activePlanRow = activePlanResult.data as ActiveTrainingPlanRow | null;
   let activeTrainingPlan: DashboardTrainingPlan | null = null;
@@ -174,17 +180,7 @@ export async function getAuthenticatedHomeData(): Promise<DashboardHomeProps | n
   const roleValues = (rolesResult.data ?? []).map((row) => row.role);
   const isCoach = roleValues.includes("coach");
   const isAdmin = roleValues.includes("admin");
-  let coachAthleteCount = 0;
-
-  if (isCoach) {
-    const { count, error } = await supabase
-      .from("coach_athletes")
-      .select("athlete_id", { count: "exact", head: true })
-      .eq("coach_id", user.id);
-
-    if (error) throw new Error(error.message);
-    coachAthleteCount = count ?? 0;
-  }
+  const coachAthleteCount = isCoach ? coachAthleteCountResult.count ?? 0 : 0;
 
   const profileRow = profileResult.data as ProfileRow | null;
   const metadataName =

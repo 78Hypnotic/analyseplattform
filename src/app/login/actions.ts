@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { assertRateLimit } from "@/lib/rate-limit/server";
@@ -55,6 +55,7 @@ export async function signInWithPassword(
     return { message: mapActionError(error, "Login fehlgeschlagen.") };
   }
 
+  updateTag("app-header-user");
   revalidatePath("/", "layout");
   redirect(nextPath);
 }
@@ -113,6 +114,7 @@ export async function signUpWithPassword(
     return { message: mapActionError(error, "Account konnte nicht erstellt werden.") };
   }
 
+  updateTag("app-header-user");
   revalidatePath("/", "layout");
   redirect(nextPath);
 }
@@ -120,6 +122,7 @@ export async function signUpWithPassword(
 export async function signOut() {
   const supabase = await createSupabaseServerClient();
   await supabase.auth.signOut();
+  updateTag("app-header-user");
   revalidatePath("/", "layout");
   redirect("/");
 }

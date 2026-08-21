@@ -1,5 +1,7 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { parseTrainingPlanContent } from "./content";
 import type {
@@ -171,34 +173,42 @@ export async function getAccessibleTrainingPlanVersionById(
 }
 
 async function getLibraryVersions(libraryId: string) {
-  const supabase = await createSupabaseServerClient();
-  const { data: links, error: linksError } = await supabase
-    .from("coach_library_versions")
-    .select("training_plan_version_id,sort_order")
-    .eq("library_id", libraryId)
-    .order("sort_order", { ascending: true });
-
-  if (linksError) throw new Error(linksError.message);
-  const linkRows = (links ?? []) as LibraryVersionRow[];
-  if (linkRows.length === 0) return [];
-
-  const { data: versions, error: versionsError } = await supabase
-    .from("training_plan_versions")
-    .select(VERSION_SUMMARY_COLUMNS)
-    .in("id", linkRows.map((link) => link.training_plan_version_id));
-
-  if (versionsError) throw new Error(versionsError.message);
-  const byId = new Map(
-    ((versions ?? []) as VersionSummaryRow[]).map((version) => [
-      version.id,
-      { ...version, target_distances: parseTargetDistances(version.target_distances) },
-    ]),
-  );
-
-  return linkRows
-    .map((link) => byId.get(link.training_plan_version_id))
-    .filter((version): version is TrainingPlanVersionSummary => Boolean(version));
+  return getCachedLibraryVersions(libraryId);
 }
+
+const getCachedLibraryVersions = unstable_cache(
+  async (libraryId: string) => {
+    const admin = createSupabaseAdminClient();
+    const { data: links, error: linksError } = await admin
+      .from("coach_library_versions")
+      .select("training_plan_version_id,sort_order")
+      .eq("library_id", libraryId)
+      .order("sort_order", { ascending: true });
+
+    if (linksError) throw new Error(linksError.message);
+    const linkRows = (links ?? []) as LibraryVersionRow[];
+    if (linkRows.length === 0) return [];
+
+    const { data: versions, error: versionsError } = await admin
+      .from("training_plan_versions")
+      .select(VERSION_SUMMARY_COLUMNS)
+      .in("id", linkRows.map((link) => link.training_plan_version_id));
+
+    if (versionsError) throw new Error(versionsError.message);
+    const byId = new Map(
+      ((versions ?? []) as VersionSummaryRow[]).map((version) => [
+        version.id,
+        { ...version, target_distances: parseTargetDistances(version.target_distances) },
+      ]),
+    );
+
+    return linkRows
+      .map((link) => byId.get(link.training_plan_version_id))
+      .filter((version): version is TrainingPlanVersionSummary => Boolean(version));
+  },
+  ["training-plan-library-versions"],
+  { revalidate: 30, tags: ["training-plan-library"] },
+);
 
 async function enrichLibraries(rows: LibraryRow[]) {
   if (rows.length === 0) return [];

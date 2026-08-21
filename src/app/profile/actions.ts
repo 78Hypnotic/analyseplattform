@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { assertRateLimit } from "@/lib/rate-limit/server";
@@ -124,6 +124,7 @@ export async function updateProfile(
     return { message: profileError.message };
   }
 
+  updateTag("app-header-user");
   revalidatePath("/", "layout");
   revalidatePath("/profile");
   revalidatePath("/analyse");
@@ -250,6 +251,7 @@ export async function removeAvatar(): Promise<AvatarActionState> {
 }
 
 function revalidateProfileSurfaces() {
+  updateTag("app-header-user");
   revalidatePath("/", "layout");
   revalidatePath("/profile");
   revalidatePath("/analyse");

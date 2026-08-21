@@ -1,6 +1,8 @@
 import { LogOut, Waves } from "lucide-react";
 import Link from "next/link";
+import { unstable_cache } from "next/cache";
 import { signOut } from "@/app/login/actions";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { AppRole } from "@/lib/auth/roles";
 import { ActiveNavLink } from "./active-nav-link";
@@ -128,20 +130,23 @@ async function getCurrentUserProfile() {
         ? user.user_metadata.full_name
         : null;
 
-    const [{ data: profileData }, { data: roleData }] = await Promise.all([
-      supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .maybeSingle(),
-      supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id),
-    ]);
+    let profileData: { full_name?: string | null; avatar_url?: string | null } | null = null;
+    let roleValues: unknown[] | undefined;
+    try {
+      const cached = await getCachedHeaderData(user.id);
+      profileData = cached.profile;
+      roleValues = cached.roles;
+    } catch {
+      const [{ data: profile }, { data: roles }] = await Promise.all([
+        supabase.from("profiles").select("full_name,avatar_url").eq("id", user.id).maybeSingle(),
+        supabase.from("user_roles").select("role").eq("user_id", user.id),
+      ]);
+      profileData = profile;
+      roleValues = roles?.map((row) => row.role);
+    }
 
-    const profile = profileData as { full_name?: string | null; avatar_url?: string | null } | null;
-    const roles = normalizeRoles(roleData?.map((row) => row.role));
+    const profile = profileData;
+    const roles = normalizeRoles(roleValues);
 
     return {
       email: user.email ?? null,
@@ -153,6 +158,24 @@ async function getCurrentUserProfile() {
     return { email: null, name: null, roles: [] as AppRole[], avatarUrl: null };
   }
 }
+
+const getCachedHeaderData = unstable_cache(
+  async (userId: string) => {
+    const admin = createSupabaseAdminClient();
+    const [{ data: profile, error: profileError }, { data: roles, error: rolesError }] = await Promise.all([
+      admin.from("profiles").select("full_name,avatar_url").eq("id", userId).maybeSingle(),
+      admin.from("user_roles").select("role").eq("user_id", userId),
+    ]);
+    if (profileError) throw new Error(profileError.message);
+    if (rolesError) throw new Error(rolesError.message);
+    return {
+      profile: profile as { full_name?: string | null; avatar_url?: string | null } | null,
+      roles: (roles ?? []).map((row) => row.role),
+    };
+  },
+  ["app-header-user"],
+  { revalidate: 60, tags: ["app-header-user"] },
+);
 
 function normalizeRoles(values: unknown[] | undefined): AppRole[] {
   const roles = (values ?? []).filter(isAppRole);

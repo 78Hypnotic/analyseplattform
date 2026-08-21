@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { createEmptyStructuredPlan } from "@/lib/training-plans/content";
 import type { TrainingPlanContentV2 } from "@/lib/training-plans/types";
@@ -20,31 +20,31 @@ vi.mock("@/components/feedback-provider", () => ({
 import { StructuredPlanBuilder } from "./structured-plan-builder";
 
 describe("StructuredPlanBuilder", () => {
-  it("opens the timeline dialog immediately when a workout is added", () => {
+  it("opens the timeline dialog when a workout is added", async () => {
     render(<BuilderHarness />);
 
     fireEvent.click(screen.getByRole("button", { name: "Workout" }));
 
-    expect(screen.getByRole("dialog", { name: "Neue Schwimmeinheit" })).toBeTruthy();
+    expect(await screen.findByRole("dialog", { name: "Neue Schwimmeinheit" })).toBeTruthy();
     expect(screen.getByTestId("session-count").textContent).toBe("2");
   });
 
-  it("stores the selected discipline and updates an untouched default title", () => {
+  it("stores the selected discipline and updates an untouched default title", async () => {
     render(<BuilderHarness />);
 
     fireEvent.click(screen.getByRole("button", { name: "Workout" }));
-    fireEvent.click(screen.getByRole("button", { name: "Rad" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Rad" }));
     fireEvent.click(screen.getByRole("button", { name: "Workout übernehmen" }));
 
-    expect(screen.getByTestId("latest-session-title").textContent).toBe("Neue Radeinheit");
+    await waitFor(() => expect(screen.getByTestId("latest-session-title").textContent).toBe("Neue Radeinheit"));
   });
 
-  it("opens an existing workout directly and saves its session details", () => {
+  it("opens an existing workout directly and saves its session details", async () => {
     render(<BuilderHarness />);
 
     fireEvent.click(screen.getByRole("button", { name: /Neue Schwimmeinheit/ }));
 
-    expect(screen.getByRole("dialog", { name: "Neue Schwimmeinheit" })).toBeTruthy();
+    expect(await screen.findByRole("dialog", { name: "Neue Schwimmeinheit" })).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Titel"), { target: { value: "Schwelle kompakt" } });
     fireEvent.change(screen.getByLabelText("Fokus"), { target: { value: "FTP stabilisieren" } });
     fireEvent.change(screen.getByLabelText("Trainingstag"), { target: { value: "3" } });

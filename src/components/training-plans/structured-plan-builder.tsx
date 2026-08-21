@@ -1,6 +1,7 @@
 "use client";
 
 import { useDeferredValue, useState } from "react";
+import dynamic from "next/dynamic";
 import {
   ArrowDown,
   ArrowUp,
@@ -11,10 +12,7 @@ import {
   Waves,
 } from "lucide-react";
 import { Button } from "@/components/button";
-import {
-  WorkoutTimelineDialog,
-  type WorkoutSessionDetails,
-} from "@/components/training-plans/workout-timeline-dialog";
+import type { WorkoutSessionDetails } from "@/components/training-plans/workout-timeline-dialog";
 import { duplicateSession, duplicateWeek, moveItem, moveSession } from "@/lib/training-plans/commands";
 import {
   createEmptyStructuredSession,
@@ -40,6 +38,20 @@ type TimelineDialogState = {
   content: NonNullable<StructuredTrainingPlanSession["timelineWorkout"]>;
   sessionDetails: WorkoutSessionDetails;
 };
+
+const WorkoutTimelineDialog = dynamic(
+  () => import("@/components/training-plans/workout-timeline-dialog").then((module) => module.WorkoutTimelineDialog),
+  {
+    ssr: false,
+    loading: () => (
+      <div role="status" className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-[2px]">
+        <div className="rounded-lg border border-[var(--line)] bg-[var(--overlay-bg)] px-5 py-4 text-sm text-[var(--muted)] shadow-2xl">
+          Workout Builder wird geladen...
+        </div>
+      </div>
+    ),
+  },
+);
 
 export function StructuredPlanBuilder({
   content,
