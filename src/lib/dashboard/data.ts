@@ -8,6 +8,7 @@ import type {
 } from "@/components/dashboard-home";
 import { buildTechniqueProfile } from "@/lib/analysis/calculations";
 import type { TechniqueProfileGroup } from "@/lib/analysis/types";
+import { listRecentCommunityUpdates } from "@/lib/community/communities";
 import {
   buildDashboardImprovements,
   type DashboardImprovementAnalysisRow,
@@ -85,6 +86,7 @@ export async function getAuthenticatedHomeData(): Promise<DashboardHomeProps | n
     membershipResult,
     rolesResult,
     improvementAnalysesResult,
+    communityUpdates,
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -132,6 +134,7 @@ export async function getAuthenticatedHomeData(): Promise<DashboardHomeProps | n
       .in("discipline", ["swim", "run", "bike"])
       .order("created_at", { ascending: false })
       .limit(100),
+    listRecentCommunityUpdates(4),
   ]);
 
   if (profileResult.error) throw new Error(profileResult.error.message);
@@ -205,6 +208,7 @@ export async function getAuthenticatedHomeData(): Promise<DashboardHomeProps | n
         : membershipResult.data
           ? "member"
           : "locked",
+    communityUpdates,
     isCoach,
     isAdmin,
     coachAthleteCount,

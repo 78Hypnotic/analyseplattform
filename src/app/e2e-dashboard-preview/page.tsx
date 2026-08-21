@@ -68,6 +68,19 @@ export default function DashboardPreviewPage() {
       ]}
       activeTrainingPlan={null}
       trainingPlanAccess="admin"
+      communityUpdates={[
+        {
+          id: "11111111-1111-4111-8111-111111111111",
+          communitySlug: "plattform",
+          communityTitle: "Plattform-Community",
+          channelSlug: "news",
+          channelName: "News",
+          channelType: "announcement",
+          authorName: "Team",
+          snippet: "Neue Laufdiagnostik ist ab sofort verfügbar.",
+          createdAt: "2026-08-20T09:00:00.000Z",
+        },
+      ]}
       isCoach
       isAdmin
       coachAthleteCount={12}

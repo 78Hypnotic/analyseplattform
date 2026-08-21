@@ -1,14 +1,14 @@
 # Communities
 
-Status: Umbau auf Chat-Kanäle umgesetzt
-Stand: 20.08.2026
+Status: Kanäle je Community umgesetzt
+Stand: 21.08.2026
 
 ## Ziel
 
-Die Plattform bietet Community-Chats. Der Einstieg unter `/community` ist eine
-flache Linkliste; ein Klick öffnet direkt den Nachrichtenverlauf unter
-`/community/[slug]`. Es gibt keine verschachtelte Themen- oder Thread-Navigation
-mehr.
+Die Plattform bietet Community-Chats mit Themenkanälen. Der Einstieg unter
+`/community` ist eine flache Linkliste der Communities; ein Klick öffnet den
+Standardkanal. Innerhalb einer Community navigiert eine Sidebar zwischen den
+Kanälen (`/community/[slug]/[channelSlug]`).
 
 Es existieren zwei Arten von Communities:
 
@@ -17,19 +17,40 @@ Es existieren zwei Arten von Communities:
 - **Coach-Community** (`kind = 'coach'`): eine pro Coach, gekoppelt an dessen
   `coach_plan_libraries`-Bibliothek, für das Gruppencoaching.
 
+Jede Community startet mit vier Kanälen: `news`, `allgemein` (Standard),
+`vorstellungsrunde` und `links`.
+
+## Kanaltypen
+
+| Typ | Zweck | Schreibrecht |
+| --- | --- | --- |
+| `chat` | offener Nachrichtenstrom | alle Mitglieder |
+| `announcement` | News und Ankündigungen | nur Coach der Community und Admin |
+| `intro` | Vorstellungsrunde als Karten-Grid | alle Mitglieder, ein veröffentlichter Beitrag pro Person (bearbeitbar) |
+| `links` | kuratierte Linksammlung | alle Mitglieder, Einträge in `community_links` statt Nachrichten |
+
+Die Regeln liegen in der Datenbank (`can_post_in_channel`,
+`can_contribute_link`) und gelten damit auch für direkte API-Zugriffe, nicht nur
+für die UI.
+
 ## Scope
 
-- ein fortlaufender Nachrichtenstrom pro Community,
+- ein fortlaufender Beitragsstrom pro Kanal,
 - Cursor-Pagination über `?before=<timestamp>` in 50er-Seiten,
 - bis zu vier Bildanhänge pro Nachricht,
 - Moderation durch Coach und Admin per Soft-Delete,
-- Entfernen eigener Nachrichten durch den Autor,
+- Entfernen eigener Beiträge durch den Autor,
+- Kanalverwaltung für Moderatoren unter `/community/[slug]/einstellungen`
+  (anlegen, umbenennen, sortieren, deaktivieren),
+- Dashboard-Kachel „Neues aus der Community“ mit den letzten Beiträgen aus allen
+  zugänglichen Kanälen,
 - Admin-Oberfläche für Gruppencoaching-Mitgliedschaften unter
   `/admin/communities`.
 
 Kein Realtime. Der Verlauf aktualisiert sich über `revalidatePath` beim Senden,
 nicht per Push. Direktnachrichten, Reactions, Ungelesen-Zähler und
-Benachrichtigungen sind spätere Ausbaustufen.
+Benachrichtigungen sind spätere Ausbaustufen. Eine Community-Karte ist bewusst
+nicht Teil des Scopes.
 
 ## Rollen und Zugriff
 
@@ -81,6 +102,27 @@ Die Alt-Tabellen `community_threads` und `community_replies` bleiben vorerst
 lesbar, sind aber nicht mehr beschreibbar. Sie werden in einer Folgemigration
 entfernt, sobald der Backfill produktiv verifiziert ist.
 
+Die Migration `20260821120000_community_channel_topics.sql` ergänzt die
+Kanalebene:
+
+- `community_channels` mit `community_id`, `slug`, `name`, `description`, `type`,
+  `sort_order`, `is_default`, `is_active`. Der Slug wird per Trigger aus dem
+  Namen abgeleitet (`resolve_community_channel_slug`) und ist je Community
+  eindeutig; `threads` und `einstellungen` sind als Routennamen gesperrt.
+- `community_messages.channel_id` mit Verbundschlüssel auf `(id, community_id)`,
+  damit eine Nachricht nie in einen fremden Kanal zeigt. Bestandsnachrichten
+  wandern in den Standardkanal `allgemein`.
+- `community_links` für die Linksammlung, inklusive Soft-Delete und einem
+  `^https?://`-Check auf der URL.
+- View `community_channel_activity` (security invoker) für Beitragszahl und
+  letzte Aktivität je Kanal.
+- `ensure_default_community_channels` legt die vier Startkanäle an und wird auch
+  vom Trigger `coach_plan_libraries_sync_community` für neue Coach-Communities
+  aufgerufen.
+- Trigger `community_channels_protect_update` friert Community, Typ und
+  Standardflag eines Kanals ein und verhindert das Deaktivieren des
+  Standardkanals.
+
 Erlaubt sind JPG, PNG und WebP bis 5 MB pro Datei, maximal vier Bilder pro
 Nachricht. Der private Bucket `community-attachments` und die Signed URLs
 stammen unverändert aus `20260820143000_community_attachments.sql`.
@@ -98,15 +140,25 @@ Athleten aus `coach_athletes` automatisch Zugang zur Community ihres Coaches.
 
 ## Akzeptanzkriterien
 
-- `/community` listet Communities als Links; ein Klick öffnet den Chat.
+- `/community` listet Communities als Links; ein Klick öffnet den Standardkanal.
 - Jeder angemeldete Nutzer sieht mindestens die Plattform-Community.
 - Ein Nutzer ohne Bezug zu einem Coach sieht dessen Community nicht.
 - Ein Coach sieht und moderiert die eigene Community; ein fremder Coach nicht.
-- Nachrichten laufen über Server Actions mit Zod-Validierung, Rate Limit und
+- Kanäle legen nur Moderatoren an: Admins in jeder Community, Coaches nur in
+  ihrer eigenen.
+- In `announcement`-Kanälen scheitert ein Insert normaler Mitglieder an der RLS,
+  nicht erst an der UI.
+- In `intro`-Kanälen ist genau ein veröffentlichter Beitrag pro Person möglich;
+  der eigene Beitrag bleibt bearbeitbar.
+- Links werden nur mit `http`- oder `https`-Schema akzeptiert und mit
+  `rel="noopener noreferrer nofollow"` gerendert.
+- Beiträge laufen über Server Actions mit Zod-Validierung, Rate Limit und
   Supabase RLS.
 - Bildanhänge werden privat gespeichert und nur über berechtigte Signed URLs
   ausgeliefert.
-- Entfernte Nachrichten bleiben auditierbar, werden aber nicht mehr als
-  Nachrichtentext dargestellt.
+- Entfernte Beiträge bleiben auditierbar, werden aber nicht mehr als Text
+  dargestellt.
 - Alte Thread-URLs `/community/[slug]/threads/[threadId]` leiten dauerhaft auf
-  den Chat um.
+  den Standardkanal um.
+- Die Dashboard-Kachel zeigt nur Beiträge aus Kanälen, auf die der Nutzer
+  Zugriff hat.

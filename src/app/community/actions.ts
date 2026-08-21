@@ -2,7 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { communityMessageSchema, communityModerationSchema, communitySlugSchema } from "@/lib/community/schema";
+import {
+  communityChannelSlugSchema,
+  communityLinkModerationSchema,
+  communityLinkSchema,
+  communityMessageEditSchema,
+  communityMessageSchema,
+  communityModerationSchema,
+  communitySlugSchema,
+} from "@/lib/community/schema";
 import { assertRateLimit } from "@/lib/rate-limit/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -25,6 +33,7 @@ export async function createCommunityMessage(formData: FormData) {
 
   const parsed = communityMessageSchema.safeParse({
     communityId: formData.get("communityId"),
+    channelId: formData.get("channelId"),
     content: formData.get("content"),
   });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Nachricht konnte nicht gesendet werden.");
@@ -35,6 +44,7 @@ export async function createCommunityMessage(formData: FormData) {
     .from("community_messages")
     .insert({
       community_id: parsed.data.communityId,
+      channel_id: parsed.data.channelId,
       author_id: user.id,
       content: parsed.data.content,
     })
@@ -49,7 +59,31 @@ export async function createCommunityMessage(formData: FormData) {
     throw uploadError;
   }
 
-  revalidateCommunity(formData.get("communitySlug"));
+  revalidateCommunity(formData);
+}
+
+export async function updateCommunityMessage(formData: FormData) {
+  await assertRateLimit("community-message-update", 30, 60_000);
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const parsed = communityMessageEditSchema.safeParse({
+    messageId: formData.get("messageId"),
+    content: formData.get("content"),
+  });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Beitrag konnte nicht gespeichert werden.");
+
+  const { error } = await supabase
+    .from("community_messages")
+    .update({ content: parsed.data.content })
+    .eq("id", parsed.data.messageId)
+    .eq("author_id", user.id);
+  if (error) throw new Error(error.message);
+
+  revalidateCommunity(formData);
 }
 
 export async function removeCommunityMessage(formData: FormData) {
@@ -77,13 +111,74 @@ export async function removeCommunityMessage(formData: FormData) {
     .eq("id", parsed.data.messageId);
   if (error) throw new Error(error.message);
 
-  revalidateCommunity(formData.get("communitySlug"));
+  revalidateCommunity(formData);
 }
 
-function revalidateCommunity(slug: FormDataEntryValue | null) {
+export async function createCommunityLink(formData: FormData) {
+  await assertRateLimit("community-link-create", 20, 60_000);
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const parsed = communityLinkSchema.safeParse({
+    channelId: formData.get("channelId"),
+    title: formData.get("title"),
+    description: formData.get("description"),
+    url: formData.get("url"),
+  });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Link konnte nicht gespeichert werden.");
+
+  const { error } = await supabase.from("community_links").insert({
+    channel_id: parsed.data.channelId,
+    created_by: user.id,
+    url: parsed.data.url,
+    title: parsed.data.title,
+    description: parsed.data.description,
+  });
+  if (error) throw new Error(error.message);
+
+  revalidateCommunity(formData);
+}
+
+export async function removeCommunityLink(formData: FormData) {
+  await assertRateLimit("community-link-remove", 30, 60_000);
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const parsed = communityLinkModerationSchema.safeParse({
+    linkId: formData.get("linkId"),
+    reason: formData.get("reason"),
+  });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Link konnte nicht entfernt werden.");
+
+  const { error } = await supabase
+    .from("community_links")
+    .update({
+      status: "removed",
+      removed_at: new Date().toISOString(),
+      removed_by: user.id,
+      removed_reason: parsed.data.reason,
+    })
+    .eq("id", parsed.data.linkId);
+  if (error) throw new Error(error.message);
+
+  revalidateCommunity(formData);
+}
+
+function revalidateCommunity(formData: FormData) {
   revalidatePath("/community");
-  const parsed = communitySlugSchema.safeParse(slug);
-  if (parsed.success) revalidatePath(`/community/${parsed.data}`);
+
+  const community = communitySlugSchema.safeParse(formData.get("communitySlug"));
+  if (!community.success) return;
+
+  revalidatePath(`/community/${community.data}`);
+  const channel = communityChannelSlugSchema.safeParse(formData.get("channelSlug"));
+  if (channel.success) revalidatePath(`/community/${community.data}/${channel.data}`);
 }
 
 function readImages(files: FormDataEntryValue[]) {

@@ -21,9 +21,9 @@ export default async function CommunityOverviewPage() {
         <>
           <header>
             <p className="mono text-xs uppercase tracking-[0.18em] text-[var(--accent)]">Community</p>
-            <h1 className="display-serif mt-3 text-5xl text-[var(--foreground)] sm:text-6xl">Deine Chats.</h1>
+            <h1 className="display-serif mt-3 text-5xl text-[var(--foreground)] sm:text-6xl">Deine Kanäle.</h1>
             <p className="mt-4 max-w-2xl text-[var(--muted)]">
-              Ein Klick öffnet den jeweiligen Verlauf.
+              News, Vorstellungsrunde, Chat und Linksammlung – je Community in eigenen Kanälen.
             </p>
           </header>
           <ul className="mt-8 grid gap-3">
@@ -42,7 +42,7 @@ export default async function CommunityOverviewPage() {
 function CommunityLink({ community }: { community: CommunitySummary }) {
   return (
     <Link
-      href={`/community/${community.slug}`}
+      href={community.defaultChannelSlug ? `/community/${community.slug}/${community.defaultChannelSlug}` : `/community/${community.slug}`}
       className="surface flex items-center gap-4 p-4 transition hover:border-[var(--accent)]"
     >
       <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[var(--panel-2)] text-[var(--accent)]">
@@ -52,9 +52,10 @@ function CommunityLink({ community }: { community: CommunitySummary }) {
         <span className="mono block text-[10px] uppercase tracking-[0.14em] text-[var(--subtle)]">{community.eyebrow}</span>
         <span className="mt-1 block truncate text-lg font-semibold text-[var(--foreground)]">{community.title}</span>
         <span className="mt-1 block text-sm text-[var(--muted)]">
+          {community.channelCount} Kanäle ·{" "}
           {community.messageCount === 0
-            ? "Noch keine Nachrichten"
-            : `${community.messageCount} Nachrichten · zuletzt ${formatRelativeDate(community.lastActivityAt)}`}
+            ? "noch keine Beiträge"
+            : `${community.messageCount} Beiträge · zuletzt ${formatRelativeDate(community.lastActivityAt)}`}
         </span>
       </span>
       <ArrowRight size={16} className="shrink-0 text-[var(--accent)]" />

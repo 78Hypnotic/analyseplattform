@@ -28,6 +28,7 @@ const baseProps: DashboardHomeProps = {
   swimTechniqueAxes: null,
   activeTrainingPlan: null,
   trainingPlanAccess: "locked",
+  communityUpdates: [],
   isCoach: false,
   isAdmin: false,
 };
@@ -153,7 +154,7 @@ describe("DashboardHome", () => {
     expect(screen.getByText("4:46")).toBeTruthy();
     expect(screen.getByText("238")).toBeTruthy();
     expect(screen.getByText("3 s schneller (2,8 %)")).toBeTruthy();
-    expect(screen.getByText("10 W mehr (4,4 %)")).toBeTruthy();
+    expect(screen.getAllByText("10 W mehr (4,4 %)")).toHaveLength(2);
     expect(screen.queryByText("Schnellstart")).toBeNull();
   });
 
@@ -188,6 +189,37 @@ describe("DashboardHome", () => {
     expect(screen.getByRole("heading", { name: "3 Athleten" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Steuerzentrale" })).toBeTruthy();
     expect(screen.getByText("Bibliotheken öffnen")).toBeTruthy();
+  });
+
+  it("shows an empty state for the community tile", () => {
+    render(<DashboardHome {...baseProps} />);
+
+    expect(screen.getByText("Noch keine Beiträge. Stell dich in der Vorstellungsrunde vor.")).toBeTruthy();
+  });
+
+  it("links community updates to their channel anchor", () => {
+    render(
+      <DashboardHome
+        {...baseProps}
+        communityUpdates={[
+          {
+            id: "msg-1",
+            communitySlug: "plattform",
+            communityTitle: "Plattform-Community",
+            channelSlug: "news",
+            channelName: "News",
+            channelType: "announcement",
+            authorName: "Team",
+            snippet: "Neue Laufdiagnostik ist da.",
+            createdAt: "2026-08-20T09:00:00Z",
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: /Neue Laufdiagnostik ist da\./ }).getAttribute("href")).toBe(
+      "/community/plattform/news#m-msg-1",
+    );
   });
 });
 

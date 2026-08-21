@@ -6,16 +6,20 @@ import { cn } from "@/lib/utils";
 export function MessageList({
   messages,
   communitySlug,
+  channelSlug,
   canModerate,
+  emptyText = "Noch keine Nachrichten. Schreib die erste.",
 }: {
   messages: CommunityMessage[];
   communitySlug: string;
+  channelSlug: string;
   canModerate: boolean;
+  emptyText?: string;
 }) {
   if (messages.length === 0) {
     return (
       <p className="surface mt-6 p-8 text-center text-sm text-[var(--muted)]">
-        Noch keine Nachrichten. Schreib die erste.
+        {emptyText}
       </p>
     );
   }
@@ -47,7 +51,12 @@ export function MessageList({
               <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-[var(--foreground)]">{message.content}</p>
               <AttachmentGrid attachments={message.attachments} />
               {canModerate || message.isOwn ? (
-                <ModerateMessageForm messageId={message.id} communitySlug={communitySlug} canModerate={canModerate} />
+                <ModerateMessageForm
+                  messageId={message.id}
+                  communitySlug={communitySlug}
+                  channelSlug={channelSlug}
+                  canModerate={canModerate}
+                />
               ) : null}
             </>
           )}
@@ -75,10 +84,12 @@ function AttachmentGrid({ attachments }: { attachments: CommunityAttachment[] })
 function ModerateMessageForm({
   messageId,
   communitySlug,
+  channelSlug,
   canModerate,
 }: {
   messageId: string;
   communitySlug: string;
+  channelSlug: string;
   canModerate: boolean;
 }) {
   return (
@@ -87,6 +98,7 @@ function ModerateMessageForm({
       <form action={removeCommunityMessage} className="mt-3 flex flex-wrap items-center gap-2">
         <input type="hidden" name="messageId" value={messageId} />
         <input type="hidden" name="communitySlug" value={communitySlug} />
+        <input type="hidden" name="channelSlug" value={channelSlug} />
         {canModerate ? <input name="reason" maxLength={300} placeholder="Grund (optional)" className="flex-1" /> : null}
         <button
           type="submit"
@@ -104,6 +116,8 @@ function formatRole(role: CommunityRole) {
   if (role === "coach") return "Coach";
   return "Athlet";
 }
+
+export { AttachmentGrid, formatRole, formatTimestamp };
 
 function formatTimestamp(value: string) {
   return new Date(value).toLocaleString("de-DE", {

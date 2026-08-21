@@ -4,6 +4,8 @@ import {
   BookOpen,
   CalendarDays,
   Footprints,
+  Megaphone,
+  MessagesSquare,
   Settings2,
   ShieldCheck,
   Sparkles,
@@ -13,6 +15,7 @@ import {
 import Link from "next/link";
 import { formatPace } from "@/lib/analysis/calculations";
 import type { TechniqueProfileAxis, TechniqueProfileGroup } from "@/lib/analysis/types";
+import type { DashboardCommunityUpdate } from "@/lib/community/communities";
 import type { DashboardImprovements, DashboardMetricDelta, DashboardMetricImprovement } from "@/lib/dashboard/improvements";
 import { ButtonLink } from "./button";
 import { TechniqueSpiderChart } from "./technique-spider-chart";
@@ -66,6 +69,7 @@ export type DashboardHomeProps = {
   swimTechniqueAxes: TechniqueProfileAxis[] | null;
   activeTrainingPlan: DashboardTrainingPlan | null;
   trainingPlanAccess: "locked" | "member" | "coach" | "admin";
+  communityUpdates: DashboardCommunityUpdate[];
   isCoach: boolean;
   isAdmin: boolean;
   coachAthleteCount?: number;
@@ -78,6 +82,7 @@ export function DashboardHome({
   swimTechniqueAxes,
   activeTrainingPlan,
   trainingPlanAccess,
+  communityUpdates,
   isCoach,
   isAdmin,
   coachAthleteCount = 0,
@@ -314,6 +319,54 @@ export function DashboardHome({
           )}
         </section>
 
+        <section className="surface p-6 md:col-span-6 xl:col-span-6">
+          <div className="mb-4 flex items-start justify-between gap-4">
+            <div>
+              <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--subtle)]">
+                Community
+              </p>
+              <h2 className="mt-2 text-xl font-semibold">Neues aus der Community</h2>
+            </div>
+            <MessagesSquare size={19} className="text-[var(--accent)]" />
+          </div>
+          {communityUpdates.length === 0 ? (
+            <div className="flex flex-col gap-3">
+              <p className="text-sm leading-6 text-[var(--muted)]">
+                Noch keine Beiträge. Stell dich in der Vorstellungsrunde vor.
+              </p>
+              <DashboardLink href="/community">Zur Community</DashboardLink>
+            </div>
+          ) : (
+            <>
+              <div className="divide-y divide-[var(--line)]">
+                {communityUpdates.map((update) => (
+                  <Link
+                    key={update.id}
+                    href={`/community/${update.communitySlug}/${update.channelSlug}#m-${update.id}`}
+                    className="flex items-start justify-between gap-4 py-3 first:pt-0"
+                  >
+                    <div className="min-w-0">
+                      <p className="flex items-center gap-2 text-xs text-[var(--subtle)]">
+                        {update.channelType === "announcement" ? (
+                          <Megaphone size={13} className="shrink-0 text-[var(--accent)]" />
+                        ) : null}
+                        <span className="truncate">
+                          {update.channelName} · {update.authorName} · {formatDate(update.createdAt)}
+                        </span>
+                      </p>
+                      <p className="mt-1 line-clamp-2 text-sm text-[var(--foreground)]">{update.snippet}</p>
+                    </div>
+                    <ArrowRight size={16} className="mt-1 shrink-0 text-[var(--accent)]" />
+                  </Link>
+                ))}
+              </div>
+              <div className="mt-4 border-t border-[var(--line)] pt-4">
+                <DashboardLink href="/community">Zur Community</DashboardLink>
+              </div>
+            </>
+          )}
+        </section>
+
         {isCoach ? (
           <RoleCard
             href="/coach"
@@ -324,7 +377,6 @@ export function DashboardHome({
             spanClass={roleCardSpan}
           />
         ) : null}
-
         {isAdmin ? (
           <RoleCard
             href="/admin"
